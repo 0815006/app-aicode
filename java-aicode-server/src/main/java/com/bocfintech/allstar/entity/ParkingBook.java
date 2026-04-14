@@ -21,6 +21,7 @@ public class ParkingBook {
 
     private Integer autoBook;      // 0:关闭, 1:开启
     
+    @TableField(updateStrategy = FieldStrategy.IGNORED)
     private String nextAutoBookDate; // 下次自动开启预约日期 (yyyy-mm-dd)
 
     @TableField(fill = FieldFill.INSERT)

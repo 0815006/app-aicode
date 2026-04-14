@@ -15,6 +15,7 @@ public interface ParkingBookMapper extends BaseMapper<ParkingBook> {
             "    pb.emp_no, \n" +
             "    pb.username, \n" +
             "    pb.auto_book, \n" +
+            "    pb.next_auto_book_date, \n" +
             "    pb.create_time, \n" +
             "    pb.last_time,\n" +
             "    pr.appointment_date AS last_appointment_date,\n" +

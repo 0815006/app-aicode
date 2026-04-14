@@ -34,6 +34,7 @@
           </div>
         </template>
       </el-table-column>
+      <!-- <el-table-column prop="nextAutoBookDate" label="下次重启预约日期" width="100" /> -->
       <el-table-column prop="lastAppointmentDate" label="最近预约入园日期" width="120" />
       <el-table-column prop="lastAppointmentResult" label="最近预约入园结果" width="120" />
       <el-table-column prop="lastParkingPosition" label="车位位置" width="140" />

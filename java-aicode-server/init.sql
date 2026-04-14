@@ -13,15 +13,15 @@ MySQL - 5.7.17-log : Database - stack_db
 /*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
-CREATE DATABASE /*!32312 IF NOT EXISTS*/`stack_db_4_update` /*!40100 DEFAULT CHARACTER SET utf8mb4 */;
+CREATE DATABASE /*!32312 IF NOT EXISTS*/`stack_db` /*!40100 DEFAULT CHARACTER SET utf8mb4 */;
 
-USE `stack_db_4_update`;
+USE `stack_db`;
 
 /*Table structure for table `chat_message` */
 
 DROP TABLE IF EXISTS `chat_message`;
 
-CREATE TABLE `chat_message3` (
+CREATE TABLE `chat_message` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
   `username` varchar(255) NOT NULL,
   `message` text NOT NULL,
@@ -33,7 +33,7 @@ CREATE TABLE `chat_message3` (
 
 DROP TABLE IF EXISTS `com_workholiday`;
 
-CREATE TABLE `com_workholiday2` (
+CREATE TABLE `com_workholiday` (
   `date` date NOT NULL COMMENT '日期',
   `status` varchar(255) DEFAULT NULL COMMENT '状态，0 放假 1 上班',
   `msg` varchar(255) DEFAULT NULL COMMENT '节日信息',
@@ -44,7 +44,7 @@ CREATE TABLE `com_workholiday2` (
 
 DROP TABLE IF EXISTS `data_compare_result`;
 
-CREATE TABLE `data_compare_result22` (
+CREATE TABLE `data_compare_result` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键',
   `task_id` bigint(20) NOT NULL COMMENT '关联的比对任务ID（逻辑外键，无约束）',
   `table_name` varchar(100) NOT NULL COMMENT '表名',
