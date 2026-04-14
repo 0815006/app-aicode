@@ -25,15 +25,7 @@ public class ParkingRecordController {
      */
     @PostMapping("/add")
     public ResultBean addRecord(@RequestBody ParkingRecord record) {
-        String empNo = getEmpNoFromToken();
-        if (!StringUtils.hasText(empNo)) {
-            return ResultBean.error(ErrorEnum.参数异常, "未登录或Token无效");
-        }
-        // 自动填充当前用户信息，防止前端篡改
-        record.setEmpNo(empNo);
-
         // 可选：如果业务要求，也可以在这里校验车牌、车位等格式
-
         boolean success = parkingRecordService.addRecord(record);
         return success ? ResultBean.success("预约成功") : ResultBean.error(ErrorEnum.操作失败, "预约失败");
     }
@@ -44,18 +36,14 @@ public class ParkingRecordController {
      */
     @GetMapping("/queryList")
     public ResultBean queryList(@RequestParam(value = "appointmentDate", required = false) String appointmentDate, // 可选：按日期筛选
-            @RequestParam(value = "result", required = false) String result,                  // 可选：按结果筛选 (成功/取消)
+                                @RequestParam(value = "result", required = false) String result,                  // 可选：按结果筛选 (成功/取消)
+                                @RequestParam(value = "empId", required = true) String empId,
             @RequestParam(value = "pageNum", required = true, defaultValue = "1") int pageNum,
             @RequestParam(value = "pageSize", required = true, defaultValue = "10") int pageSize
     ) {
-        String empNo = getEmpNoFromToken();
-        if (!StringUtils.hasText(empNo)) {
-            return ResultBean.error(ErrorEnum.参数异常, "未登录或Token无效");
-        }
-
         // 构建查询条件
         LambdaQueryWrapper<ParkingRecord> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(ParkingRecord::getEmpNo, empNo); // 核心：只查本人的
+        wrapper.eq(ParkingRecord::getEmpNo, empId); // 核心：只查本人的
 
         if (StringUtils.hasText(appointmentDate)) {
             wrapper.eq(ParkingRecord::getAppointmentDate, appointmentDate);
@@ -80,8 +68,4 @@ public class ParkingRecordController {
         return ResultBean.success(pageInfo);
     }
 
-    // 工具方法
-    private String getEmpNoFromToken() {
-        return "2036377"; // TODO: 替换
-    }
 }

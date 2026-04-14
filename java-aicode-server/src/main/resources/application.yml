@@ -22,9 +22,9 @@ spring:
       - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
 
   datasource:
-    url: jdbc:mysql://localhost:3306/stack_db?useSSL=false&useUnicode=true&characterEncoding=UTF8&serverTimezone=GMT%2B8&allowMultiQueries=true&zeroDateTimeBehavior=convertToNull&rewriteBatchedStatements=true
+    url: jdbc:mysql://22.188.9.144:3306/stack_db?useSSL=false&useUnicode=true&characterEncoding=UTF8&serverTimezone=GMT%2B8&allowMultiQueries=true&zeroDateTimeBehavior=convertToNull&rewriteBatchedStatements=true
     username: root
-    password: root
+    password: Star002!
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   # MyBatis Plus 配置

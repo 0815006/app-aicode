@@ -31,6 +31,11 @@
           </el-tag>
         </template>
       </el-table-column>
+      <el-table-column prop="lastAppointmentDate" label="最近预约入园日期" width="120" />
+      <el-table-column prop="lastAppointmentResult" label="最近预约入园结果" width="120" />
+      <el-table-column prop="lastParkingPosition" label="车位位置" width="140" />
+      <el-table-column prop="parkingType" label="车牌类型" width="100" />
+      <el-table-column prop="plateNo" label="车牌号" width="120" />
       <el-table-column prop="createTime" label="创建时间" width="100" sortable >
             <template slot-scope="scope">
                 {{ formatDate(scope.row.createTime) }}

@@ -2,6 +2,7 @@ package com.bocfintech.allstar.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.bocfintech.allstar.entity.ParkingBook;
+import com.bocfintech.allstar.entity.ParkingBookWithRusult;
 import com.bocfintech.allstar.mapper.ParkingBookMapper;
 import com.bocfintech.allstar.service.ParkingBookService;
 import com.bocfintech.allstar.task.ParkBookTask;
@@ -68,7 +69,7 @@ public class ParkingBookServiceImpl extends ServiceImpl<ParkingBookMapper, Parki
     }
 
     @Override
-    public List<ParkingBook> getAllRecords() {
+    public List<ParkingBookWithRusult> getAllRecords() {
         return baseMapper.selectAllInfo();
     }
 

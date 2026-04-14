@@ -441,18 +441,15 @@ public class ParkBookTask {
         ParkingRecord record = new ParkingRecord();
         try {
             // 检查apply.status是否为"1"
-            if (response != null && response.contains("\"status\"")) {
-                String bookStatus = JsonUtils.getJsonString(response, "data", "apply", "status"); // 1-预约成功，0-未预约
-                log.info("预约成功！");
-                // 可以进一步提取其他信息
+            if (response != null ) {
 
-                String empNo = JsonUtils.getJsonString(response, "data", "apply", "employeeNo");
+                // 可以进一步提取其他信息
+                String empNo = JsonUtils.getJsonString(response, "data", "employeeInfo", "employeeNo");
                 record.setEmpNo(empNo);//工号
                 String parkingNoA = JsonUtils.getJsonString(response, "data", "carPlate", "parkingNo");
                 String parkingNoB = JsonUtils.getJsonString(response, "data", "result", "parkingNo");
                 String parkingType = JsonUtils.getJsonString(response, "data", "carPlate", "type");
                 String plateNo =JsonUtils.getJsonString(response, "data", "carPlate", "plateNo");
-                String message = JsonUtils.getJsonString(response, "data", "result", "message");
 
                 record.setParkingType(parkingType);//停车证类型: A, B
                 String parkingNo = "A".equals(parkingType) ? parkingNoA : parkingNoB ;
@@ -465,30 +462,41 @@ public class ParkBookTask {
                 record.setDepartment(JsonUtils.getJsonString(response, "data", "employeeInfo", "depart"));//用户部门
                 record.setPhone(JsonUtils.getJsonString(response, "data", "employeeInfo", "mobilePhone"));//用户手机号
 
+                String message = JsonUtils.getJsonString(response, "data", "result", "message");
+
+                String bookStatus = "";
+                if(response.contains("\"status\"")){
+                    bookStatus = JsonUtils.getJsonString(response, "data", "apply", "status"); // 1-预约成功，0-未预约
+                    log.info("预约成功！");
+                    record.setResultDesc("预约成功");
+
+                    if("1".equals(bookStatus)){
+                        if("未中签".equals(message)){
+                            record.setResult("未中签");
+                        }else if("不入园".equals(message)){
+                            record.setResult("未预约");
+                        }{
+                            record.setResult("已成功预约");
+                        }
+                    }else if("0".equals(bookStatus)){
+                        log.warn("未预约，状态码为0");
+                        record.setResult("未预约");
+                        record.setResultDesc("未预约，状态码为0");
+                    } else{
+                        log.warn("状态码异常");
+                        record.setResult("未知状态码");
+                        record.setResultDesc("未知状态码");
+                    }
+
+                }else if("未提交入园申请".equals(message)){
+                    record.setResult("未提交入园申请");
+                } else {
+                    log.warn("预约失败，未找到status字段或状态不是1");
+                }
                 // 读取 message 从json中读
 
-                record.setResultDesc("预约成功");
-
                 log.info("预约详情：员工号={}, 车牌号={}, 停车位置={}", empNo, plateNo, parkingNo);
-                if("1".equals(bookStatus)){
-                    if("未中签".equals(message)){
-                        record.setResult("未中签");
-                    }else if("不入园".equals(message)){
-                        record.setResult("未预约");
-                    } {
-                        record.setResult("已成功预约");
-                    }
-                }else if("0".equals(bookStatus)){
-                    log.warn("未预约，状态码为0");
-                    record.setResult("未预约");
-                    record.setResultDesc("未预约，状态码为0");
-                }else {
-                    log.warn("状态码异常");
-                    record.setResult("未知状态码");
-                    record.setResultDesc("未知状态码");
-                }
-            } else {
-                log.warn("预约失败，未找到status字段或状态不是1");
+
             }
 
             // 打印完整响应内容

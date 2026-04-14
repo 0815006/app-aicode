@@ -2,6 +2,7 @@ package com.bocfintech.allstar.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.bocfintech.allstar.entity.ParkingBook;
+import com.bocfintech.allstar.entity.ParkingBookWithRusult;
 
 import java.util.List;
 
@@ -25,6 +26,6 @@ public interface ParkingBookService extends IService<ParkingBook> {
     /**
      * 查所有配置
      */
-    List<ParkingBook> getAllRecords();
+    List<ParkingBookWithRusult> getAllRecords();
 
 }
