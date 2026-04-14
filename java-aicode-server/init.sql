@@ -143,6 +143,7 @@ CREATE TABLE `parking_book` (
   `username` varchar(50) NOT NULL COMMENT '用户中文名称',
   `pass_hash` varchar(255) NOT NULL COMMENT '用户密码哈希（加密存储）',
   `auto_book` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否开启自动预约（0=关闭，1=开启）',
+  `next_auto_book_date` date DEFAULT NULL COMMENT '下次自动开启预约日期',
   `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `last_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`emp_no`),

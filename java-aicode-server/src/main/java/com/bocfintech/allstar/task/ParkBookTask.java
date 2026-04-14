@@ -1,6 +1,7 @@
 package com.bocfintech.allstar.task;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.bocfintech.allstar.entity.ParkingBook;
 import com.bocfintech.allstar.entity.ParkingRecord;
 import com.bocfintech.allstar.mapper.ComWorkholidayMapper;
@@ -45,6 +46,34 @@ public class ParkBookTask {
     private ParkingRecordMapper parkingRecordMapper;
 
     private String token = null; // 存储登录token
+
+    /**
+     * 每天上午8点执行定时任务，检查是否有需要自动开启预约的用户
+     */
+    @Scheduled(cron = "0 0 8 * * *")
+    public void autoEnableSchedule() {
+        log.info("开始执行每日自动开启预约检查定时任务");
+        LocalDate localDate = LocalDate.now();
+        Date date = Date.from(localDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
+        if("0".equals(comWorkholidayMapper.getStatusByDate(date))){
+            log.info("今天是假日，不执行自动开启逻辑");
+            return;
+        }
+
+        // 查找 auto_book = 0 且 next_auto_book_date = 今天 的记录，并更新为开启
+        LambdaUpdateWrapper<ParkingBook> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(ParkingBook::getAutoBook, 0)
+                .eq(ParkingBook::getNextAutoBookDate, localDate.toString())
+                .set(ParkingBook::getAutoBook, 1)
+                .set(ParkingBook::getNextAutoBookDate, null);
+
+        boolean updated = parkingBookService.update(updateWrapper);
+        if (updated) {
+            log.info("成功处理今日自动开启预约的用户状态");
+        } else {
+            log.info("今日无需要自动开启预约的用户");
+        }
+    }
 
     /**
      * 每天上午8点半执行定时任务

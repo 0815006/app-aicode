@@ -29,6 +29,9 @@
           <el-tag :type="scope.row.autoBook === 1 ? 'success' : 'info'">
             {{ scope.row.autoBook === 1 ? '开启' : '关闭' }}
           </el-tag>
+          <div v-if="scope.row.autoBook === 0 && scope.row.nextAutoBookDate" style="font-size: 10px; color: #909399; margin-top: 4px;">
+            恢复: {{ scope.row.nextAutoBookDate }}
+          </div>
         </template>
       </el-table-column>
       <el-table-column prop="lastAppointmentDate" label="最近预约入园日期" width="120" />
@@ -179,6 +182,16 @@
             inactive-text="关闭"
           />
         </el-form-item>
+        <el-form-item v-if="form.autoBook === 0" label="恢复日期" prop="nextAutoBookDate">
+          <el-date-picker
+            v-model="form.nextAutoBookDate"
+            type="date"
+            placeholder="选择下次自动开启日期"
+            value-format="yyyy-MM-dd"
+            style="width: 100%"
+          />
+          <div class="empno-tip">到达此日期早晨8点，系统将自动为您重新开启预约</div>
+        </el-form-item>
       </el-form>
 
       <div slot="footer">
@@ -209,7 +222,8 @@ export default {
         empNo: '',
         username: '',
         password: '',
-        autoBook: 0
+        autoBook: 0,
+        nextAutoBookDate: ''
       },
       rules: {
         empNo: [
@@ -328,7 +342,7 @@ export default {
 
     handleAdd() {
       this.formTitle = '新增车位预约'
-      this.form = { empNo: '', username: '', password: '', autoBook: 0 }
+      this.form = { empNo: '', username: '', password: '', autoBook: 0, nextAutoBookDate: '' }
       this.isEditing = false
       this.formVisible = true
     },
@@ -364,10 +378,10 @@ export default {
         if (!valid) return
 
         this.submitLoading = true
-        const { empNo, username, password, autoBook } = this.form
+        const { empNo, username, password, autoBook, nextAutoBookDate } = this.form
         const passHash = this.encryptPassword(password)
 
-        const data = { empNo, username, autoBook }
+        const data = { empNo, username, autoBook, nextAutoBookDate }
         if (passHash) data.passHash = passHash
 
         try {

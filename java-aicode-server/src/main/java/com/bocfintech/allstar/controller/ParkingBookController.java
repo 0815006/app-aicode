@@ -49,6 +49,7 @@ public class ParkingBookController {
             record.setUsername(dto.getUsername());
             record.setPassHash(dto.getPassHash()); // 前端已加密
             record.setAutoBook(dto.getAutoBook());
+            record.setNextAutoBookDate(dto.getNextAutoBookDate());
             parkingBookService.save(record);
             return ResultBean.success("新增成功");
         } catch (Exception e) {
@@ -69,6 +70,7 @@ public class ParkingBookController {
 
             existing.setUsername(dto.getUsername());
             existing.setAutoBook(dto.getAutoBook());
+            existing.setNextAutoBookDate(dto.getNextAutoBookDate());
             if (dto.getPassHash() != null && !dto.getPassHash().isEmpty()) {
                 existing.setPassHash(dto.getPassHash());
             }

@@ -20,6 +20,8 @@ public class ParkingBook {
     private String passHash;   // 密码哈希
 
     private Integer autoBook;      // 0:关闭, 1:开启
+    
+    private String nextAutoBookDate; // 下次自动开启预约日期 (yyyy-mm-dd)
 
     @TableField(fill = FieldFill.INSERT)
     private Date createTime= new Date(); // 设置默认值       // 创建时间
