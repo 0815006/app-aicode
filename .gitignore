@@ -1,0 +1,62 @@
+### Vue.js ###
+# dependencies
+/node_modules
+/dist
+
+# testing
+/coverage
+
+# production
+/build
+
+# misc
+.DS_Store
+.env.local
+.env.*.local
+.idea/
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# frontend specific
+web-aicode-vue/node_modules/
+web-aicode-vue/dist/
+web-aicode-vue/npm-debug.log*
+web-aicode-vue/yarn-debug.log*
+web-aicode-vue/yarn-error.log*
+web-aicode-vue/pnpm-debug.log*
+web-aicode-vue/package-lock.json
+
+### Java ###
+# Maven
+/target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# Gradle
+.gradle/
+/build/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Eclipse
+.project
+.classpath
+.settings/
+
+# Logs
+/logs/
+
+# backend specific
+java-aicode-server/target/
+java-aicode-server/.idea/
+java-aicode-server/*.iml
+java-aicode-server/*.ipr
+java-aicode-server/*.iws
+java-aicode-server/logs/

@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-Application<aicode>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.bocfintech.allstar.Application",
+            "projectName": "aicode",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}

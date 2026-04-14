@@ -1,0 +1,255 @@
+<template>
+  <!-- 去掉 style="padding: 20px" -->
+  <div class="resource-check-container"> <!-- 内部再控制间距 -->
+    <h2 class="page-title">资源核查报告</h2>
+
+    <!-- 查询表单 -->
+    <el-card shadow="hover" style="margin-bottom: 20px">
+      <el-form :inline="true" size="small">
+        <el-form-item label="产品标识">
+          <el-input
+            v-model="productId"
+            placeholder="请输入产品标识，如：BPS-D-AUTO"
+            style="width: 200px"
+            clearable
+            @keyup.enter.native="handleQuery"
+          />
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="handleQuery" :loading="loading">
+            查询
+          </el-button>
+        </el-form-item>
+      </el-form>
+    </el-card>
+
+    <!-- 汇总表格 -->
+    <el-card v-if="summaryList.length > 0" shadow="hover" style="margin-bottom: 20px">
+      <div slot="header">
+        <span style="font-weight: bold">资源总量汇总</span>
+      </div>
+      <el-table
+        :data="summaryList"
+        border
+        size="small"
+        style="width: 100%"
+        :default-sort="{ prop: 'deploymentLocation', order: 'ascending' }"
+      >
+        <el-table-column prop="deploymentLocation" label="部署地点" width="150" sortable />
+        <el-table-column prop="systemPlatform" label="系统平台" width="180" />
+        <el-table-column prop="hostCount" label="机器台数" width="100" />
+        <el-table-column prop="totalCpu" label="总CPU核心数" width="120" />
+        <el-table-column prop="totalMemoryGb" label="总内存(GB)" width="120" />
+        <el-table-column prop="totalStorageGb" label="总存储(GB)" width="120" />
+      </el-table>
+    </el-card>
+
+    <!-- ✅ 新增：文件级资源汇总（风格统一） -->
+    <el-card v-if="fileSummaryList && fileSummaryList.length > 0" shadow="hover" style="margin-top: 20px">
+    <div slot="header">
+        <span style="font-weight: bold">文件级资源汇总（按原始文件名分组）</span>
+    </div>
+    <el-collapse>
+        <el-collapse-item
+        v-for="(group, idx) in fileSummaryList"
+        :key="idx"
+        :name="idx"
+        >
+        <template slot="title">
+            <!-- 文件名 + 上传次数 -->
+            <span style="font-weight: bold; color: #409EFF; flex: 1;">
+            📄 {{ group.originalFileName }}
+            <el-tag size="mini" style="margin-left: 8px">
+                上传 {{ group.uploadCount }} 次
+            </el-tag>
+            </span>
+
+            <!-- 删除按钮：紧贴最右侧 -->
+            <el-button
+            size="mini"
+            type="danger"
+            icon="el-icon-delete"
+            @click.stop="handleDeleteFile(group.originalFileName)"
+            :loading="deleting === group.originalFileName"
+            style="margin-left: 0;"
+            >
+            删除
+            </el-button>
+        </template>
+        <el-table
+            :data="group.summary"
+            border
+            size="small"
+            style="width: 100%"
+            :default-sort="{ prop: 'deploymentLocation', order: 'ascending' }"
+        >
+            <el-table-column prop="deploymentLocation" label="部署地点" width="150" sortable />
+            <el-table-column prop="systemPlatform" label="系统平台" width="180" />
+            <el-table-column prop="hostCount" label="主机数量" width="100" />
+            <el-table-column prop="totalCpu" label="CPU总核数" width="100" />
+            <el-table-column prop="totalMemoryGb" label="内存总量(GB)" width="120" />
+            <el-table-column prop="totalStorageGb" label="存储总量(GB)" width="120" />
+        </el-table>
+        </el-collapse-item>
+    </el-collapse>
+    </el-card>
+
+    <!-- 明细表格 -->
+    <el-card v-if="detailList.length > 0" shadow="hover">
+      <div slot="header">
+        <span style="font-weight: bold">资源明细配置（相同配置已合并）</span>
+      </div>
+      <el-table
+        :data="detailList"
+        border
+        size="small"
+        style="width: 100%"
+        :default-sort="{ prop: 'deploymentLocation', order: 'ascending' }"
+      >
+        <el-table-column prop="deploymentLocation" label="部署地点" width="150" sortable />
+        <el-table-column prop="systemPlatform" label="系统平台" width="180" />
+        <el-table-column prop="partitionUsage" label="分区用途" width="380" />
+        <el-table-column prop="count" label="机器台数" width="80" />
+        <el-table-column prop="cpuCores" label="CPU核心数" width="100" />
+        <el-table-column prop="memoryGb" label="内存(GB)" width="100" />
+        <el-table-column prop="dedicatedStorageGb" label="独占存储(GB)" width="120" />
+        <el-table-column prop="sanStorageGb" label="SAN存储(GB)" width="120" />
+        <el-table-column prop="nasStorageGb" label="NAS存储(GB)" width="120" />
+
+      </el-table>
+    </el-card>
+    <!-- 无数据提示 -->
+    <el-empty v-if="!loading && summaryList.length === 0 && detailList.length === 0" description="暂无数据" />
+  </div>
+</template>
+
+<script>
+import { checkResources } from '@/api/resource'
+import { deleteResourceByFile } from '@/api/resource'
+
+
+export default {
+  name: 'ResourceCheck',
+  data() {
+    return {
+      productId: 'BPS-D-AUTO', // 产品ID
+      loading: false,
+      deleting: '', // 当前正在删除的文件名
+      summaryList: [],
+      detailList: [],
+      fileSummaryList: [] // ✅ 新增字段
+    }
+  },
+  methods: {
+    async handleQuery() {
+      if (!this.productId.trim()) {
+        this.$message.warning('请输入产品标识')
+        return
+      }
+
+      this.loading = true
+      this.summaryList = []
+      this.detailList = []
+      this.fileSummaryList = []
+
+      try {
+        const res = await checkResources(this.productId.trim())
+        if (res.data && res.data.code === 200) {
+          const data = res.data.data
+          this.summaryList = data.summaryList || []
+          this.detailList = data.detailList || []
+          this.fileSummaryList = data.fileSummaryList || [] // ✅ 接收新字段
+          this.$message.success('查询成功')
+        } else {
+          this.$message.error(res.data.message || '查询失败')
+        }
+      } catch (error) {
+        this.$message.error('网络请求失败，请检查接口是否可达')
+        console.error(error)
+      } finally {
+        this.loading = false
+      }
+    },
+    async handleDeleteFile(originalFileName) {
+    try {
+      await this.$confirm(
+        `确定删除文件 "${originalFileName}" 的所有资源数据吗？此操作不可恢复`,
+        '警告',
+        {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }
+      )
+
+      this.deleting = originalFileName
+
+      const res = await deleteResourceByFile(this.productId, originalFileName)
+
+      if (res.data && res.data.code === 200) {
+        this.$message.success(res.data.message || '删除成功')
+        // 重新查询数据
+        this.handleQuery()
+      } else {
+        this.$message.error(res.data.message || '删除失败')
+      }
+    } catch (error) {
+      if (error !== 'cancel') {
+        this.$message.error('删除失败，请检查网络或权限')
+        console.error(error)
+      }
+    } finally {
+      this.deleting = ''
+    }
+  }
+  }
+}
+</script>
+
+<style scoped>
+.resource-check-container {
+  padding: 20px;
+  margin: 16px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  border: 1px solid #dbe7f7;
+  box-shadow: 0 10px 22px rgba(21, 52, 105, 0.08);
+}
+
+.page-title {
+  margin: 0 0 18px;
+  font-size: 22px;
+  color: #1f2d3d;
+}
+
+::v-deep .el-card {
+  border-radius: 12px;
+  border: 1px solid #e2ebf8;
+  box-shadow: 0 6px 16px rgba(25, 56, 108, 0.06);
+}
+
+::v-deep .el-card__header {
+  background: #f6f9ff;
+  border-bottom: 1px solid #e6eef9;
+}
+
+::v-deep .el-table {
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+::v-deep .el-table th {
+  background: #f3f8ff;
+  color: #42526a;
+}
+
+::v-deep .el-input__inner,
+::v-deep .el-button {
+  border-radius: 8px;
+}
+
+::v-deep .el-collapse-item__header {
+  font-weight: 600;
+  color: #334155;
+}
+</style>

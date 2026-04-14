@@ -1,0 +1,24 @@
+{
+    "name": "performance-resource-ui",
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {
+        "dev": "vue-cli-service serve",
+        "build": "vue-cli-service build"
+    },
+    "dependencies": {
+        "axios": "^1.6.0",
+        "crypto-js": "^4.2.0",
+        "dompurify": "^3.3.3",
+        "element-ui": "^2.15.14",
+        "he": "^1.2.0",
+        "highlight.js": "^11.11.1",
+        "marked": "^4.3.0",
+        "vue": "^2.7.16",
+        "vue-router": "3.0.2"
+    },
+    "devDependencies": {
+        "@vue/cli-service": "~4.5.0",
+        "vue-template-compiler": "^2.7.16"
+    }
+}
