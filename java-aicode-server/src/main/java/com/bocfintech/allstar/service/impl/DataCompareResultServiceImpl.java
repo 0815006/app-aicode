@@ -68,18 +68,31 @@ public class DataCompareResultServiceImpl implements DataCompareResultService {
             CompareResultItem item = new CompareResultItem();
             item.setTableName(tableName);
 
-            Long srcCount = sourceCounts.getOrDefault(tableName, 0L);
-            Long tgtCount = targetCounts.getOrDefault(tableName, 0L);
+            Long srcCount = sourceCounts.get(tableName);
+            Long tgtCount = targetCounts.get(tableName);
 
-            boolean isMatch = srcCount.equals(tgtCount);
-            item.setIsMatch(isMatch);
-            item.setSourceRowCount(srcCount);
-            item.setTargetRowCount(tgtCount);
-
-            if (isMatch) {
-                item.setDetail("行数一致：" + srcCount);
+            if (srcCount == null || tgtCount == null) {
+                item.setIsMatch(false);
+                item.setSourceRowCount(srcCount != null ? srcCount : 0L);
+                item.setTargetRowCount(tgtCount != null ? tgtCount : 0L);
+                if (srcCount == null && tgtCount == null) {
+                    item.setDetail("源库和目标库均无法获取行数（表可能不存在）");
+                } else if (srcCount == null) {
+                    item.setDetail("源库表不存在或无法访问");
+                } else {
+                    item.setDetail("目标库表不存在或无法访问");
+                }
             } else {
-                item.setDetail("源库：" + srcCount + "，目标库：" + tgtCount);
+                boolean isMatch = srcCount.equals(tgtCount);
+                item.setIsMatch(isMatch);
+                item.setSourceRowCount(srcCount);
+                item.setTargetRowCount(tgtCount);
+
+                if (isMatch) {
+                    item.setDetail("行数一致：" + srcCount);
+                } else {
+                    item.setDetail("源库：" + srcCount + "，目标库：" + tgtCount);
+                }
             }
 
             results.add(item);
@@ -190,11 +203,13 @@ public class DataCompareResultServiceImpl implements DataCompareResultService {
                     if (rs.next()) {
                         result.put(tableName, rs.getLong(1));
                     }
+                } catch (SQLException e) {
+                    log.warn("统计表 {} 行数失败: {}", tableName, e.getMessage());
+                    // 单个表失败不影响后续表，继续循环
                 }
             }
         } catch (SQLException e) {
-            log.warn("统计行数时部分表失败: {}", e.getMessage());
-            // 不抛异常，允许部分失败
+            log.error("数据库连接失败或执行异常", e);
         }
 
         return result;
