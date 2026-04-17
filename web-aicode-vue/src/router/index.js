@@ -7,6 +7,7 @@ import UploadResource from '@/views/UploadResource.vue' // 新增
 import ParkingBookList from '@/views/ParkingBookList.vue' // 新增
 import ChatHall from '@/views/ChatHall.vue' // 新增
 import DataMigration from '@/views/DataMigration.vue'
+import VoteManagement from '@/views/VoteManagement.vue'
 
 Vue.use(Router)
 
@@ -17,6 +18,12 @@ export default new Router({
       component: Home,
       redirect: '/chat',
       children: [
+        {
+          path: 'vote',
+          name: 'VoteManagement',
+          component: VoteManagement,
+          meta: { title: '投票管理' }
+        },
         {
           path: 'resource-check',
           name: 'ResourceCheck',

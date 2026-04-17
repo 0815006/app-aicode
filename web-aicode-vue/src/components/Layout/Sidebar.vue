@@ -37,6 +37,11 @@
         <span slot="title">数据迁移</span>
       </el-menu-item>
 
+      <el-menu-item index="/vote">
+        <i class="el-icon-star-off"></i>
+        <span slot="title">投票管理</span>
+      </el-menu-item>
+
     </el-menu>
   </div>
 </template>

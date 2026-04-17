@@ -2,7 +2,7 @@ import request from '@/utils/request'
 
 export function loadHistoryMessages(params) {
   return request({
-    url: '/api/chat/history',
+    url: '/chat/history',
     method: 'get',
     params
   })
@@ -10,7 +10,7 @@ export function loadHistoryMessages(params) {
 
 export function sendMessage(data) {
   return request({
-    url: '/api/chat/send',
+    url: '/chat/send',
     method: 'post',
     data
   })

@@ -21,6 +21,11 @@ spring:
       - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
       - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
 
+  servlet:
+    multipart:
+      max-file-size: 500MB
+      max-request-size: 500MB
+
   datasource:
     # url: jdbc:mysql://22.188.9.144:3306/stack_db?useSSL=false&useUnicode=true&characterEncoding=UTF8&serverTimezone=GMT%2B8&allowMultiQueries=true&zeroDateTimeBehavior=convertToNull&rewriteBatchedStatements=true
     url: jdbc:mysql://localhost:3306/stack_db?useSSL=false&useUnicode=true&characterEncoding=UTF8&serverTimezone=GMT%2B8&allowMultiQueries=true&zeroDateTimeBehavior=convertToNull&rewriteBatchedStatements=true
@@ -206,6 +211,9 @@ export:
     - work_supplement_info
   output-path: "D:/data/mysql-backup/"
   temp-path: "D:/data/temp/"
+
+vote:
+  upload-path: "D:/data/aicode-v1/uploads/vote/"
 
 tdsql:
   host: 81.88.153.53

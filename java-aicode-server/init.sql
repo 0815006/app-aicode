@@ -230,6 +230,61 @@ CREATE TABLE `performance_resource_info` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=255 DEFAULT CHARSET=utf8mb4 COMMENT='部署方案环境资源清单表';
 
+-- 1. 投票任务表
+CREATE TABLE `vote_tasks` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '自增主键',
+    `title` VARCHAR(255) NOT NULL COMMENT '投票任务名称',
+    `type` VARCHAR(1) NOT NULL COMMENT '任务类型: "1"-直接投票, "2"-征集投票',
+    `max_votes` INT NOT NULL DEFAULT 1 COMMENT '每人总票数限制(永久N票)',
+    `allow_view_early` VARCHAR(1) NOT NULL DEFAULT '0' COMMENT '截止前允许查看他人作品: "0"-否, "1"-是',
+    `upload_end_at` DATETIME DEFAULT NULL COMMENT '作品上传截止时间(类型2必填)',
+    `vote_end_at` DATETIME NOT NULL COMMENT '投票截止时间',
+    `creator_id` VARCHAR(7) NOT NULL COMMENT '发起人工号(7位)',
+    `status` VARCHAR(1) NOT NULL DEFAULT '0' COMMENT '任务状态: "0"-草稿, "1"-进行中, "2"-已结束',
+    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (`id`),
+    INDEX `idx_creator` (`creator_id`),
+    INDEX `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='投票任务配置表';
+
+-- 2. 投票选项/作品表
+CREATE TABLE `vote_options` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '自增主键',
+    `task_id` BIGINT NOT NULL COMMENT '关联任务ID',
+    `user_id` VARCHAR(7) NOT NULL COMMENT '贡献者/作者工号(7位)',
+    `team_name` VARCHAR(255) COMMENT '队伍名称'，
+    `tags` VARCHAR(255) COMMENT '标签',
+    `title` VARCHAR(255) NOT NULL COMMENT '作品名称或选项内容',
+    `author_name` VARCHAR(100) DEFAULT NULL COMMENT '作者姓名(展示用)',
+    `description` TEXT COMMENT '作品介绍',
+    `cover_url` VARCHAR(500) DEFAULT NULL COMMENT '作品封面OSS地址',
+    `video_url` VARCHAR(500) DEFAULT NULL COMMENT '视频链接或信息',
+    `attachment_url` VARCHAR(500) COMMENT '附件地址',
+    `audit_status` VARCHAR(1) NOT NULL DEFAULT '0' COMMENT '审核状态: "0"-待审核, "1"-已通过, "2"-驳回',
+    `audit_remark` VARCHAR(255) DEFAULT NULL COMMENT '驳回理由',
+    `vote_count` INT NOT NULL DEFAULT 0 COMMENT '最终汇总票数(冗余字段用于展示)',
+    `last_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+    PRIMARY KEY (`id`),
+    INDEX `idx_task_id` (`task_id`),
+    INDEX `idx_user_task` (`user_id`, `task_id`),
+    INDEX `idx_audit` (`audit_status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='投票选项作品表';
+
+-- 3. 投票流水记录表
+CREATE TABLE `vote_records` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '自增主键',
+    `user_id` VARCHAR(7) NOT NULL COMMENT '投票人工号(7位)',
+    `task_id` BIGINT NOT NULL COMMENT '关联任务ID',
+    `option_id` BIGINT NOT NULL COMMENT '所投选项ID',
+    `is_deleted` VARCHAR(1) NOT NULL DEFAULT '0' COMMENT '改投状态位: "0"-有效, "1"-已撤回/改投',
+    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '投票时间 改投操作时间',
+    `last_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '改投操作时间',
+    PRIMARY KEY (`id`),
+    -- 复合索引：大幅提升判断用户是否已投、查询剩余票数及改投逻辑的性能
+    INDEX `idx_user_task_deleted` (`user_id`, `task_id`, `is_deleted`),
+    INDEX `idx_option_id` (`option_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='投票流水记录表';
+
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
 /*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
