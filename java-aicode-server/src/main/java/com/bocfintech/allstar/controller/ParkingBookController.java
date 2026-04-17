@@ -109,6 +109,9 @@ public class ParkingBookController {
     public ResultBean saveOrUpdate(@RequestBody ParkingBook config) {
         if (!StringUtils.hasText(config.getPassHash())) {
             return ResultBean.error(ErrorEnum.参数异常, "修改配置信息需要校验密码！");
+        }        
+        if (!StringUtils.hasText(config.getNextAutoBookDate())) {
+            config.setNextAutoBookDate(null);
         }
         boolean success = parkingBookService.updateMyConfig(config);
         return success ? ResultBean.success("保存成功") : ResultBean.error(ErrorEnum.操作失败, "保存失败，请检查用户密码");
