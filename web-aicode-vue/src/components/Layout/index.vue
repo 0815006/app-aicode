@@ -23,6 +23,7 @@
 <script>
 import Sidebar from './Sidebar'
 import Header from './Header'
+import { getClientIp } from '@/api/system'
 
 export default {
   name: 'Layout',
@@ -55,12 +56,13 @@ export default {
     },
     async fetchClientIp() {
       try {
-        const resp = await fetch('https://api.ipify.org?format=json')
-        if (!resp.ok) return
-        const data = await resp.json()
-        this.clientIp = data && data.ip ? data.ip : ''
+        const res = await getClientIp()
+        if (res.code === 200) {
+          this.clientIp = res.data || ''
+        }
       } catch (e) {
         this.clientIp = ''
+        console.error('获取IP失败', e)
       }
     }
   }
