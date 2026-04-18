@@ -42,6 +42,11 @@
         <span slot="title">投票管理</span>
       </el-menu-item>
 
+      <el-menu-item index="/xmind-converter">
+        <i class="el-icon-refresh"></i>
+        <span slot="title">XMind 转换</span>
+      </el-menu-item>
+
     </el-menu>
   </div>
 </template>

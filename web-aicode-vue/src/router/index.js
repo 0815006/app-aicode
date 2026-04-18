@@ -8,6 +8,7 @@ import ParkingBookList from '@/views/ParkingBookList.vue' // 新增
 import ChatHall from '@/views/ChatHall.vue' // 新增
 import DataMigration from '@/views/DataMigration.vue'
 import VoteManagement from '@/views/VoteManagement.vue'
+import XmindConverter from '@/views/XmindConverter.vue'
 
 Vue.use(Router)
 
@@ -53,6 +54,12 @@ export default new Router({
           name: 'DataMigration',
           component: DataMigration,
           meta: { title: '数据迁移' }
+        },
+        {
+          path: 'xmind-converter',
+          name: 'XmindConverter',
+          component: XmindConverter,
+          meta: { title: 'XMind 转换' }
         }
       ]
     }

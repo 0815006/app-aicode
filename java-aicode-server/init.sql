@@ -252,7 +252,7 @@ CREATE TABLE `vote_options` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '自增主键',
     `task_id` BIGINT NOT NULL COMMENT '关联任务ID',
     `user_id` VARCHAR(7) NOT NULL COMMENT '贡献者/作者工号(7位)',
-    `team_name` VARCHAR(255) COMMENT '队伍名称'，
+    `team_name` VARCHAR(255) COMMENT '队伍名称',
     `tags` VARCHAR(255) COMMENT '标签',
     `title` VARCHAR(255) NOT NULL COMMENT '作品名称或选项内容',
     `author_name` VARCHAR(100) DEFAULT NULL COMMENT '作者姓名(展示用)',
