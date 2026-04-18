@@ -1,5 +1,8 @@
 package com.bocfintech.allstar.service.impl;
 
+import com.bocfintech.allstar.dialect.DatabaseDialect;
+import com.bocfintech.allstar.dialect.DialectFactory;
+import com.bocfintech.allstar.dialect.GaussDbDialect;
 import com.bocfintech.allstar.entity.*;
 import com.bocfintech.allstar.service.DataCompareResultService;
 import lombok.extern.slf4j.Slf4j;
@@ -141,26 +144,22 @@ public class DataCompareResultServiceImpl implements DataCompareResultService {
      */
     private Map<String, List<ColumnMeta>> getTableColumns(DbConnectionConfig config, List<String> tableNames) {
         Map<String, List<ColumnMeta>> result = new HashMap<>();
-        String jdbcUrl = buildJdbcUrl(config);
+        DatabaseDialect dialect = DialectFactory.getDialect(config);
+        String jdbcUrl = dialect.buildJdbcUrl(config);
         String username = config.getUsername();
         String password = decryptPassword(config.getPassword());
         String databaseName = config.getDatabaseName();
 
-        String sql = "SELECT " +
-                "COLUMN_NAME, DATA_TYPE, IS_NULLABLE, COLUMN_DEFAULT, " +
-                "COLUMN_KEY, EXTRA, ORDINAL_POSITION, COLUMN_COMMENT " +
-                "FROM information_schema.COLUMNS " +
-                "WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? " +
-                "ORDER BY ORDINAL_POSITION";
-
+        String sql = dialect.getColumnMetaSql(databaseName, "?");
 
         try (Connection conn = DriverManager.getConnection(jdbcUrl, username, password);
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             for (String tableName : tableNames) {
-                ps.setString(1, databaseName);
-                ps.setString(2, tableName);
-                try (ResultSet rs = ps.executeQuery()) {
+                // 注意：有些方言的 SQL 可能不支持占位符，这里简单处理
+                String currentSql = dialect.getColumnMetaSql(databaseName, tableName);
+                try (Statement stmt = conn.createStatement();
+                     ResultSet rs = stmt.executeQuery(currentSql)) {
                     List<ColumnMeta> columns = new ArrayList<>();
                     while (rs.next()) {
                         ColumnMeta col = new ColumnMeta();
@@ -190,7 +189,8 @@ public class DataCompareResultServiceImpl implements DataCompareResultService {
      */
     private Map<String, Long> getTableRowCounts(DbConnectionConfig config, List<String> tableNames) {
         Map<String, Long> result = new HashMap<>();
-        String jdbcUrl = buildJdbcUrl(config);
+        DatabaseDialect dialect = DialectFactory.getDialect(config);
+        String jdbcUrl = dialect.buildJdbcUrl(config);
         String username = config.getUsername();
         String password = decryptPassword(config.getPassword());
 
@@ -198,14 +198,13 @@ public class DataCompareResultServiceImpl implements DataCompareResultService {
              Statement stmt = conn.createStatement()) {
 
             for (String tableName : tableNames) {
-                String sql = "SELECT COUNT(*) FROM `" + tableName + "`";
+                String sql = "SELECT COUNT(*) FROM " + dialect.quote(tableName);
                 try (ResultSet rs = stmt.executeQuery(sql)) {
                     if (rs.next()) {
                         result.put(tableName, rs.getLong(1));
                     }
                 } catch (SQLException e) {
                     log.warn("统计表 {} 行数失败: {}", tableName, e.getMessage());
-                    // 单个表失败不影响后续表，继续循环
                 }
             }
         } catch (SQLException e) {
@@ -223,67 +222,65 @@ public class DataCompareResultServiceImpl implements DataCompareResultService {
             DbConnectionConfig targetConfig,
             String tableName) {
 
-        String sourceUrl = buildJdbcUrl(sourceConfig);
-        String targetUrl = buildJdbcUrl(targetConfig);
+        DatabaseDialect srcDialect = DialectFactory.getDialect(sourceConfig);
+        DatabaseDialect tgtDialect = DialectFactory.getDialect(targetConfig);
 
-        String selectSql = "SELECT * FROM `" + tableName + "` ORDER BY ";
+        String sourceUrl = srcDialect.buildJdbcUrl(sourceConfig);
+        String targetUrl = tgtDialect.buildJdbcUrl(targetConfig);
 
         // 尝试获取主键
-        String pkColumn = getPrimaryKeyColumn(sourceConfig, tableName);
+        String pkColumn = getPrimaryKeyColumn(sourceConfig, srcDialect, tableName);
         if (pkColumn == null) {
-            pkColumn = getFirstColumn(sourceConfig, tableName);
+            pkColumn = getFirstColumn(sourceConfig, srcDialect, tableName);
         }
         if (pkColumn == null) {
             throw new IllegalArgumentException("表不存在或无字段：" + tableName);
         }
 
-        selectSql += "`" + pkColumn + "`";
+        String selectSql = "SELECT * FROM " + srcDialect.quote(tableName) + " ORDER BY " + srcDialect.quote(pkColumn);
+        String targetSelectSql = "SELECT * FROM " + tgtDialect.quote(tableName) + " ORDER BY " + tgtDialect.quote(pkColumn);
 
         return compareDataWithSql(sourceUrl, targetUrl,
                 sourceConfig.getUsername(), decryptPassword(sourceConfig.getPassword()),
                 targetConfig.getUsername(), decryptPassword(targetConfig.getPassword()),
-                selectSql, pkColumn);
+                selectSql, targetSelectSql, pkColumn);
     }
 
     /**
      * 获取主键列名
      */
-    private String getPrimaryKeyColumn(DbConnectionConfig config, String tableName) {
-        String sql = "SELECT COLUMN_NAME " +
-                "FROM information_schema.KEY_COLUMN_USAGE " +
-                "WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND CONSTRAINT_NAME = 'PRIMARY' " +
-                "ORDER BY ORDINAL_POSITION LIMIT 1";
-
-
-        return getColumnBySql(config, sql, tableName);
+    private String getPrimaryKeyColumn(DbConnectionConfig config, DatabaseDialect dialect, String tableName) {
+        String sql = dialect.getPrimaryKeyColumnSql(config.getDatabaseName(), tableName);
+        return getColumnBySql(config, dialect, sql);
     }
 
     /**
      * 获取第一个字段作为排序依据
      */
-    private String getFirstColumn(DbConnectionConfig config, String tableName) {
-        String sql = "SELECT COLUMN_NAME " +
-                "FROM information_schema.COLUMNS " +
-                "WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? " +
-                "ORDER BY ORDINAL_POSITION LIMIT 1";
-
-        return getColumnBySql(config, sql, tableName);
+    private String getFirstColumn(DbConnectionConfig config, DatabaseDialect dialect, String tableName) {
+        // 简单起见，这里仍然使用 information_schema，或者可以扩展方言
+        String sql = "SELECT COLUMN_NAME FROM information_schema.COLUMNS " +
+                     "WHERE TABLE_SCHEMA = '" + config.getDatabaseName() + "' AND TABLE_NAME = '" + tableName + "' " +
+                     "ORDER BY ORDINAL_POSITION LIMIT 1";
+        if (dialect instanceof GaussDbDialect) {
+            sql = "SELECT column_name FROM information_schema.columns " +
+                  "WHERE table_catalog = '" + config.getDatabaseName() + "' AND table_name = '" + tableName + "' " +
+                  "ORDER BY ordinal_position LIMIT 1";
+        }
+        return getColumnBySql(config, dialect, sql);
     }
 
     /**
      * 通用查询单列
      */
-    private String getColumnBySql(DbConnectionConfig config, String sql, String tableName) {
-        String jdbcUrl = buildJdbcUrl(config);
+    private String getColumnBySql(DbConnectionConfig config, DatabaseDialect dialect, String sql) {
+        String jdbcUrl = dialect.buildJdbcUrl(config);
         try (Connection conn = DriverManager.getConnection(jdbcUrl, config.getUsername(), decryptPassword(config.getPassword()));
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
 
-            ps.setString(1, config.getDatabaseName());
-            ps.setString(2, tableName);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getString(1);
-                }
+            if (rs.next()) {
+                return rs.getString(1);
             }
         } catch (SQLException e) {
             log.warn("查询元数据失败: {}", e.getMessage());
@@ -298,12 +295,12 @@ public class DataCompareResultServiceImpl implements DataCompareResultService {
             String sourceUrl, String targetUrl,
             String srcUser, String srcPass,
             String tgtUser, String tgtPass,
-            String sql, String pkColumn) {
+            String srcSql, String tgtSql, String pkColumn) {
 
         try (Connection srcConn = DriverManager.getConnection(sourceUrl, srcUser, srcPass);
              Connection tgtConn = DriverManager.getConnection(targetUrl, tgtUser, tgtPass);
-             PreparedStatement srcPs = srcConn.prepareStatement(sql);
-             PreparedStatement tgtPs = tgtConn.prepareStatement(sql);
+             PreparedStatement srcPs = srcConn.prepareStatement(srcSql);
+             PreparedStatement tgtPs = tgtConn.prepareStatement(tgtSql);
              ResultSet srcRs = srcPs.executeQuery();
              ResultSet tgtRs = tgtPs.executeQuery()) {
 
@@ -406,13 +403,6 @@ public class DataCompareResultServiceImpl implements DataCompareResultService {
     }
 
     // ==================== 工具方法 ====================
-
-    private String buildJdbcUrl(DbConnectionConfig config) {
-        return String.format(
-                "jdbc:mysql://%s:%d/%s?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&allowMultiQueries=true",
-                config.getHost(), config.getPort(), config.getDatabaseName()
-        );
-    }
 
     private String decryptPassword(String encryptedPassword) {
         // TODO: 使用 AesUtil.decrypt(encryptedPassword, "your-key")

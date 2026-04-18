@@ -22,10 +22,10 @@
         <span slot="title">资源核查</span>
       </el-menu-item>
 
-    <el-menu-item index="/parking-list">
-    <i class="el-icon-truck"></i>
-    <span slot="title">车位预约查询</span>
-    </el-menu-item>
+      <el-menu-item index="/parking-list">
+        <i class="el-icon-truck"></i>
+        <span slot="title">车位预约</span>
+      </el-menu-item>
     
       <!-- ✅ 新增：聊天大厅 -->
       <el-menu-item index="/chat">
@@ -45,7 +45,7 @@
 
       <el-menu-item index="/xmind-converter">
         <i class="el-icon-refresh"></i>
-        <span slot="title">XMind 转换</span>
+        <span slot="title">思维导图</span>
       </el-menu-item>
 
     </el-menu>

@@ -30,9 +30,10 @@
         <el-input v-model="form.configName" placeholder="请输入配置名称" />
       </el-form-item>
       <el-form-item label="数据库类型" prop="dbType">
-        <el-select v-model="form.dbType" placeholder="请选择数据库类型">
+        <el-select v-model="form.dbType" placeholder="请选择数据库类型" @change="handleDbTypeChange">
           <el-option label="MySQL" value="MySQL" />
           <el-option label="TDSQL" value="TDSQL" />
+          <el-option label="GaussDB" value="GaussDB" />
         </el-select>
       </el-form-item>
       <el-form-item label="主机地址" prop="host">
@@ -148,10 +149,10 @@ export default {
     fetchConfigList() {
       getDbConfigList()
         .then(res => {
-          if (res.data && res.data.code === 200) {
-            this.configList = res.data.data
+          if (res.code === 200) {
+            this.configList = res.data || []
           } else {
-            this.$message.error(res.data.message || '获取配置列表失败')
+            this.$message.error(res.message || '获取配置列表失败')
           }
         })
         .catch(err => {
@@ -176,6 +177,13 @@ export default {
           databaseName: '',
           charset: 'utf8mb4'
         }
+      }
+    },
+    handleDbTypeChange(val) {
+      if (val === 'GaussDB') {
+        this.form.port = 8000
+      } else {
+        this.form.port = 3306
       }
     },
     loadSelectedConfig(id) {
@@ -220,12 +228,12 @@ export default {
 
             updateDbConfig(config)
               .then(res => {
-                if (res.data && res.data.code === 200) {
+                if (res.code === 200) {
                   this.$message.success('修改数据库配置成功')
                   this.$emit('update:visible', false)
                   this.$emit('update-success')
                 } else {
-                  this.$message.error(res.data.message || '修改失败')
+                  this.$message.error(res.message || '修改失败')
                 }
               })
               .catch(err => {
@@ -238,12 +246,12 @@ export default {
           } else {
             createDbConfig(config)
               .then(res => {
-                if (res.data && res.data.code === 200) {
+                if (res.code === 200) {
                   this.$message.success('新增数据库配置成功')
                   this.$emit('update:visible', false)
                   this.$emit('create-success')
                 } else {
-                  this.$message.error(res.data.message || '新增失败')
+                  this.$message.error(res.message || '新增失败')
                 }
               })
               .catch(err => {
@@ -270,11 +278,11 @@ export default {
           this.testStatus = null
           testDbConnection(this.form)
             .then(res => {
-              this.testStatus = res.data && res.data.code === 200
+              this.testStatus = res.code === 200
               if (this.testStatus) {
                 this.$message.success('连接测试成功')
               } else {
-                this.$message.error(res.data.message || '连接测试失败')
+                this.$message.error(res.message || '连接测试失败')
               }
             })
             .catch(err => {

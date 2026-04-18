@@ -1,6 +1,8 @@
 package com.bocfintech.allstar.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.bocfintech.allstar.dialect.DatabaseDialect;
+import com.bocfintech.allstar.dialect.DialectFactory;
 import com.bocfintech.allstar.entity.DbConnectionConfig;
 import com.bocfintech.allstar.entity.TableInfo;
 import com.bocfintech.allstar.mapper.DbConnectionConfigMapper;
@@ -75,10 +77,10 @@ public class DbConnectionConfigServiceImpl
      */
     @Override
     public boolean testConnection(DbConnectionConfig config) {
-        // TODO: 实际使用 JDBC DriverManager.getConnection 测试
-        String jdbcUrl = buildJdbcUrl(config);
+        DatabaseDialect dialect = DialectFactory.getDialect(config);
+        String jdbcUrl = dialect.buildJdbcUrl(config);
         String username = config.getUsername();
-        String password = decryptPassword(config.getPassword()); // TODO: 实现解密
+        String password = decryptPassword(config.getPassword());
 
         log.info("测试连接: {}@{}:{}/{}", config.getUsername(), config.getHost(), config.getPort(), config.getDatabaseName());
         try (Connection conn = DriverManager.getConnection(jdbcUrl, username, password)) {
@@ -89,30 +91,23 @@ public class DbConnectionConfigServiceImpl
         }
     }
 
-
-
     /**
      * 获取数据库所有表信息（表名、中文名、记录数、存储空间）
      */
     @Override
     public List<TableInfo> getTableInfoList(DbConnectionConfig config) {
-        String jdbcUrl = buildJdbcUrl(config);
+        DatabaseDialect dialect = DialectFactory.getDialect(config);
+        String jdbcUrl = dialect.buildJdbcUrl(config);
         String username = config.getUsername();
         String password = decryptPassword(config.getPassword());
         String databaseName = config.getDatabaseName();
 
         List<TableInfo> result = new ArrayList<>();
-        // Java 8 兼容 SQL
-        String sql = "SELECT TABLE_NAME, TABLE_COMMENT, " +
-                "ROUND((DATA_LENGTH + INDEX_LENGTH) / 1024 / 1024, 2) AS DATA_LENGTH_MB " +
-                "FROM information_schema.TABLES " +
-                "WHERE TABLE_SCHEMA = ? " +
-                "ORDER BY TABLE_NAME";
+        String sql = dialect.getTableInfoListSql(databaseName);
 
         try (Connection conn = DriverManager.getConnection(jdbcUrl, username, password);
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            ps.setString(1, databaseName);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     TableInfo info = new TableInfo();
@@ -121,8 +116,8 @@ public class DbConnectionConfigServiceImpl
                     info.setTableComment(rs.getString("TABLE_COMMENT"));
                     info.setDataLengthMB(rs.getDouble("DATA_LENGTH_MB"));
                     
-                    // 获取精确行数，替代 information_schema 中的估算值
-                    info.setRowCount(getAccurateRowCount(conn, tableName));
+                    // 获取精确行数
+                    info.setRowCount(getAccurateRowCount(conn, dialect, tableName));
                     
                     result.add(info);
                 }
@@ -135,8 +130,8 @@ public class DbConnectionConfigServiceImpl
         return result;
     }
 
-    private long getAccurateRowCount(Connection conn, String tableName) {
-        String sql = "SELECT COUNT(*) FROM `" + tableName + "`";
+    private long getAccurateRowCount(Connection conn, DatabaseDialect dialect, String tableName) {
+        String sql = "SELECT COUNT(*) FROM " + dialect.quote(tableName);
         try (Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             if (rs.next()) {
@@ -155,17 +150,20 @@ public class DbConnectionConfigServiceImpl
     public void migrateTableStructure(DbConnectionConfig sourceConfig,
                                       DbConnectionConfig targetConfig,
                                       String tableName) {
+        DatabaseDialect srcDialect = DialectFactory.getDialect(sourceConfig);
+        DatabaseDialect tgtDialect = DialectFactory.getDialect(targetConfig);
+
         // 1. 从源库获取建表语句
-        String createSql = getCreateTableSql(sourceConfig, tableName);
+        String createSql = getCreateTableSql(sourceConfig, srcDialect, tableName);
         if (createSql == null || createSql.isEmpty()) {
             throw new IllegalArgumentException("无法获取源表结构：" + tableName);
         }
 
         // 2. 在目标库先删除表（如果存在）
-        executeSqlOnConfig(targetConfig, "DROP TABLE IF EXISTS `" + tableName + "`");
+        executeSqlOnConfig(targetConfig, tgtDialect, tgtDialect.getDropTableSql(tableName));
 
         // 3. 在目标库执行建表
-        executeSqlOnConfig(targetConfig, createSql);
+        executeSqlOnConfig(targetConfig, tgtDialect, createSql);
     }
 
     /**
@@ -179,7 +177,8 @@ public class DbConnectionConfigServiceImpl
         migrateTableStructure(sourceConfig, targetConfig, tableName);
 
         // 2. 迁移数据
-        List<String> columns = getColumnNames(sourceConfig, tableName);
+        DatabaseDialect srcDialect = DialectFactory.getDialect(sourceConfig);
+        List<String> columns = getColumnNames(sourceConfig, srcDialect, tableName);
         if (columns.isEmpty()) {
             throw new RuntimeException("源表不存在或无字段：" + tableName);
         }
@@ -193,9 +192,12 @@ public class DbConnectionConfigServiceImpl
     public void migrateTableDataOnly(DbConnectionConfig sourceConfig,
                                      DbConnectionConfig targetConfig,
                                      String tableName) {
+        DatabaseDialect srcDialect = DialectFactory.getDialect(sourceConfig);
+        DatabaseDialect tgtDialect = DialectFactory.getDialect(targetConfig);
+
         // 1. 获取源库和目标库的字段列表
-        List<String> sourceColumns = getColumnNames(sourceConfig, tableName);
-        List<String> targetColumns = getColumnNames(targetConfig, tableName);
+        List<String> sourceColumns = getColumnNames(sourceConfig, srcDialect, tableName);
+        List<String> targetColumns = getColumnNames(targetConfig, tgtDialect, tableName);
 
         if (sourceColumns.isEmpty()) {
             throw new RuntimeException("源表不存在或无字段：" + tableName);
@@ -220,14 +222,18 @@ public class DbConnectionConfigServiceImpl
      * 核心数据流转逻辑：从源库读取并批量写入目标库
      */
     private void pumpData(DbConnectionConfig sourceConfig, DbConnectionConfig targetConfig, String tableName, List<String> columns) {
-        String sourceJdbcUrl = buildJdbcUrl(sourceConfig);
-        String targetJdbcUrl = buildJdbcUrl(targetConfig);
+        DatabaseDialect srcDialect = DialectFactory.getDialect(sourceConfig);
+        DatabaseDialect tgtDialect = DialectFactory.getDialect(targetConfig);
 
-        String columnsStr = "`" + String.join("`, `", columns) + "`";
+        String sourceJdbcUrl = srcDialect.buildJdbcUrl(sourceConfig);
+        String targetJdbcUrl = tgtDialect.buildJdbcUrl(targetConfig);
+
+        String srcColumnsStr = columns.stream().map(srcDialect::quote).collect(Collectors.joining(", "));
+        String tgtColumnsStr = columns.stream().map(tgtDialect::quote).collect(Collectors.joining(", "));
         String placeholders = columns.stream().map(c -> "?").collect(Collectors.joining(", "));
         
-        String selectSql = "SELECT " + columnsStr + " FROM `" + tableName + "`";
-        String insertSql = "INSERT INTO `" + tableName + "` (" + columnsStr + ") VALUES (" + placeholders + ")";
+        String selectSql = "SELECT " + srcColumnsStr + " FROM " + srcDialect.quote(tableName);
+        String insertSql = "INSERT INTO " + tgtDialect.quote(tableName) + " (" + tgtColumnsStr + ") VALUES (" + placeholders + ")";
 
         log.info("开始迁移数据: {} -> {}", sourceConfig.getDatabaseName(), targetConfig.getDatabaseName());
 
@@ -263,17 +269,15 @@ public class DbConnectionConfigServiceImpl
         }
     }
 
-    private List<String> getColumnNames(DbConnectionConfig config, String tableName) {
-        String jdbcUrl = buildJdbcUrl(config);
+    private List<String> getColumnNames(DbConnectionConfig config, DatabaseDialect dialect, String tableName) {
+        String jdbcUrl = dialect.buildJdbcUrl(config);
         String username = config.getUsername();
         String password = decryptPassword(config.getPassword());
         List<String> columns = new ArrayList<>();
         
-        // 使用 Set 记录已处理的字段名（忽略大小写），避免 MySQL 报错 "Column specified twice"
         Set<String> seenNames = new HashSet<>();
         
         try (Connection conn = DriverManager.getConnection(jdbcUrl, username, password);
-             // 明确指定 catalog (数据库名)，避免获取到其他库的同名表字段
              ResultSet rs = conn.getMetaData().getColumns(config.getDatabaseName(), null, tableName, null)) {
             while (rs.next()) {
                 String colName = rs.getString("COLUMN_NAME");
@@ -292,8 +296,8 @@ public class DbConnectionConfigServiceImpl
      */
     @Override
     public void truncateTable(DbConnectionConfig config, String tableName) {
-        String sql = "TRUNCATE TABLE `" + tableName + "`";
-        executeSqlOnConfig(config, sql);
+        DatabaseDialect dialect = DialectFactory.getDialect(config);
+        executeSqlOnConfig(config, dialect, dialect.getTruncateTableSql(tableName));
     }
 
     /**
@@ -301,62 +305,32 @@ public class DbConnectionConfigServiceImpl
      */
     @Override
     public void dropTable(DbConnectionConfig config, String tableName) {
-        String sql = "DROP TABLE `" + tableName + "`";
-        executeSqlOnConfig(config, sql);
-    }
-
-    /**
-     * 构建 JDBC URL
-     */
-    private String getJdbcUrl(DbConnectionConfig config) {
-        String host = config.getHost();
-        Integer port = config.getPort();
-        String database = config.getDatabaseName();
-        String dbType = config.getDbType();
-
-        if ("TDSQL".equalsIgnoreCase(dbType)) {
-            return String.format("jdbc:mysql://%s:%d/%s?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai", host, port, database);
-        } else {
-            return String.format("jdbc:mysql://%s:%d/%s?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai", host, port, database);
-        }
+        DatabaseDialect dialect = DialectFactory.getDialect(config);
+        executeSqlOnConfig(config, dialect, dialect.getDropTableSql(tableName));
     }
 
     // ------------------- 工具方法 -------------------
-
-    private String buildJdbcUrl(DbConnectionConfig config) {
-        return String.format(
-                "jdbc:mysql://%s:%d/%s?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&allowMultiQueries=true",
-                config.getHost(), config.getPort(), config.getDatabaseName()
-        );
-    }
 
     private String decryptPassword(String encryptedPassword) {
         // TODO: 使用 AesUtil.decrypt(encryptedPassword, "your-key")
         return encryptedPassword; // 临时返回原值
     }
 
-    private String getCreateTableSql(DbConnectionConfig config, String tableName) {
-        String jdbcUrl = buildJdbcUrl(config);
+    private String getCreateTableSql(DbConnectionConfig config, DatabaseDialect dialect, String tableName) {
+        String jdbcUrl = dialect.buildJdbcUrl(config);
         String username = config.getUsername();
         String password = decryptPassword(config.getPassword());
 
-        try (Connection conn = DriverManager.getConnection(jdbcUrl, username, password);
-             Statement stmt = conn.createStatement()) {
-
-            try (ResultSet rs = stmt.executeQuery("SHOW CREATE TABLE `" + tableName + "`")) {
-                if (rs.next()) {
-                    return rs.getString("Create Table");
-                }
-            }
+        try (Connection conn = DriverManager.getConnection(jdbcUrl, username, password)) {
+            return dialect.getCreateTableSql(conn, config.getDatabaseName(), tableName);
         } catch (SQLException e) {
             log.error("获取建表语句失败: {}", e.getMessage());
-            throw new RuntimeException("无法获取表结构：" + tableName, e);
+            throw new RuntimeException("无法获取表结构：" + tableName + "。" + e.getMessage(), e);
         }
-        return null;
     }
 
-    private void executeSqlOnConfig(DbConnectionConfig config, String sql) {
-        String jdbcUrl = buildJdbcUrl(config);
+    private void executeSqlOnConfig(DbConnectionConfig config, DatabaseDialect dialect, String sql) {
+        String jdbcUrl = dialect.buildJdbcUrl(config);
         String username = config.getUsername();
         String password = decryptPassword(config.getPassword());
 

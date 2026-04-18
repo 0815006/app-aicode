@@ -315,8 +315,8 @@ export default {
     async loadDbConfigs() {
       try {
         const res = await getDbConfigList()
-        if (res.data && res.data.code === 200) {
-          this.dbConfigs = res.data.data || []
+        if (res.code === 200) {
+          this.dbConfigs = res.data || []
         }
       } catch (error) {
         this.$message.error('获取配置失败')
@@ -346,8 +346,8 @@ export default {
       this.sourceTableLoading = true
       try {
         const res = await getTableInfoList(this.sourceConfig)
-        if (res.data && res.data.code === 200) {
-          this.sourceTables = res.data.data || []
+        if (res.code === 200) {
+          this.sourceTables = res.data || []
         }
       } finally {
         this.sourceTableLoading = false
@@ -361,8 +361,8 @@ export default {
       this.targetTableLoading = true
       try {
         const res = await getTableInfoList(this.targetConfig)
-        if (res.data && res.data.code === 200) {
-          this.targetTables = res.data.data || []
+        if (res.code === 200) {
+          this.targetTables = res.data || []
         }
       } finally {
         this.targetTableLoading = false
@@ -373,7 +373,7 @@ export default {
       this.sourceLoading = true
       try {
         const res = await testDbConnection(this.sourceConfig)
-        this.sourceStatus = res.data && res.data.code === 200
+        this.sourceStatus = res.code === 200
         if (this.sourceStatus) {
           this.$message.success('源库连接成功')
         } else {
@@ -390,7 +390,7 @@ export default {
       this.targetLoading = true
       try {
         const res = await testDbConnection(this.targetConfig)
-        this.targetStatus = res.data && res.data.code === 200
+        this.targetStatus = res.code === 200
         if (this.targetStatus) {
           this.$message.success('目标库连接成功')
         } else {
@@ -483,7 +483,7 @@ export default {
           targetConfig: this.targetConfig,
           tableName
         })
-        if (res.data && res.data.code === 200) {
+        if (res.code === 200) {
           this.$message.success('表结构迁移成功')
           this.loadTargetTables()
         }
@@ -501,7 +501,7 @@ export default {
           targetConfig: this.targetConfig,
           tableName
         })
-        if (res.data && res.data.code === 200) {
+        if (res.code === 200) {
           this.$message.success('结构和数据迁移成功')
           this.loadTargetTables()
         }
@@ -519,7 +519,7 @@ export default {
           targetConfig: this.targetConfig,
           tableName
         })
-        if (res.data && res.data.code === 200) {
+        if (res.code === 200) {
           this.$message.success('数据迁移成功')
           this.loadTargetTables()
         }
@@ -531,7 +531,7 @@ export default {
       try {
         await this.$confirm(`确认清空目标表 ${tableName}?`, '警告', { type: 'warning' })
         const res = await truncateTable({ targetConfig: this.targetConfig, tableName })
-        if (res.data && res.data.code === 200) {
+        if (res.code === 200) {
           this.$message.success('清空成功')
           this.loadTargetTables()
         }
@@ -541,7 +541,7 @@ export default {
       try {
         await this.$confirm(`确认删除目标表 ${tableName}?`, '危险操作', { type: 'error' })
         const res = await dropTable({ targetConfig: this.targetConfig, tableName })
-        if (res.data && res.data.code === 200) {
+        if (res.code === 200) {
           this.$message.success('删除成功')
           this.loadTargetTables()
         }
@@ -564,8 +564,8 @@ export default {
           targetConfig: this.targetConfig,
           tables: this.sourceTables.map(t => t.tableName)
         })
-        if (res.data && res.data.code === 200) {
-          const results = res.data.data || []
+        if (res.code === 200) {
+          const results = res.data || []
           
           // 移除当前比对类型的旧结果，准备存入新结果
           this.compareResults = this.compareResults.filter(item => item.__compareType !== type)
@@ -633,7 +633,7 @@ export default {
           targetDatabase: this.targetConfig ? this.targetConfig.databaseName : '',
           results: results
         })
-        if (res.data && res.data.code === 200) {
+        if (res.code === 200) {
           this.$message.success(`比对结果已保存为: ${taskName}`)
         }
       } finally {

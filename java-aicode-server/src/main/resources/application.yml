@@ -52,46 +52,5 @@ logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 
-mysql:
-  host: 22.188.9.16
-  port: 3306
-  user-name: td
-  password: Mtx0422!
-  database: allstar
-  charset: utf8mb4
-
-export:
-  tables:
-    - ai_case
-    - ai_component_test_case
-    - ai_function
-    - parking_book
-    - parking_record
-    - sys_cal_batch_config
-    - sys_cal_code
-    - sys_group
-    - sys_number
-    - sys_roles
-    - sys_team
-    - work_reminder
-    - work_supplement_info
-  output-path: "D:/data/mysql-backup/"
-  temp-path: "D:/data/temp/"
-
 vote:
   upload-path: "D:/data/aicode-v1/uploads/vote/"
-
-tdsql:
-  host: 81.88.153.53
-  port: 15252
-  user-name: aicoding
-  password: AI@aic021!!!
-  database: allstar
-  charset: utf8mb4
-
-import:
-  tables:
-    - parking_book
-    - parking_record
-  input-path: "D:/data/mysql-backup/"
-  temp-path: "D:/data/temp/"
