@@ -23,7 +23,7 @@ export default new Router({
           path: 'vote',
           name: 'VoteManagement',
           component: VoteManagement,
-          meta: { title: '投票管理' }
+          meta: { title: '投票功能' }
         },
         {
           path: 'resource-check',

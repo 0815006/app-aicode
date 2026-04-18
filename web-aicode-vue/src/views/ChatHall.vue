@@ -440,10 +440,8 @@ export default {
 
 <style scoped>
 .chat-hall-page {
-  --layout-header-height: 78px;
   padding: 20px;
-  height: calc(100vh - var(--layout-header-height));
-  height: calc(100dvh - var(--layout-header-height));
+  height: 100%;
   max-width: 100%;
   margin: 0 auto;
   transition: all 0.25s ease;

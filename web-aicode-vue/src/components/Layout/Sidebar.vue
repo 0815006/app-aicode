@@ -2,13 +2,14 @@
 <template>
   <div class="sidebar-container">
     <div class="logo">
-      <h3 style="color: #fff; text-align: center; padding: 15px 0">赛博车间工具箱</h3>
+      <h3>赛博车间工具箱</h3>
+      <p>Workspace Portal</p>
     </div>
     <el-menu
       :default-active="$route.path"
-      background-color="#304156"
-      text-color="#bfcbd9"
-      active-text-color="#409EFF"
+      background-color="transparent"
+      text-color="#c7d8ee"
+      active-text-color="#ffffff"
       router
     >
      <el-menu-item index="/upload-resource">
@@ -39,7 +40,7 @@
 
       <el-menu-item index="/vote">
         <i class="el-icon-star-off"></i>
-        <span slot="title">投票管理</span>
+        <span slot="title">投票功能</span>
       </el-menu-item>
 
       <el-menu-item index="/xmind-converter">
@@ -60,9 +61,49 @@ export default {
 <style scoped>
 .sidebar-container {
   height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.logo {
+  padding: 18px 14px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.logo h3 {
+  margin: 0;
+  text-align: center;
+  color: #f2f7ff;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.logo p {
+  margin: 6px 0 0;
+  text-align: center;
+  color: #9fb4cf;
+  font-size: 12px;
 }
 
 .el-menu {
+  flex: 1;
+  padding: 10px 8px;
   border-right: none;
+  overflow-y: auto;
+}
+
+.el-menu-item {
+  border-radius: 10px;
+  margin-bottom: 6px;
+}
+
+.el-menu-item:hover {
+  background: rgba(94, 170, 255, 0.2) !important;
+}
+
+.el-menu-item.is-active {
+  background: linear-gradient(90deg, #2f8ff0 0%, #4aa8ff 100%) !important;
+  box-shadow: 0 6px 14px rgba(46, 145, 255, 0.32);
 }
 </style>

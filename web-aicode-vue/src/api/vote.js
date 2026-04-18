@@ -23,6 +23,17 @@ export function createTask(data) {
 }
 
 /**
+ * 更新投票任务
+ */
+export function updateTask(id, data) {
+  return request({
+    url: `/vote/tasks/${id}`,
+    method: 'put',
+    data
+  })
+}
+
+/**
  * 获取任务详情
  */
 export function getTaskDetail(id) {

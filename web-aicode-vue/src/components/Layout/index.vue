@@ -1,20 +1,22 @@
 <!-- src/components/Layout/index.vue -->
 <template>
   <div class="layout-wrapper">
-    <!-- 左侧菜单 -->
-    <div class="sidebar">
+    <aside class="sidebar">
       <Sidebar />
+    </aside>
+
+    <header class="header">
+      <Header />
+    </header>
+
+    <div class="status-bar">
+      <span class="status-item">系统时间：{{ currentTime }}</span>
+      <span v-if="clientIp" class="status-item">登录IP：{{ clientIp }}</span>
     </div>
 
-    <!-- 右侧主内容 -->
-    <div class="main-container">
-      <div class="header">
-        <Header />
-      </div>
-      <div class="content">
-        <router-view />
-      </div>
-    </div>
+    <main class="content">
+      <router-view />
+    </main>
   </div>
 </template>
 
@@ -27,44 +29,96 @@ export default {
   components: {
     Sidebar,
     Header
+  },
+  data() {
+    return {
+      currentTime: '',
+      clientIp: '',
+      clockTimer: null
+    }
+  },
+  mounted() {
+    this.updateCurrentTime()
+    this.clockTimer = setInterval(this.updateCurrentTime, 1000)
+    this.fetchClientIp()
+  },
+  beforeDestroy() {
+    if (this.clockTimer) {
+      clearInterval(this.clockTimer)
+      this.clockTimer = null
+    }
+  },
+  methods: {
+    updateCurrentTime() {
+      const now = new Date()
+      this.currentTime = now.toLocaleString()
+    },
+    async fetchClientIp() {
+      try {
+        const resp = await fetch('https://api.ipify.org?format=json')
+        if (!resp.ok) return
+        const data = await resp.json()
+        this.clientIp = data && data.ip ? data.ip : ''
+      } catch (e) {
+        this.clientIp = ''
+      }
+    }
   }
 }
 </script>
 
 <style scoped>
 .layout-wrapper {
-  display: flex;
-  height: 100vh;
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  grid-template-rows: auto 1fr 34px;
+  height: 100dvh;
   width: 100%;
-  /* ❌ 不要设置 gap */
+  background: #eef2f8;
+  overflow: hidden;
 }
 
 .sidebar {
-  width: 200px;
-  background-color: #304156;
-  color: #fff;
-  height: 100%;
-  overflow-y: auto;
-}
-
-.main-container {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  /* ❌ 不要设置 margin-left */
+  grid-column: 1;
+  grid-row: 1 / 4;
+  background: linear-gradient(180deg, #1f3555 0%, #1a2d49 100%);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
 }
 
 .header {
-  height: 60px;
-  background-color: #1890ff;
-  color: #fff;
-  box-shadow: 0 1px 4px rgba(0, 21, 41, 0\.08);
+  grid-column: 2;
+  grid-row: 1;
+  min-height: 76px;
+  background: transparent;
+  z-index: 2;
+}
+
+.status-bar {
+  grid-column: 1 / 3;
+  grid-row: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  height: 34px;
+  padding: 0 18px;
+  background: linear-gradient(90deg, #1e2f4f 0%, #23528c 50%, #1e2f4f 100%);
+  color: #eaf4ff;
+  font-size: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.status-item {
+  white-space: nowrap;
 }
 
 .content {
-  flex: 1;
-  padding: 0;        /* ✅ 关键：去掉 padding */
-  overflow: auto;
-  background-color: #f5f7fa;
+  grid-column: 2;
+  grid-row: 2;
+  min-height: 0;
+  overflow: hidden;
+  background: #f3f7ff;
 }
 </style>

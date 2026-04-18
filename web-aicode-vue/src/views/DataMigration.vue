@@ -676,29 +676,32 @@ export default {
 
 <style scoped>
 .data-migration-container {
-  padding: 15px;
-  background-color: #f5f7fa;
-  min-height: calc(100vh - 100px);
+  height: 100%;
+  box-sizing: border-box;
+  overflow: auto;
+  padding: 16px;
+  background: linear-gradient(180deg, #f7f9ff 0%, #eef3ff 100%);
 }
 .card {
   background: #fff;
-  border-radius: 4px;
+  border-radius: 14px;
   padding: 15px;
   margin-bottom: 15px;
-  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
+  border: 1px solid #e8eefb;
+  box-shadow: 0 10px 22px rgba(27, 56, 112, 0.08);
 }
 .section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 15px;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid #edf2ff;
   padding-bottom: 10px;
 }
 .section-header .title {
   font-size: 16px;
-  font-weight: bold;
-  color: #303133;
+  font-weight: 700;
+  color: #23324a;
 }
 .config-row {
   display: flex;
@@ -720,8 +723,9 @@ export default {
   gap: 10px;
 }
 .config-item .label {
-  font-weight: bold;
+  font-weight: 700;
   white-space: nowrap;
+  color: #42506a;
 }
 .divider {
   width: 1px;
@@ -741,6 +745,7 @@ export default {
   display: flex;
   gap: 10px;
   align-items: center;
+  flex-wrap: wrap;
 }
 .right-tools {
   margin-left: auto;
@@ -761,9 +766,10 @@ export default {
 .detail-content {
   max-height: 400px;
   overflow-y: auto;
-  background: #f8f9fa;
+  background: #f6f9ff;
   padding: 10px;
-  border-radius: 4px;
+  border-radius: 8px;
+  border: 1px solid #e8eefb;
 }
 .detail-content pre {
   margin: 0;
@@ -789,5 +795,19 @@ export default {
 }
 .danger-text:hover {
   color: #f78989;
+}
+
+::v-deep .el-table {
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+::v-deep .el-table th {
+  background: #f3f8ff;
+  color: #42526a;
+}
+
+::v-deep .el-button {
+  border-radius: 8px;
 }
 </style>

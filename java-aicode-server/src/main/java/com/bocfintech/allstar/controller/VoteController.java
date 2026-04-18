@@ -45,16 +45,16 @@ public class VoteController {
             VoteTask task = new VoteTask();
             task.setTitle((String) params.get("title"));
             task.setType((String) params.get("type"));
-            task.setMaxVotes((Integer) params.get("maxVotes"));
+            task.setMaxVotes(parseInteger(params.get("maxVotes")));
             task.setAllowViewEarly((String) params.get("allowViewEarly"));
             task.setCreatorId(userId);
             
             // 处理时间
             if (params.get("uploadEndAt") != null) {
-                task.setUploadEndAt(new java.util.Date((Long) params.get("uploadEndAt")));
+                task.setUploadEndAt(new java.util.Date(parseLong(params.get("uploadEndAt"))));
             }
             if (params.get("voteEndAt") != null) {
-                task.setVoteEndAt(new java.util.Date((Long) params.get("voteEndAt")));
+                task.setVoteEndAt(new java.util.Date(parseLong(params.get("voteEndAt"))));
             }
 
             List<VoteOption> options = null;
@@ -70,6 +70,19 @@ public class VoteController {
             return ResultBean.success();
         } catch (Exception e) {
             return ResultBean.error("创建失败：" + e.getMessage());
+        }
+    }
+
+    @PutMapping("/tasks/{id}")
+    @ApiOperation("更新投票任务")
+    public ResultBean updateTask(@PathVariable Long id,
+                                 @RequestBody Map<String, Object> params,
+                                 @RequestHeader("token") String userId) {
+        try {
+            voteService.updateTask(id, params, userId);
+            return ResultBean.success();
+        } catch (Exception e) {
+            return ResultBean.error("更新失败：" + e.getMessage());
         }
     }
 
@@ -167,5 +180,25 @@ public class VoteController {
         } catch (Exception e) {
             return ResultBean.error("获取结果失败：" + e.getMessage());
         }
+    }
+
+    private Long parseLong(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Number) {
+            return ((Number) value).longValue();
+        }
+        return Long.valueOf(String.valueOf(value));
+    }
+
+    private Integer parseInteger(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
+        }
+        return Integer.valueOf(String.valueOf(value));
     }
 }

@@ -2,11 +2,11 @@
 <template>
   <div class="header-wrapper">
     <div class="announcement-bar">
-      仅限自己使用，不对外开放
+      仅限内部员工使用，请勿外传
     </div>
 
     <div class="header-container">
-      <div class="title"></div>
+      <div class="title">晚上一起打王者</div>
       <div class="user-info">
         <span class="label">当前员工号：</span>
         <template v-if="!editing">
@@ -66,45 +66,62 @@ export default {
 </script>
 
 <style scoped>
+.header-wrapper {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
 .announcement-bar {
-  background-color: #409eff; /* 原主题色 */
-  color: #2528d9;
-  font-size: 14px;
+  background: linear-gradient(90deg, #2f8ff0 0%, #4aa8ff 100%);
+  color: #eaf4ff;
+  font-size: 13px;
   font-weight: 500;
   text-align: center;
-  padding: 6px 0;
-  border-bottom: 1px solid  #409eff; /* 原主题色 */
+  line-height: 28px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .header-container {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 20px;
-  height: 50px; /* 原高度 */
+  padding: 0 22px;
+  min-height: 48px;
+  flex: 1;
   color: #fff;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 500;
-  background-color: #409eff; /* 原主题色 */
+  background: linear-gradient(90deg, #2f8ff0 0%, #4aa8ff 100%);
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
 }
 
 .user-info {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 14px;
+  gap: 10px;
+  font-size: 13px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .label {
   color: #e8f3ff;
+  white-space: nowrap;
 }
 
 .emp-no {
   cursor: pointer;
   user-select: none;
+  max-width: 100%;
 }
 
 .emp-input {
-  width: 130px;
+  width: 140px;
 }
 </style>

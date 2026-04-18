@@ -1,7 +1,7 @@
 <!-- src/views/ParkingBookList.vue -->
 <template>
   <div class="parking-list-container">
-    <h2 class="page-title">车位预约信息管理</h2>
+    <h2 class="page-title">车位预约</h2>
 
 
     <!-- 操作按钮 -->
@@ -201,7 +201,6 @@
       </div>
     </el-dialog>
 
-    <el-empty v-if="!loading && list.length === 0" description="暂无数据" />
   </div>
 </template>
 
@@ -295,12 +294,12 @@ export default {
             pageSize: this.recordPage.pageSize
             })
 
-        if (res.data && res.data.code === 200) {
-            const data = res.data.data
+        if (res.code === 200) {
+            const data = res.data || {}
             this.recordList = data.list || []
             this.recordTotal = data.total || 0
         } else {
-            this.$message.error(res.data.message || '查询失败')
+            this.$message.error(res.message || '查询失败')
         }
         } catch (error) {
         this.$message.error('网络请求失败')
@@ -327,11 +326,13 @@ export default {
       this.loading = true
       try {
         const res = await getParkingList()
-        if (res.data && res.data.code === 200) {
-          this.list = res.data.data || []
-          this.$message.success(`共查询到 ${this.list.length} 条记录`)
+        if (res.code === 200) {
+          this.list = res.data || []
+          if (this.list.length > 0) {
+            this.$message.success(`共查询到 ${this.list.length} 条记录`)
+          }
         } else {
-          this.$message.error(res.data.message || '查询失败')
+          this.$message.error(res.message || '查询失败')
         }
       } catch (error) {
         this.$message.error('网络请求失败，请检查接口')
@@ -389,13 +390,13 @@ export default {
         const res = await saveOrUpdateParking(data)  // ✅ 接收响应
 
         // ✅ 判断业务成功
-        if (res.data && res.data.code === 200) {
+        if (res.code === 200) {
             this.$message.success('保存成功')
             this.formVisible = false
             this.fetchData()
         } else {
             // ❌ 业务失败，显示后端提示
-            this.$message.error(res.data.message || '保存失败，请检查用户密码')
+            this.$message.error(res.message || '保存失败，请检查用户密码')
         }
         } catch (error) {
         // ❌ 网络异常、超时、500 等
@@ -423,6 +424,9 @@ export default {
 
 <style scoped>
 .parking-list-container {
+  height: 100%;
+  box-sizing: border-box;
+  overflow: auto;
   padding: 20px;
   margin: 16px;
   border-radius: 14px;

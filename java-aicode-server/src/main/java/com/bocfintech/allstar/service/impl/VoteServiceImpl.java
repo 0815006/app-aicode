@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -46,6 +46,56 @@ public class VoteServiceImpl extends BaseServiceImpl<VoteTaskMapper, VoteTask> i
                 voteOptionMapper.insert(option);
             }
         }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateTask(Long taskId, Map<String, Object> params, String userId) {
+        VoteTask exist = this.findById(taskId);
+        if (exist == null) {
+            throw new RuntimeException("任务不存在");
+        }
+        if (exist.getCreatorId() == null || !exist.getCreatorId().equals(userId)) {
+            throw new RuntimeException("仅任务发起人可修改");
+        }
+
+        if (params.get("title") != null) {
+            exist.setTitle(String.valueOf(params.get("title")));
+        }
+        if (params.get("type") != null) {
+            exist.setType(String.valueOf(params.get("type")));
+        }
+        if (params.get("maxVotes") != null) {
+            exist.setMaxVotes(Integer.parseInt(String.valueOf(params.get("maxVotes"))));
+        }
+        if (params.get("allowViewEarly") != null) {
+            exist.setAllowViewEarly(String.valueOf(params.get("allowViewEarly")));
+        }
+
+        if (params.containsKey("uploadEndAt")) {
+            Long uploadEndAt = parseTimestamp(params.get("uploadEndAt"));
+            exist.setUploadEndAt(uploadEndAt == null ? null : new Date(uploadEndAt));
+        }
+        if (params.containsKey("voteEndAt")) {
+            Long voteEndAt = parseTimestamp(params.get("voteEndAt"));
+            exist.setVoteEndAt(voteEndAt == null ? null : new Date(voteEndAt));
+        }
+
+        this.updateById(exist);
+    }
+
+    private Long parseTimestamp(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Number) {
+            return ((Number) value).longValue();
+        }
+        String text = String.valueOf(value).trim();
+        if (text.isEmpty()) {
+            return null;
+        }
+        return Long.parseLong(text);
     }
 
     @Override

@@ -1,6 +1,7 @@
 <template>
   <div class="vote-page">
     <aside class="left-panel card">
+      <div class="left-title">投票列表</div>
       <div class="left-header">
         <el-input
           v-model.trim="searchQuery"
@@ -58,6 +59,9 @@
             </div>
           </div>
           <div class="header-right">
+            <el-button v-if="isCreator" type="primary" size="small" icon="el-icon-edit" @click="openEditTaskDialog">
+              修改任务
+            </el-button>
             <div class="ticket-box">
               <span>已投 {{ votedIds.length }} 票 / 剩余 {{ remainVotes }} 票</span>
               <el-progress :percentage="usedVotesPercent" :stroke-width="8" :show-text="false" />
@@ -175,7 +179,7 @@
       </div>
     </section>
 
-    <el-dialog title="发起投票任务" :visible.sync="showCreateDialog" width="640px" @close="resetCreateForm">
+    <el-dialog :title="editingTaskId ? '修改投票任务' : '发起投票任务'" :visible.sync="showCreateDialog" width="640px" @close="resetCreateForm">
       <el-form :model="createForm" label-width="120px" size="small">
         <el-form-item label="任务名称">
           <el-input v-model.trim="createForm.title" maxlength="100" show-word-limit />
@@ -210,7 +214,7 @@
       </el-form>
       <div slot="footer">
         <el-button @click="showCreateDialog = false">取消</el-button>
-        <el-button type="primary" @click="handleCreateTask">创建任务</el-button>
+        <el-button type="primary" @click="handleCreateTask">{{ editingTaskId ? '保存修改' : '创建任务' }}</el-button>
       </div>
     </el-dialog>
 
@@ -314,6 +318,7 @@
 import {
   getTaskList,
   createTask,
+  updateTask,
   getOptions,
   vote,
   revokeVote,
@@ -341,6 +346,7 @@ export default {
       listLoading: false,
       optionsLoading: false,
       showCreateDialog: false,
+      editingTaskId: null,
       showUploadDialog: false,
       showAuditDialog: false,
       showPreview: false,
@@ -517,7 +523,22 @@ export default {
       this.resetCreateForm();
       this.showCreateDialog = true;
     },
+    openEditTaskDialog() {
+      if (!this.currentTask || !this.isCreator) return;
+      this.editingTaskId = this.currentTask.id;
+      this.createForm = {
+        title: this.currentTask.title || '',
+        type: String(this.currentTask.type || '1'),
+        maxVotes: Number(this.currentTask.maxVotes || 1),
+        allowViewEarly: String(this.currentTask.allowViewEarly || '0'),
+        uploadEndAt: this.currentTask.uploadEndAt ? Number(this.currentTask.uploadEndAt) : null,
+        voteEndAt: this.currentTask.voteEndAt ? Number(this.currentTask.voteEndAt) : null,
+        options: [{ title: '' }, { title: '' }]
+      };
+      this.showCreateDialog = true;
+    },
     resetCreateForm() {
+      this.editingTaskId = null;
       this.createForm = {
         title: '',
         type: '1',
@@ -560,12 +581,23 @@ export default {
       const payload = { ...this.createForm };
       payload.options = (payload.options || []).map((opt) => ({ title: (opt.title || '').trim() })).filter((opt) => !!opt.title);
       try {
-        await createTask(payload);
-        this.$message.success('创建成功');
+        if (this.editingTaskId) {
+          await updateTask(this.editingTaskId, payload);
+          this.$message.success('任务更新成功');
+        } else {
+          await createTask(payload);
+          this.$message.success('创建成功');
+        }
         this.showCreateDialog = false;
         await this.fetchTaskList();
+        if (this.currentTask) {
+          const latest = this.taskList.find((item) => item.id === this.currentTask.id);
+          if (latest) {
+            this.currentTask = { ...latest };
+          }
+        }
       } catch (error) {
-        this.$message.error('创建失败: ' + error.message);
+        this.$message.error((this.editingTaskId ? '更新失败: ' : '创建失败: ') + error.message);
       }
     },
     openUploadDialog() {
@@ -746,8 +778,26 @@ export default {
     },
     formatTime(time) {
       if (!time) return '-';
-      const ts = Number(time);
+      const ts = this.normalizeTimestamp(time);
+      if (!ts) return '-';
       return new Date(ts).toLocaleString();
+    },
+    normalizeTimestamp(time) {
+      if (time === null || time === undefined || time === '') return 0;
+      if (typeof time === 'number') {
+        return time < 1000000000000 ? time * 1000 : time;
+      }
+      if (typeof time === 'string') {
+        const trimmed = time.trim();
+        if (!trimmed) return 0;
+        if (/^\d+$/.test(trimmed)) {
+          const numeric = Number(trimmed);
+          return numeric < 1000000000000 ? numeric * 1000 : numeric;
+        }
+        const parsed = Date.parse(trimmed);
+        return Number.isNaN(parsed) ? 0 : parsed;
+      }
+      return 0;
     },
     getStatusName(status) {
       const map = { '0': '草稿', '1': '进行中', '2': '已结束' };
@@ -783,9 +833,10 @@ export default {
 .vote-page {
   display: flex;
   gap: 16px;
-  height: calc(100vh - 70px);
+  height: 100%;
   padding: 14px;
   box-sizing: border-box;
+  overflow: hidden;
   background: linear-gradient(180deg, #f7f9ff 0%, #eef3ff 100%);
 }
 
@@ -797,16 +848,23 @@ export default {
 }
 
 .left-panel {
-  width: 300px;
+  width: 360px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
+.left-title {
+  padding: 14px 14px 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #23324a;
+}
+
 .left-header {
   display: flex;
   gap: 10px;
-  padding: 14px;
+  padding: 10px 14px 14px;
   border-bottom: 1px solid #f0f4ff;
 }
 
@@ -902,7 +960,11 @@ export default {
 }
 
 .header-right {
-  min-width: 220px;
+  min-width: 260px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
 }
 
 .ticket-box {

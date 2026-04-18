@@ -5,6 +5,7 @@ import com.bocfintech.allstar.entity.VoteTask;
 import com.bocfintech.allstar.entity.MyPage;
 
 import java.util.List;
+import java.util.Map;
 
 public interface VoteService extends BaseService<VoteTask> {
 
@@ -12,6 +13,11 @@ public interface VoteService extends BaseService<VoteTask> {
      * 创建投票任务
      */
     void createTask(VoteTask task, List<VoteOption> options);
+
+    /**
+     * 更新投票任务（仅发起人）
+     */
+    void updateTask(Long taskId, Map<String, Object> params, String userId);
 
     /**
      * 获取任务详情（包含选项）

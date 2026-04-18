@@ -927,9 +927,10 @@ export default {
 <style scoped>
 .xmind-converter-page {
   padding: 20px;
-  height: calc(100vh - 84px);
+  height: 100%;
   background: linear-gradient(180deg, #f5f8ff 0%, #eef3fb 100%);
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .converter-container {
