@@ -23,10 +23,9 @@ public class DbConnectionConfigController {
      * 查询所有数据库配置
      */
     @GetMapping("/list")
-    public ResultBean<List<DbConnectionConfig>> listAll() {
+    public ResultBean<List<DbConnectionConfig>> listAll(@RequestHeader(value = "token", required = false) String token) {
         try {
-            // 从 Header 获取 token（员工号）
-            String empNo = getEmpNoFromToken();
+            String empNo = getEmpNoFromToken(token);
             if (!StringUtils.hasText(empNo)) {
                 return ResultBean.error(ErrorEnum.参数异常, "未登录或Token无效");
             }
@@ -43,9 +42,10 @@ public class DbConnectionConfigController {
      * 新增数据库配置
      */
     @PostMapping("/create")
-    public ResultBean<String> create(@RequestBody DbConnectionConfig config) {
+    public ResultBean<String> create(@RequestBody DbConnectionConfig config,
+                                     @RequestHeader(value = "token", required = false) String token) {
         try {
-            String empNo = getEmpNoFromToken();
+            String empNo = getEmpNoFromToken(token);
             if (!StringUtils.hasText(empNo)) {
                 return ResultBean.error(ErrorEnum.参数异常, "未登录或Token无效");
             }
@@ -67,9 +67,10 @@ public class DbConnectionConfigController {
      * 修改数据库配置（密码可选）
      */
     @PutMapping("/update")
-    public ResultBean<String> update(@RequestBody DbConnectionConfig config) {
+    public ResultBean<String> update(@RequestBody DbConnectionConfig config,
+                                     @RequestHeader(value = "token", required = false) String token) {
         try {
-            String empNo = getEmpNoFromToken();
+            String empNo = getEmpNoFromToken(token);
             if (!StringUtils.hasText(empNo)) {
                 return ResultBean.error(ErrorEnum.参数异常, "未登录或Token无效");
             }
@@ -102,9 +103,10 @@ public class DbConnectionConfigController {
      *  删除本人的数据库配置
      */
     @DeleteMapping("/delete")
-    public ResultBean<String> deleteConfig(@RequestParam Long id) {
+    public ResultBean<String> deleteConfig(@RequestParam Long id,
+                                           @RequestHeader(value = "token", required = false) String token) {
         try {
-            String empNo = getEmpNoFromToken();
+            String empNo = getEmpNoFromToken(token);
             if (!StringUtils.hasText(empNo)) {
                 return ResultBean.error(ErrorEnum.参数异常, "未登录");
             }
@@ -128,9 +130,10 @@ public class DbConnectionConfigController {
      * 手动触发测试连接（源库）
      */
     @PostMapping("/testConnect")
-    public ResultBean<String> testConnect(@RequestBody DbConnectionConfig config) {
+    public ResultBean<String> testConnect(@RequestBody DbConnectionConfig config,
+                                          @RequestHeader(value = "token", required = false) String token) {
         try {
-            String empNo = getEmpNoFromToken();
+            String empNo = getEmpNoFromToken(token);
             if (!StringUtils.hasText(empNo)) {
                 return ResultBean.error(ErrorEnum.参数异常, "未登录或Token无效");
             }
@@ -144,9 +147,7 @@ public class DbConnectionConfigController {
     }
 
     // 从 Header 提取员工号
-    private String getEmpNoFromToken() {
-        // 实际应从 Spring Security 或 JWT 解析
-        // 此处简化：token 即 empNo
-        return "2036377"; // TODO: 替换为真实解析逻辑
+    private String getEmpNoFromToken(String token) {
+        return StringUtils.hasText(token) ? token.trim() : null;
     }
 }

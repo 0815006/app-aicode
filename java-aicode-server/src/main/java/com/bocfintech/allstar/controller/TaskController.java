@@ -5,6 +5,7 @@ import com.bocfintech.allstar.entity.UserInfo;
 import com.bocfintech.allstar.task.ParkApiTaskOld;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -27,10 +28,14 @@ public class TaskController {
      * 手动触发park接口定时任务
      */
     @PostMapping("/executeParkTasks")
-    public ResultBean executeParkTasks() {
+    public ResultBean executeParkTasks(@RequestHeader(value = "token", required = false) String token) {
         try {
             log.info("手动触发定时任务");
-            UserInfo user = new UserInfo("2036377","zaj6HSat8Y1+T36Pwje6iw==");
+            if (token == null || token.trim().isEmpty()) {
+                return ResultBean.error("未登录或Token无效");
+            }
+            String userId = token.trim();
+            UserInfo user = new UserInfo(userId,"zaj6HSat8Y1+T36Pwje6iw==");
             // parkApiTask.executeParkTasks(user);
 
 

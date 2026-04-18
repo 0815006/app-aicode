@@ -53,8 +53,9 @@ public class PerformanceController {
     @ApiOperation(value = "上传环境资源清单")
     @PostMapping("/uploadResource")
     public ResultBean uploadExcelFile(@RequestParam(value = "productId") @NotBlank(message = "产品标识不能为空") String productId,
-                                      @RequestParam("file") MultipartFile file) throws Exception {
-        String empNo = getEmpNoFromToken();
+                                      @RequestParam("file") MultipartFile file,
+                                      @RequestHeader(value = "token", required = false) String token) throws Exception {
+        String empNo = getEmpNoFromToken(token);
         //上传文件到本地
         Map<String,Object> map = productResourceInfoService.uploadExcel(file);
         //导入到表
@@ -66,8 +67,9 @@ public class PerformanceController {
 
     @ApiOperation(value = "编辑信息")
     @PostMapping(value = "editResource")
-    public ResultBean edit(@RequestBody @NotNull(message = "建议信息为空！") PerformanceResourceInfo productResourceInfo) {
-        String empNo = getEmpNoFromToken();
+    public ResultBean edit(@RequestBody @NotNull(message = "建议信息为空！") PerformanceResourceInfo productResourceInfo,
+                           @RequestHeader(value = "token", required = false) String token) {
+        String empNo = getEmpNoFromToken(token);
         Date date = new Date();
 
         productResourceInfo.setLastTime(date);
@@ -122,7 +124,10 @@ public class PerformanceController {
     }
 
     // 工具方法
-    private String getEmpNoFromToken() {
-        return "2036377"; // TODO: 替换
+    private String getEmpNoFromToken(String token) {
+        if (StringUtils.isBlank(token)) {
+            return null;
+        }
+        return token.trim();
     }
 }

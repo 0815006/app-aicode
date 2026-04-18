@@ -1,5 +1,6 @@
 // src/utils/request.js
 import axios from 'axios'
+import { getCurrentEmpNo } from '@/utils/currentUser'
 
 const request = axios.create({
   baseURL: '/api',
@@ -9,8 +10,7 @@ const request = axios.create({
 // 请求拦截器
 request.interceptors.request.use(
   config => {
-    // 按照要求，固定传 2036377
-    config.headers['token'] = '2036377'
+    config.headers['token'] = getCurrentEmpNo()
     return config
   },
   error => {

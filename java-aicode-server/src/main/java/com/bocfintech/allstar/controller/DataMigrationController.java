@@ -28,12 +28,13 @@ public class DataMigrationController {
      * 根据配置ID获取数据库配置详情
      */
     @GetMapping("/config/detail")
-    public ResultBean<DbConnectionConfig> getConfigDetail(@RequestParam Long id) {
+    public ResultBean<DbConnectionConfig> getConfigDetail(@RequestParam Long id,
+                                                          @RequestHeader(value = "token", required = false) String token) {
         if (id == null) {
             return ResultBean.error("配置ID不能为空");
         }
         try {
-            String empNo = getEmpNoFromToken();
+            String empNo = getEmpNoFromToken(token);
             if (!StringUtils.hasText(empNo)) {
                 return ResultBean.error(ErrorEnum.参数异常, "未登录或Token无效");
             }
@@ -65,9 +66,10 @@ public class DataMigrationController {
      * 查询数据库所有表信息（表名、中文名、记录数、存储空间）
      */
     @PostMapping("/table/list")
-    public ResultBean<List<TableInfo>> getTableList(@RequestBody DbConnectionConfig config) {
+    public ResultBean<List<TableInfo>> getTableList(@RequestBody DbConnectionConfig config,
+                                                    @RequestHeader(value = "token", required = false) String token) {
         try {
-            String empNo = getEmpNoFromToken();
+            String empNo = getEmpNoFromToken(token);
             if (!StringUtils.hasText(empNo)) {
                 return ResultBean.error(ErrorEnum.参数异常, "未登录或Token无效");
             }
@@ -89,9 +91,10 @@ public class DataMigrationController {
      * 迁移表结构
      */
     @PostMapping("/migrate/structure")
-    public ResultBean<String> migrateStructure(@RequestBody MigrateRequest request) {
+    public ResultBean<String> migrateStructure(@RequestBody MigrateRequest request,
+                                               @RequestHeader(value = "token", required = false) String token) {
         try {
-            String empNo = getEmpNoFromToken();
+            String empNo = getEmpNoFromToken(token);
             if (!StringUtils.hasText(empNo)) {
                 return ResultBean.error(ErrorEnum.参数异常, "未登录或Token无效");
             }
@@ -108,9 +111,10 @@ public class DataMigrationController {
      * 仅迁移数据（要求字段名一致）
      */
     @PostMapping("/migrate/dataOnly")
-    public ResultBean<String> migrateDataOnly(@RequestBody MigrateRequest request) {
+    public ResultBean<String> migrateDataOnly(@RequestBody MigrateRequest request,
+                                              @RequestHeader(value = "token", required = false) String token) {
         try {
-            String empNo = getEmpNoFromToken();
+            String empNo = getEmpNoFromToken(token);
             if (!StringUtils.hasText(empNo)) {
                 return ResultBean.error(ErrorEnum.参数异常, "未登录或Token无效");
             }
@@ -127,9 +131,10 @@ public class DataMigrationController {
      * 迁移表结构和数据
      */
     @PostMapping("/migrate/data")
-    public ResultBean<String> migrateData(@RequestBody MigrateRequest request) {
+    public ResultBean<String> migrateData(@RequestBody MigrateRequest request,
+                                          @RequestHeader(value = "token", required = false) String token) {
         try {
-            String empNo = getEmpNoFromToken();
+            String empNo = getEmpNoFromToken(token);
             if (!StringUtils.hasText(empNo)) {
                 return ResultBean.error(ErrorEnum.参数异常, "未登录或Token无效");
             }
@@ -146,9 +151,10 @@ public class DataMigrationController {
      * 清空目标表数据
      */
     @PostMapping("/table/truncate")
-    public ResultBean<String> truncateTable(@RequestBody TableOperationRequest request) {
+    public ResultBean<String> truncateTable(@RequestBody TableOperationRequest request,
+                                            @RequestHeader(value = "token", required = false) String token) {
         try {
-            String empNo = getEmpNoFromToken();
+            String empNo = getEmpNoFromToken(token);
             if (!StringUtils.hasText(empNo)) {
                 return ResultBean.error(ErrorEnum.参数异常, "未登录或Token无效");
             }
@@ -165,9 +171,10 @@ public class DataMigrationController {
      * 删除目标表
      */
     @PostMapping("/table/drop")
-    public ResultBean<String> dropTable(@RequestBody TableOperationRequest request) {
+    public ResultBean<String> dropTable(@RequestBody TableOperationRequest request,
+                                        @RequestHeader(value = "token", required = false) String token) {
         try {
-            String empNo = getEmpNoFromToken();
+            String empNo = getEmpNoFromToken(token);
             if (!StringUtils.hasText(empNo)) {
                 return ResultBean.error(ErrorEnum.参数异常, "未登录或Token无效");
             }
@@ -181,8 +188,8 @@ public class DataMigrationController {
     }
 
     // 工具方法
-    private String getEmpNoFromToken() {
-        return "2036377"; // TODO: 替换
+    private String getEmpNoFromToken(String token) {
+        return StringUtils.hasText(token) ? token.trim() : null;
     }
 
     // 内部类：迁移请求

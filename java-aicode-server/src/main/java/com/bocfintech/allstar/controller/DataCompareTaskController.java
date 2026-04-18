@@ -23,9 +23,9 @@ public class DataCompareTaskController {
      * 查询所有比对任务（仅自己的）
      */
     @GetMapping("/list")
-    public ResultBean<List<DataCompareTask>> listAll() {
+    public ResultBean<List<DataCompareTask>> listAll(@RequestHeader(value = "token", required = false) String token) {
         try {
-            String empNo = getEmpNoFromToken();
+            String empNo = getEmpNoFromToken(token);
             if (!StringUtils.hasText(empNo)) {
                 return ResultBean.error(ErrorEnum.参数异常, "未登录或Token无效");
             }
@@ -42,9 +42,10 @@ public class DataCompareTaskController {
      * 保存新的比对任务
      */
     @PostMapping("/save")
-    public ResultBean<String> save(@RequestBody DataCompareTask task) {
+    public ResultBean<String> save(@RequestBody DataCompareTask task,
+                                   @RequestHeader(value = "token", required = false) String token) {
         try {
-            String empNo = getEmpNoFromToken();
+            String empNo = getEmpNoFromToken(token);
             if (!StringUtils.hasText(empNo)) {
                 return ResultBean.error(ErrorEnum.参数异常, "未登录或Token无效");
             }
@@ -63,7 +64,7 @@ public class DataCompareTaskController {
     }
 
     // 工具方法
-    private String getEmpNoFromToken() {
-        return "2036377"; // TODO: 替换
+    private String getEmpNoFromToken(String token) {
+        return StringUtils.hasText(token) ? token.trim() : null;
     }
 }
