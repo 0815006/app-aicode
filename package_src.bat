@@ -22,13 +22,9 @@ if exist %ZIP_NAME% (
 :: -v: 显示过程
 :: -f: 指定文件名
 tar -acvf %ZIP_NAME% ^
-    --exclude="java-aicode-server/target" ^
-    --exclude="web-aicode-vue/node_modules" ^
-    --exclude=".git" ^
-    --exclude=".roo" ^
-    --exclude=".vscode" ^
-    --exclude="%ZIP_NAME%" ^
-    *
+    --exclude="*/target" ^
+    --exclude="*/node_modules" ^
+    java-* web-*
 
 if %ERRORLEVEL% equ 0 (
     echo.
