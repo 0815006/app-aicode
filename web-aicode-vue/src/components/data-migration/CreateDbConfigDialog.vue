@@ -1,10 +1,9 @@
 <template>
   <el-dialog
     :title="dialogTitle"
-    :visible.sync="visible"
+    :visible.sync="computedVisible"
     :close-on-click-modal="false"
     :close-on-press-escape="false"
-    @close="handleClose"
     width="50%">
     <!-- 模式切换与已有配置选择 -->
     <div style="display: flex; align-items: center; margin-bottom: 20px; gap: 20px;">
@@ -77,6 +76,16 @@ export default {
     visible: {
       type: Boolean,
       default: false
+    }
+  },
+  computed: {
+    computedVisible: {
+      get() {
+        return this.visible
+      },
+      set(val) {
+        this.$emit('update:visible', val)
+      }
     }
   },
   data() {
@@ -267,9 +276,6 @@ export default {
           return false
         }
       })
-    },
-    handleClose() {
-      this.$emit('update:visible', false)
     },
     handleTestConnection() {
       this.$refs.form.validate(valid => {

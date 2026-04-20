@@ -154,14 +154,14 @@ export default {
 
       try {
         const res = await checkResources(this.productId.trim())
-        if (res.data && res.data.code === 200) {
-          const data = res.data.data
+        if (res.code === 200) {
+          const data = res.data || {}
           this.summaryList = data.summaryList || []
           this.detailList = data.detailList || []
           this.fileSummaryList = data.fileSummaryList || [] // ✅ 接收新字段
           this.$message.success('查询成功')
         } else {
-          this.$message.error(res.data.message || '查询失败')
+          this.$message.error(res.message || '查询失败')
         }
       } catch (error) {
         this.$message.error('网络请求失败，请检查接口是否可达')

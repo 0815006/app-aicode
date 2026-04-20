@@ -18,6 +18,7 @@
       <el-form-item label="Excel文件" prop="file">
         <el-upload
           ref="upload"
+          action=""
           :auto-upload="false"
           :on-change="handleFileChange"
           :file-list="fileList"
@@ -105,11 +106,11 @@ export default {
         // ✅ 使用您封装的接口（不要用 this.$http）
         const res = await uploadResource(this.form.productId, this.file)
 
-        if (res.data && res.data.code === 200) {
+        if (res.code === 200) {
           this.result = '✅ 上传成功！'
           this.$message.success('文件上传成功')
         } else {
-          this.result = '❌ ' + (res.data.message || '上传失败')
+          this.result = '❌ ' + (res.message || '上传失败')
         }
       } catch (error) {
         this.result = '❌ 网络错误或接口异常'

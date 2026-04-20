@@ -60,3 +60,11 @@ java-aicode-server/*.iml
 java-aicode-server/*.ipr
 java-aicode-server/*.iws
 java-aicode-server/logs/
+
+# Sync Bundles
+/maven_sync.zip
+/vue_sync.zip
+/aicode-v1-source.zip
+/maven_sync_bundle/
+/vue_temp_build/
+/vue_sync_bundle/

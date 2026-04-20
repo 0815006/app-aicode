@@ -951,13 +951,13 @@ export default {
 }
 
 .upload-section {
-  flex: 1.2;
-  min-width: 500px;
+  flex: 1;
+  min-width: 0;
 }
 
 .output-section {
   flex: 1;
-  min-width: 400px;
+  min-width: 0;
 }
 
 .section-header {
