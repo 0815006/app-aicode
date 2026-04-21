@@ -5,8 +5,8 @@
 
     <!-- 查询表单 -->
     <el-card shadow="hover" style="margin-bottom: 20px">
-      <el-form :inline="true" size="small">
-        <el-form-item label="产品标识">
+      <el-form :inline="true" size="small" style="display: flex; align-items: center;">
+        <el-form-item label="产品标识" style="margin-bottom: 0;">
           <el-select
             v-model="productId"
             placeholder="请选择产品标识"
@@ -23,9 +23,15 @@
             />
           </el-select>
         </el-form-item>
-        <el-form-item>
+        <el-form-item style="margin-bottom: 0;">
           <el-button type="primary" @click="handleQuery" :loading="loading">
             查询
+          </el-button>
+        </el-form-item>
+        <div style="flex: 1;"></div>
+        <el-form-item style="margin-bottom: 0; margin-right: 0;">
+          <el-button type="success" icon="el-icon-upload" @click="handleUpload">
+            上传资源
           </el-button>
         </el-form-item>
       </el-form>
@@ -224,15 +230,21 @@
 
     <!-- 无数据提示 -->
     <el-empty v-if="!loading && summaryList.length === 0 && detailList.length === 0 && summaryListApply.length === 0 && detailListApply.length === 0" description="暂无数据" />
+
+    <!-- 上传弹窗 -->
+    <upload-resource-dialog ref="uploadDialog" @refresh="handleQuery" />
   </div>
 </template>
 
 <script>
 import { checkResources, deleteResourceByFile, getProductIds } from '@/api/resource'
-
+import UploadResourceDialog from '@/components/data-migration/UploadResourceDialog.vue'
 
 export default {
   name: 'ResourceCheck',
+  components: {
+    UploadResourceDialog
+  },
   data() {
     return {
       productId: 'BPS-D-AUTO', // 产品ID
@@ -318,6 +330,9 @@ export default {
         this.loading = false
       }
     },
+    handleUpload() {
+      this.$refs.uploadDialog.init(this.productId)
+    },
     async handleDeleteFile(originalFileName) {
     try {
       await this.$confirm(
@@ -334,12 +349,12 @@ export default {
 
       const res = await deleteResourceByFile(this.productId, originalFileName)
 
-      if (res.data && res.data.code === 200) {
-        this.$message.success(res.data.message || '删除成功')
+      if (res.code === 200) {
+        this.$message.success(res.message || '删除成功')
         // 重新查询数据
         this.handleQuery()
       } else {
-        this.$message.error(res.data.message || '删除失败')
+        this.$message.error(res.message || '删除失败')
       }
     } catch (error) {
       if (error !== 'cancel') {

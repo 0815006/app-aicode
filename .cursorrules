@@ -43,6 +43,7 @@ CRITICAL: NEVER suggest or use Vue 3, Composition API, or Java 11+ features. Thi
 ### 3.1 语法与 UI
 * **核心语法**：必须使用 **Vue 2.7 Options API**。
 * **UI 组件库**：必须使用 **Element UI (2.15.x)**。
+* **组件组织**：页面专用的弹窗组件（Dialog）应放置在 `src/components/` 下对应的业务子目录中（如 `src/components/data-migration/`），以便清晰识别组件的归属页面。
 
 ### 3.2 网络请求与 API 管理
 * **API 集中化**：必须在 `src/api/` 目录下创建 **`.js`** 文件统一管理接口函数。

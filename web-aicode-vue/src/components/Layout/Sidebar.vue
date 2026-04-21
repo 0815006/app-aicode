@@ -12,11 +12,6 @@
       active-text-color="#ffffff"
       router
     >
-     <el-menu-item index="/upload-resource">
-       <i class="el-icon-upload"></i>
-       <span slot="title">上传资源清单</span>
-     </el-menu-item>
-
       <el-menu-item index="/resource-check">
         <i class="el-icon-document"></i>
         <span slot="title">资源核查</span>
