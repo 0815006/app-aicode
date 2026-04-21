@@ -93,7 +93,7 @@ public class PerformanceResourceInfoService extends BaseServiceImpl<PerformanceR
     /**
      * Excel导入方法
      */
-    public void importExcel(MultipartFile file,String originalFileName,String fileName,String productId,String userId) throws Exception {
+    public void importExcel(MultipartFile file,String originalFileName,String fileName,String productId,String userId, String fileSource) throws Exception {
         Workbook workbook = null;
         InputStream inputStream = file.getInputStream();
         String fileNameLowerCase = file.getOriginalFilename().toLowerCase();
@@ -115,7 +115,15 @@ public class PerformanceResourceInfoService extends BaseServiceImpl<PerformanceR
             throw new IllegalArgumentException("不支持的文件格式");
         }
 
-        Sheet sheet = workbook.getSheetAt(0);
+        Sheet sheet = null;
+        if ("资源申请表".equals(fileSource)) {
+            sheet = workbook.getSheet("请将资源明细表内容复制到此sheet");
+            if (sheet == null) {
+                throw new IllegalArgumentException("未找到名为“请将资源明细表内容复制到此sheet”的页签");
+            }
+        } else {
+            sheet = workbook.getSheetAt(0);
+        }
 
         List<PerformanceResourceInfo> dataList = new ArrayList<>();
 
@@ -123,6 +131,7 @@ public class PerformanceResourceInfoService extends BaseServiceImpl<PerformanceR
         // 跳过标题行，从第二行开始读取
         for (int i = 1; i <= sheet.getLastRowNum(); i++) {
             Row row = sheet.getRow(i);
+            if (row == null) continue;
             PerformanceResourceInfo entity = new PerformanceResourceInfo();
 
             int t =1;
@@ -173,6 +182,7 @@ public class PerformanceResourceInfoService extends BaseServiceImpl<PerformanceR
             entity.setOriginalFileName(originalFileName);
             entity.setFileName(fileName);
             entity.setProductId(productId);
+            entity.setFileSource(fileSource);
             entity.setCreateTime(date);
             entity.setCreateOperator(userId);
             entity.setLastTime(date);

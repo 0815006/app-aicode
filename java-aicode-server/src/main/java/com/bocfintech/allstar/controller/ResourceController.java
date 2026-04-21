@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.constraints.NotBlank;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/resource")
@@ -16,13 +17,26 @@ public class ResourceController {
     private ResourceService resourceService;
 
     /**
+     * 获取所有产品ID列表
+     */
+    @GetMapping("/productIds")
+    public ResultBean<List<String>> getProductIds() {
+        try {
+            return ResultBean.success(resourceService.getAllProductIds());
+        } catch (Exception e) {
+            return ResultBean.error("获取产品列表失败：" + e.getMessage());
+        }
+    }
+
+    /**
      * 核查资源：按产品ID返回总量汇总 + 明细聚合
      */
     @GetMapping("/check")
     public ResultBean<ResourceCheckResponse> checkResources(
-            @RequestParam("productId") @NotBlank(message = "productId 不能为空") String productId) {
+            @RequestParam("productId") @NotBlank(message = "productId 不能为空") String productId,
+            @RequestParam(value = "fileSource", required = false) String fileSource) {
         try {
-            ResourceCheckResponse response = resourceService.getResourceCheckByProduct(productId);
+            ResourceCheckResponse response = resourceService.getResourceCheckByProduct(productId, fileSource);
             return ResultBean.success(response);
         } catch (Exception e) {
             return ResultBean.error("查询资源信息失败：" + e.getMessage());

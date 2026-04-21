@@ -223,6 +223,7 @@ CREATE TABLE `performance_resource_info` (
   `original_file_name` varchar(255) DEFAULT NULL COMMENT '原始文件名',
   `file_name` varchar(255) DEFAULT NULL COMMENT '上传文件名',
   `product_id` varchar(32) DEFAULT NULL COMMENT '产品标识',
+  `file_source` varchar(32) DEFAULT NULL COMMENT '文件来源：部署方案 / 资源申请表',
   `create_time` datetime DEFAULT NULL COMMENT '创建时间',
   `create_operator` varchar(32) DEFAULT NULL COMMENT '创建人',
   `last_time` datetime DEFAULT NULL COMMENT '更新时间',

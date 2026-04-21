@@ -94,10 +94,11 @@ public class ResourceServiceImpl implements ResourceService {
 //                .build();
 //    }
     @Override
-    public ResourceCheckResponse getResourceCheckByProduct(String productId) {
+    public ResourceCheckResponse getResourceCheckByProduct(String productId, String fileSource) {
         List<PerformanceResourceInfo> list = resourceMapper.selectList(
                 Wrappers.<PerformanceResourceInfo>lambdaQuery()
                         .eq(PerformanceResourceInfo::getProductId, productId)
+                        .eq(fileSource != null, PerformanceResourceInfo::getFileSource, fileSource)
                         .isNotNull(PerformanceResourceInfo::getDeploymentLocation)
         );
 
@@ -236,6 +237,20 @@ public class ResourceServiceImpl implements ResourceService {
                         .eq(PerformanceResourceInfo::getProductId, productId)
                         .eq(PerformanceResourceInfo::getOriginalFileName, originalFileName)
         );
+    }
+
+    @Override
+    public List<String> getAllProductIds() {
+        List<PerformanceResourceInfo> list = resourceMapper.selectList(
+                Wrappers.<PerformanceResourceInfo>lambdaQuery()
+                        .select(PerformanceResourceInfo::getProductId)
+                        .isNotNull(PerformanceResourceInfo::getProductId)
+                        .groupBy(PerformanceResourceInfo::getProductId)
+        );
+        return list.stream()
+                .map(PerformanceResourceInfo::getProductId)
+                .filter(id -> id != null && !id.trim().isEmpty())
+                .collect(Collectors.toList());
     }
 
 

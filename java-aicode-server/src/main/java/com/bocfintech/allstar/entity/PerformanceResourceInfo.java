@@ -204,6 +204,10 @@ public class PerformanceResourceInfo {
     @TableField("product_id")
     private String productId;
 
+    // 文件来源
+    @TableField("file_source")
+    private String fileSource;
+
     // 创建时间
     @TableField("create_time")
     private Date createTime;

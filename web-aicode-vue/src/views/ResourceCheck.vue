@@ -7,13 +7,21 @@
     <el-card shadow="hover" style="margin-bottom: 20px">
       <el-form :inline="true" size="small">
         <el-form-item label="产品标识">
-          <el-input
+          <el-select
             v-model="productId"
-            placeholder="请输入产品标识，如：BPS-D-AUTO"
-            style="width: 200px"
+            placeholder="请选择产品标识"
+            style="width: 250px"
+            filterable
             clearable
-            @keyup.enter.native="handleQuery"
-          />
+            @change="handleQuery"
+          >
+            <el-option
+              v-for="item in productOptions"
+              :key="item"
+              :label="item"
+              :value="item"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="handleQuery" :loading="loading">
@@ -24,30 +32,55 @@
     </el-card>
 
     <!-- 汇总表格 -->
-    <el-card v-if="summaryList.length > 0" shadow="hover" style="margin-bottom: 20px">
-      <div slot="header">
-        <span style="font-weight: bold">资源总量汇总</span>
-      </div>
-      <el-table
-        :data="summaryList"
-        border
-        size="small"
-        style="width: 100%"
-        :default-sort="{ prop: 'deploymentLocation', order: 'ascending' }"
-      >
-        <el-table-column prop="deploymentLocation" label="部署地点" width="150" sortable />
-        <el-table-column prop="systemPlatform" label="系统平台" width="180" />
-        <el-table-column prop="hostCount" label="机器台数" width="100" />
-        <el-table-column prop="totalCpu" label="总CPU核心数" width="120" />
-        <el-table-column prop="totalMemoryGb" label="总内存(GB)" width="120" />
-        <el-table-column prop="totalStorageGb" label="总存储(GB)" width="120" />
-      </el-table>
-    </el-card>
+    <el-row :gutter="20" v-if="summaryList.length > 0 || summaryListApply.length > 0">
+      <el-col :span="12">
+        <el-card shadow="hover" style="margin-bottom: 20px">
+          <div slot="header">
+            <span style="font-weight: bold">部署方案-资源总量汇总</span>
+          </div>
+          <el-table
+            :data="summaryList"
+            border
+            size="small"
+            style="width: 100%"
+            :default-sort="{ prop: 'deploymentLocation', order: 'ascending' }"
+          >
+            <el-table-column prop="deploymentLocation" label="部署地点" width="120" sortable />
+            <el-table-column prop="systemPlatform" label="系统平台" />
+            <el-table-column prop="hostCount" label="机器台数" width="80" />
+            <el-table-column prop="totalCpu" label="总CPU" width="80" />
+            <el-table-column prop="totalMemoryGb" label="总内存" width="80" />
+            <el-table-column prop="totalStorageGb" label="总存储" width="80" />
+          </el-table>
+        </el-card>
+      </el-col>
+      <el-col :span="12">
+        <el-card shadow="hover" style="margin-bottom: 20px">
+          <div slot="header">
+            <span style="font-weight: bold">申请表-资源总量汇总</span>
+          </div>
+          <el-table
+            :data="summaryListApply"
+            border
+            size="small"
+            style="width: 100%"
+            :default-sort="{ prop: 'deploymentLocation', order: 'ascending' }"
+          >
+            <el-table-column prop="deploymentLocation" label="部署地点" width="120" sortable />
+            <el-table-column prop="systemPlatform" label="系统平台" />
+            <el-table-column prop="hostCount" label="机器台数" width="80" />
+            <el-table-column prop="totalCpu" label="总CPU" width="80" />
+            <el-table-column prop="totalMemoryGb" label="总内存" width="80" />
+            <el-table-column prop="totalStorageGb" label="总存储" width="80" />
+          </el-table>
+        </el-card>
+      </el-col>
+    </el-row>
 
     <!-- ✅ 新增：文件级资源汇总（风格统一） -->
     <el-card v-if="fileSummaryList && fileSummaryList.length > 0" shadow="hover" style="margin-top: 20px">
     <div slot="header">
-        <span style="font-weight: bold">文件级资源汇总（按原始文件名分组）</span>
+        <span style="font-weight: bold">部署方案-文件级资源汇总（按原始文件名分组）</span>
     </div>
     <el-collapse>
         <el-collapse-item
@@ -94,10 +127,57 @@
     </el-collapse>
     </el-card>
 
+    <!-- ✅ 新增：申请表-文件级资源汇总 -->
+    <el-card v-if="fileSummaryListApply && fileSummaryListApply.length > 0" shadow="hover" style="margin-top: 20px">
+    <div slot="header">
+        <span style="font-weight: bold">申请表-文件级资源汇总（按原始文件名分组）</span>
+    </div>
+    <el-collapse>
+        <el-collapse-item
+        v-for="(group, idx) in fileSummaryListApply"
+        :key="idx"
+        :name="'apply-' + idx"
+        >
+        <template slot="title">
+            <span style="font-weight: bold; color: #67C23A; flex: 1;">
+            📄 {{ group.originalFileName }}
+            <el-tag size="mini" type="success" style="margin-left: 8px">
+                上传 {{ group.uploadCount }} 次
+            </el-tag>
+            </span>
+            <el-button
+            size="mini"
+            type="danger"
+            icon="el-icon-delete"
+            @click.stop="handleDeleteFile(group.originalFileName)"
+            :loading="deleting === group.originalFileName"
+            style="margin-left: 0;"
+            >
+            删除
+            </el-button>
+        </template>
+        <el-table
+            :data="group.summary"
+            border
+            size="small"
+            style="width: 100%"
+            :default-sort="{ prop: 'deploymentLocation', order: 'ascending' }"
+        >
+            <el-table-column prop="deploymentLocation" label="部署地点" width="150" sortable />
+            <el-table-column prop="systemPlatform" label="系统平台" width="180" />
+            <el-table-column prop="hostCount" label="主机数量" width="100" />
+            <el-table-column prop="totalCpu" label="CPU总核数" width="100" />
+            <el-table-column prop="totalMemoryGb" label="内存总量(GB)" width="120" />
+            <el-table-column prop="totalStorageGb" label="存储总量(GB)" width="120" />
+        </el-table>
+        </el-collapse-item>
+    </el-collapse>
+    </el-card>
+
     <!-- 明细表格 -->
-    <el-card v-if="detailList.length > 0" shadow="hover">
+    <el-card v-if="detailList.length > 0" shadow="hover" style="margin-top: 20px">
       <div slot="header">
-        <span style="font-weight: bold">资源明细配置（相同配置已合并）</span>
+        <span style="font-weight: bold">部署方案-资源明细配置（相同配置已合并）</span>
       </div>
       <el-table
         :data="detailList"
@@ -115,17 +195,40 @@
         <el-table-column prop="dedicatedStorageGb" label="独占存储(GB)" width="120" />
         <el-table-column prop="sanStorageGb" label="SAN存储(GB)" width="120" />
         <el-table-column prop="nasStorageGb" label="NAS存储(GB)" width="120" />
-
       </el-table>
     </el-card>
+
+    <!-- ✅ 新增：申请表-资源明细配置 -->
+    <el-card v-if="detailListApply.length > 0" shadow="hover" style="margin-top: 20px">
+      <div slot="header">
+        <span style="font-weight: bold">申请表-资源明细配置（相同配置已合并）</span>
+      </div>
+      <el-table
+        :data="detailListApply"
+        border
+        size="small"
+        style="width: 100%"
+        :default-sort="{ prop: 'deploymentLocation', order: 'ascending' }"
+      >
+        <el-table-column prop="deploymentLocation" label="部署地点" width="150" sortable />
+        <el-table-column prop="systemPlatform" label="系统平台" width="180" />
+        <el-table-column prop="partitionUsage" label="分区用途" width="380" />
+        <el-table-column prop="count" label="机器台数" width="80" />
+        <el-table-column prop="cpuCores" label="CPU核心数" width="100" />
+        <el-table-column prop="memoryGb" label="内存(GB)" width="100" />
+        <el-table-column prop="dedicatedStorageGb" label="独占存储(GB)" width="120" />
+        <el-table-column prop="sanStorageGb" label="SAN存储(GB)" width="120" />
+        <el-table-column prop="nasStorageGb" label="NAS存储(GB)" width="120" />
+      </el-table>
+    </el-card>
+
     <!-- 无数据提示 -->
-    <el-empty v-if="!loading && summaryList.length === 0 && detailList.length === 0" description="暂无数据" />
+    <el-empty v-if="!loading && summaryList.length === 0 && detailList.length === 0 && summaryListApply.length === 0 && detailListApply.length === 0" description="暂无数据" />
   </div>
 </template>
 
 <script>
-import { checkResources } from '@/api/resource'
-import { deleteResourceByFile } from '@/api/resource'
+import { checkResources, deleteResourceByFile, getProductIds } from '@/api/resource'
 
 
 export default {
@@ -133,14 +236,38 @@ export default {
   data() {
     return {
       productId: 'BPS-D-AUTO', // 产品ID
+      productOptions: [], // 产品列表
       loading: false,
       deleting: '', // 当前正在删除的文件名
       summaryList: [],
       detailList: [],
-      fileSummaryList: [] // ✅ 新增字段
+      fileSummaryList: [],
+      summaryListApply: [], // ✅ 申请表汇总
+      detailListApply: [], // ✅ 申请表明细
+      fileSummaryListApply: [] // ✅ 申请表文件汇总
     }
   },
+  mounted() {
+    this.fetchProductIds()
+  },
   methods: {
+    async fetchProductIds() {
+      try {
+        const res = await getProductIds()
+        if (res.code === 200) {
+          this.productOptions = res.data || []
+          // 如果当前 productId 不在列表中且列表不为空，默认选第一个
+          if (this.productOptions.length > 0 && !this.productOptions.includes(this.productId)) {
+            this.productId = this.productOptions[0]
+          }
+          if (this.productId) {
+            this.handleQuery()
+          }
+        }
+      } catch (error) {
+        console.error('获取产品列表失败', error)
+      }
+    },
     async handleQuery() {
       if (!this.productId.trim()) {
         this.$message.warning('请输入产品标识')
@@ -148,20 +275,41 @@ export default {
       }
 
       this.loading = true
+      // 重置所有列表
       this.summaryList = []
       this.detailList = []
       this.fileSummaryList = []
+      this.summaryListApply = []
+      this.detailListApply = []
+      this.fileSummaryListApply = []
 
       try {
-        const res = await checkResources(this.productId.trim())
-        if (res.code === 200) {
-          const data = res.data || {}
+        // 并行调用两次接口
+        const [resPlan, resApply] = await Promise.all([
+          checkResources(this.productId.trim(), '部署方案'),
+          checkResources(this.productId.trim(), '资源申请表')
+        ])
+
+        if (resPlan.code === 200) {
+          const data = resPlan.data || {}
           this.summaryList = data.summaryList || []
           this.detailList = data.detailList || []
-          this.fileSummaryList = data.fileSummaryList || [] // ✅ 接收新字段
-          this.$message.success('查询成功')
+          this.fileSummaryList = data.fileSummaryList || []
         } else {
-          this.$message.error(res.message || '查询失败')
+          this.$message.error('部署方案查询失败: ' + resPlan.message)
+        }
+
+        if (resApply.code === 200) {
+          const data = resApply.data || {}
+          this.summaryListApply = data.summaryList || []
+          this.detailListApply = data.detailList || []
+          this.fileSummaryListApply = data.fileSummaryList || []
+        } else {
+          this.$message.error('申请表查询失败: ' + resApply.message)
+        }
+
+        if (resPlan.code === 200 && resApply.code === 200) {
+          this.$message.success('查询成功')
         }
       } catch (error) {
         this.$message.error('网络请求失败，请检查接口是否可达')

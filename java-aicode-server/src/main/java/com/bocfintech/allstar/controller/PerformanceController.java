@@ -53,6 +53,7 @@ public class PerformanceController {
     @ApiOperation(value = "上传环境资源清单")
     @PostMapping("/uploadResource")
     public ResultBean uploadExcelFile(@RequestParam(value = "productId") @NotBlank(message = "产品标识不能为空") String productId,
+                                      @RequestParam(value = "fileSource", required = false, defaultValue = "部署方案") String fileSource,
                                       @RequestParam("file") MultipartFile file,
                                       @RequestHeader(value = "token", required = false) String token) throws Exception {
         String empNo = getEmpNoFromToken(token);
@@ -61,7 +62,7 @@ public class PerformanceController {
         //导入到表
         productResourceInfoService.importExcel(file,
                 Objects.toString(map.get("originalFileName"),"no originalFileName"),
-                Objects.toString(map.get("fileName"),"no fileName"),productId,empNo);
+                Objects.toString(map.get("fileName"),"no fileName"),productId,empNo, fileSource);
         return success();
     }
 

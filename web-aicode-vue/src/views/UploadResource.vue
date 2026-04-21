@@ -14,6 +14,14 @@
         />
       </el-form-item>
 
+      <!-- 文件来源 -->
+      <el-form-item label="文件来源" prop="fileSource">
+        <el-select v-model="form.fileSource" placeholder="请选择文件来源" style="width: 300px">
+          <el-option label="部署方案" value="部署方案" />
+          <el-option label="资源申请表" value="资源申请表" />
+        </el-select>
+      </el-form-item>
+
       <!-- 文件上传 -->
       <el-form-item label="Excel文件" prop="file">
         <el-upload
@@ -60,7 +68,8 @@ export default {
   data() {
     return {
       form: {
-        productId: 'BPS-D-AUTO'
+        productId: 'BPS-D-AUTO',
+        fileSource: '部署方案'
       },
       fileList: [],
       file: null,
@@ -72,6 +81,7 @@ export default {
     rules() {
       return {
         productId: [{ required: true, message: '请输入产品标识', trigger: 'blur' }],
+        fileSource: [{ required: true, message: '请选择文件来源', trigger: 'change' }],
         file: [{ required: true, validator: () => !!this.file, message: '请上传文件', trigger: 'change' }]
       }
     }
@@ -95,16 +105,12 @@ export default {
         }
       })
 
-      const formData = new FormData()
-      formData.append('productId', this.form.productId)
-      formData.append('file', this.file)
-
       this.uploading = true
       this.result = ''
 
       try {
         // ✅ 使用您封装的接口（不要用 this.$http）
-        const res = await uploadResource(this.form.productId, this.file)
+        const res = await uploadResource(this.form.productId, this.file, this.form.fileSource)
 
         if (res.code === 200) {
           this.result = '✅ 上传成功！'
