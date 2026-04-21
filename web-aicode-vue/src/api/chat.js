@@ -15,3 +15,22 @@ export function sendMessage(data) {
     data
   })
 }
+
+export function getFileList() {
+  return request({
+    url: '/chat/file/list',
+    method: 'get'
+  })
+}
+
+export function deleteFile(id, uploaderId) {
+  return request({
+    url: `/chat/file/delete/${id}`,
+    method: 'delete',
+    params: { uploaderId }
+  })
+}
+
+export function getDownloadUrl(id) {
+  return `/api/chat/file/download/${id}`
+}

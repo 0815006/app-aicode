@@ -7,18 +7,63 @@
     <!-- 左右布局 -->
     <div class="chat-main-content">
 
-      <!-- 左侧：在线用户列表 -->
-      <div class="online-users-sidebar">
-        <h3>👥 在线人员</h3>
-        <ul class="online-users-list">
-          <li
-            v-for="user in onlineUsers"
-            :key="user"
-          >
-            <span class="online-dot">●</span>
-            <span>{{ user }}</span>
-          </li>
-        </ul>
+      <!-- 左侧：在线用户列表 + 文件列表 -->
+      <div class="sidebar-container">
+        <!-- 上面：在线用户列表 -->
+        <div class="online-users-sidebar">
+          <h3>👥 在线人员</h3>
+          <ul class="online-users-list">
+            <li
+              v-for="user in onlineUsers"
+              :key="user"
+            >
+              <span class="online-dot">●</span>
+              <span>{{ user }}</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- 下面：文件列表 -->
+        <div class="file-list-sidebar">
+          <div class="file-list-header">
+            <h3>📁 文件共享</h3>
+            <el-upload
+              class="file-upload-btn"
+              action="/api/chat/file/upload"
+              :data="{ uploaderId: currentEmpNo, uploaderName: currentUser }"
+              :show-file-list="false"
+              :on-success="handleFileUploadSuccess"
+              :on-error="handleFileUploadError"
+              :before-upload="beforeFileUpload"
+            >
+              <el-button size="mini" type="primary" icon="el-icon-upload2" circle title="上传文件"></el-button>
+            </el-upload>
+          </div>
+          <div class="file-list-content" v-loading="fileLoading">
+            <div v-if="fileList.length === 0" class="no-files-tip">暂无文件</div>
+            <ul class="file-items-list">
+              <li v-for="file in fileList" :key="file.id" class="file-item">
+                <div class="file-info">
+                  <div class="file-name" :title="file.fileName">{{ file.fileName }}</div>
+                  <div class="file-meta">
+                    {{ file.uploaderName }} · {{ formatFileSize(file.fileSize) }}
+                  </div>
+                </div>
+                <div class="file-actions">
+                  <el-link type="primary" :underline="false" icon="el-icon-download" @click="handleFileDownload(file)"></el-link>
+                  <el-link 
+                    v-if="file.uploaderId === currentEmpNo" 
+                    type="danger" 
+                    :underline="false" 
+                    icon="el-icon-delete" 
+                    @click="handleFileDelete(file)"
+                    style="margin-left: 8px;"
+                  ></el-link>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div>
       </div>
 
       <!-- 右侧：原聊天内容 -->
@@ -147,7 +192,9 @@
 import marked from 'marked'
 import hljs from 'highlight.js'
 import DOMPurify from 'dompurify'
-import he from 'he'  // ✅ 加上这一行
+import he from 'he'
+import { getFileList, deleteFile, getDownloadUrl } from '@/api/chat'
+import { getCurrentEmpNo } from '@/utils/currentUser'
 
 // 引入代码高亮样式
 import 'highlight.js/styles/github.css'
@@ -157,9 +204,6 @@ const renderer = new marked.Renderer()
 
 // 重写代码块解析（fenced code blocks）
 renderer.code = function (code, language) {
-  // 如果 language 存在但没有闭合（marked 会正常传入 language）
-  // 我们不处理，交给默认逻辑 —— 但我们要防止未闭合导致的问题
-  // 实际上 marked 会把未闭合的 ``` 当作段落处理，所以我们只需确保安全输出
   const validLang = language && hljs.getLanguage(language) ? language : 'plaintext'
   let highlighted
 
@@ -170,15 +214,11 @@ renderer.code = function (code, language) {
       highlighted = hljs.highlightAuto(code).value
     }
   } catch (err) {
-    // 高亮失败 → 返回纯文本
     return `<pre><code>${marked.escape(code)}</code></pre>`
   }
 
   return `<pre><code class="hljs language-${language}">${highlighted}</code></pre>`
 }
-
-// 自定义 tokenizer：防止未闭合代码块破坏解析（进阶可选）
-// 但 marked 本身对未闭合 ``` 的处理较弱，最简单方式是：确保输出安全
 
 // 配置 marked
 marked.setOptions({
@@ -206,31 +246,30 @@ export default {
       messages: [],
       inputMessage: '',
       currentUser: localStorage.getItem('chatUsername') || '游客' + Math.floor(Math.random() * 1000),
+      currentEmpNo: getCurrentEmpNo(),
       ws: null,
       wsConnected: false,
-      isFullscreen: false, // ✅ 控制全屏状态
-      onlineUsers: [], // 存放在线用户列表
-      displayMode: localStorage.getItem('chatDisplayMode') || 'plain', // 默认纯文本
-      hasLoadedHistory: false // ✅ 新增字段
+      isFullscreen: false,
+      onlineUsers: [],
+      displayMode: localStorage.getItem('chatDisplayMode') || 'plain',
+      hasLoadedHistory: false,
+      fileList: [],
+      fileLoading: false
     }
   },
   created() {
     this.initWebSocket()
   },
-  beforeDestroy() {
-    this.closeWebSocket()
-  },
   mounted() {
-    // 监听全屏状态变化（兼容 ESC 键退出）
     document.addEventListener('fullscreenchange', this.handleFullscreenChange)
     document.addEventListener('webkitfullscreenchange', this.handleFullscreenChange)
-      // ✅ 页面加载时自动调用加载历史消息
     this.loadHistoryMessages()
+    this.fetchFileList()
   },
-
   beforeDestroy() {
     document.removeEventListener('fullscreenchange', this.handleFullscreenChange)
     document.removeEventListener('webkitfullscreenchange', this.handleFullscreenChange)
+    this.closeWebSocket()
   },
   watch: {
     displayMode(newMode) {
@@ -238,7 +277,6 @@ export default {
     },
     currentUser(newName, oldName) {
       if (this.wsConnected && newName && newName !== oldName) {
-        // 发送一个特殊消息，告诉服务器“我改名了”
         const msg = {
           type: 'rename',
           oldName: oldName,
@@ -260,23 +298,17 @@ export default {
       }
 
       this.ws.onmessage = (event) => {
-        console.log('📩 收到消息：', event.data) // ✅ 加日志
         const msg = JSON.parse(event.data)
-        // 在 onmessage 中添加
         if (msg.type === 'rename') {
-          console.log(`【系统】${msg.oldName} 改名为 ${msg.newName}`)
-          // 可选：在消息区显示一条系统消息
           this.messages.push({
             username: '📢 系统通知',
             htmlContent: `<i style="color:#999">${msg.oldName} 改名为 ${msg.newName}</i>`,
             time: msg.time
           })
-        }else if (msg.type === 'onlineUsers') {
-          // 假设后端发送 { type: 'onlineUsers', users: ['张三', '李四'] }
-          this.onlineUsers = [...new Set(msg.users)] // ✅ 去重
+        } else if (msg.type === 'onlineUsers') {
+          this.onlineUsers = [...new Set(msg.users)]
         } else {
-          // 普通消息
-          msg.id = msg.id || Date.now() + Math.random() // 防止后端没传 id
+          msg.id = msg.id || Date.now() + Math.random()
           this.messages.push(msg)
           this.$nextTick(() => {
             const container = this.$el.querySelector('.messages')
@@ -286,7 +318,6 @@ export default {
       }
 
       this.ws.onclose = () => {
-        console.log('WebSocket 已关闭')
         this.wsConnected = false
         setTimeout(this.initWebSocket, 3000)
       }
@@ -297,16 +328,15 @@ export default {
     },
 
     loadHistoryMessages() {
-      if (this.hasLoadedHistory) return // ✅ 如果已加载，不重复执行
+      if (this.hasLoadedHistory) return
       const timestamp = this.messages.length > 0 ? this.messages[0].time : Date.now();
       fetch(`/api/chat/history?timestamp=${timestamp}&limit=50`)
         .then(response => response.json())
         .then(data => {
-          this.hasLoadedHistory = true // ✅ 标记为已加载
+          this.hasLoadedHistory = true
           const historyMessages = Array.isArray(data) ? data : (data && data.data ? data.data : []);
           const newMessages = historyMessages.filter(msg => !this.messages.some(exist => exist.id === msg.id));
           for (const msg of newMessages) {
-            // 解析 message 字段中的 JSON 字符串
             try {
               const parsedMessage = JSON.parse(msg.message);
               msg.id = parsedMessage.id;
@@ -315,40 +345,29 @@ export default {
               msg.htmlContent = parsedMessage.htmlContent;
               msg.time = parsedMessage.time;
             } catch (e) {
-              console.error('解析历史消息失败:', e);
-              // 如果解析失败，使用默认值
               msg.username = '未知用户';
               msg.content = '解析失败';
               msg.htmlContent = '<p>解析失败</p>';
               msg.time = Date.now();
             }
           }
-          // 倒序插入消息，确保最新的消息在最下面
           this.messages.push(...newMessages.reverse());
-
           this.$nextTick(() => {
             const container = this.$el.querySelector('.messages');
-            if (container) {
-              // ✅ 修改为滚动到底部
-              container.scrollTop = container.scrollHeight;
-            }
+            if (container) container.scrollTop = container.scrollHeight;
           });
         })
         .catch(error => {
           console.error('加载历史消息失败:', error);
-          alert('加载历史消息失败，请稍后再试。');
         });
     },
 
-      // ✅ 新增：安全地渲染消息内容
     renderMessageContent(msg) {
       if (this.displayMode === 'preview') {
-        // 确保 htmlContent 有效
         if (msg.htmlContent) {
           return DOMPurify.sanitize(msg.htmlContent);
         } else if (msg.content) {
-          // 如果 htmlContent 无效，尝试用 content 渲染
-          return DOMPurify.sanitize(this.renderContentToHtml(msg.content));
+          return DOMPurify.sanitize(marked.parse(msg.content));
         } else {
           return 'Invalid';
         }
@@ -359,17 +378,14 @@ export default {
 
     async toggleFullscreen() {
       const container = this.$refs.chatContainer
-
       if (!this.isFullscreen) {
-        // 进入全屏
         if (container.requestFullscreen) {
           await container.requestFullscreen()
         } else if (container.webkitRequestFullscreen) {
-          await container.webkitRequestFullscreen() // Safari
+          await container.webkitRequestFullscreen()
         }
         this.isFullscreen = true
       } else {
-        // 退出全屏
         if (document.exitFullscreen) {
           await document.exitFullscreen()
         } else if (document.webkitExitFullscreen) {
@@ -378,7 +394,7 @@ export default {
         this.isFullscreen = false
       }
     },
-    // 监听键盘 ESC 退出全屏
+
     handleFullscreenChange() {
       if (!document.fullscreenElement && !document.webkitFullscreenElement) {
         this.isFullscreen = false
@@ -386,14 +402,11 @@ export default {
     },
 
     handleKeydown(event) {
-    // 按下 Ctrl + Enter 且内容非空
-    if (event.key === 'Enter' && event.ctrlKey) {
-      event.preventDefault() // 阻止默认换行（如果需要）
-      this.sendMessage()
-    }
-    // 可选：Shift + Enter 换行
-    // 不处理即可，textarea 会自动换行
-  },
+      if (event.key === 'Enter' && event.ctrlKey) {
+        event.preventDefault()
+        this.sendMessage()
+      }
+    },
 
     sendMessage() {
       const content = this.inputMessage.trim()
@@ -406,9 +419,8 @@ export default {
         ADD_ATTR: ['class']
       })
 
-      // ✅ 添加唯一 id（可以用时间戳 + 随机数）
       const msg = {
-        id: Date.now() + Math.random(), // 唯一 ID
+        id: Date.now() + Math.random(),
         username: this.currentUser,
         content,
         htmlContent,
@@ -433,6 +445,69 @@ export default {
 
     formatTime(time) {
       return new Date(time).toTimeString().substr(0, 8)
+    },
+
+    // 文件相关方法
+    fetchFileList() {
+      this.fileLoading = true
+      getFileList().then(res => {
+        if (res.code === 200) {
+          this.fileList = res.data
+        }
+      }).finally(() => {
+        this.fileLoading = false
+      })
+    },
+
+    beforeFileUpload(file) {
+      const isLt500M = file.size / 1024 / 1024 < 500
+      if (!isLt500M) {
+        this.$message.error('上传文件大小不能超过 500MB!')
+      }
+      return isLt500M
+    },
+
+    handleFileUploadSuccess(res) {
+      if (res.code === 200) {
+        this.$message.success('文件上传成功')
+        this.fetchFileList()
+      } else {
+        this.$message.error(res.message || '文件上传失败')
+      }
+    },
+
+    handleFileUploadError() {
+      this.$message.error('文件上传失败')
+    },
+
+    handleFileDownload(file) {
+      const url = getDownloadUrl(file.id)
+      window.open(url)
+    },
+
+    handleFileDelete(file) {
+      this.$confirm('确定要删除该文件吗？', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        deleteFile(file.id, this.currentEmpNo).then(res => {
+          if (res.code === 200) {
+            this.$message.success('删除成功')
+            this.fetchFileList()
+          } else {
+            this.$message.error(res.message || '删除失败')
+          }
+        })
+      }).catch(() => {})
+    },
+
+    formatFileSize(size) {
+      if (size === 0) return '0 B'
+      const k = 1024
+      const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
+      const i = Math.floor(Math.log(size) / Math.log(k))
+      return parseFloat((size / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
     }
   }
 }
@@ -456,27 +531,51 @@ export default {
   height: 100%;
 }
 
-.online-users-sidebar {
-  width: 240px;
+.sidebar-container {
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  height: 100%;
+}
+
+.online-users-sidebar, .file-list-sidebar {
   padding: 16px 14px;
-  overflow-y: auto;
-  max-height: 100%;
   border: 1px solid #d9e3f2;
   border-radius: 14px;
   background: #ffffff;
   box-shadow: 0 8px 20px rgba(16, 43, 98, 0.08);
+  display: flex;
+  flex-direction: column;
 }
 
-.online-users-sidebar h3 {
-  margin: 0 0 14px 0;
+.online-users-sidebar {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.file-list-sidebar {
+  flex: 1;
+  overflow: hidden;
+}
+
+.online-users-sidebar h3, .file-list-header h3 {
+  margin: 0;
   font-size: 14px;
   color: #1f2d3d;
+}
+
+.file-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
 }
 
 .online-users-list {
   list-style: none;
   padding: 0;
-  margin: 0;
+  margin: 14px 0 0 0;
   font-size: 14px;
   color: #51627a;
 }
@@ -497,6 +596,66 @@ export default {
   color: #2bc870;
   margin-right: 8px;
   font-size: 12px;
+}
+
+.file-list-content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.file-items-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.file-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  border-radius: 10px;
+  background: #f8faff;
+  margin-bottom: 8px;
+  transition: background 0.2s;
+}
+
+.file-item:hover {
+  background: #f0f5ff;
+}
+
+.file-info {
+  flex: 1;
+  min-width: 0;
+  margin-right: 10px;
+}
+
+.file-name {
+  font-size: 13px;
+  color: #2c3e50;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+}
+
+.file-meta {
+  font-size: 11px;
+  color: #909399;
+  margin-top: 4px;
+}
+
+.file-actions {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.no-files-tip, .no-messages-tip {
+  color: #92a1b7;
+  text-align: center;
+  padding: 20px;
+  font-size: 13px;
 }
 
 .chat-content-area {
@@ -606,11 +765,11 @@ export default {
   margin-bottom: 14px;
 }
 
-.messages::-webkit-scrollbar {
-  width: 8px;
+.messages::-webkit-scrollbar, .file-list-content::-webkit-scrollbar {
+  width: 6px;
 }
 
-.messages::-webkit-scrollbar-thumb {
+.messages::-webkit-scrollbar-thumb, .file-list-content::-webkit-scrollbar-thumb {
   background: #c8d8f0;
   border-radius: 8px;
 }
@@ -671,12 +830,6 @@ export default {
   border: none;
   border-radius: 14px 14px 6px 14px;
   box-shadow: 0 6px 14px rgba(53, 136, 255, 0.28);
-}
-
-.no-messages-tip {
-  color: #92a1b7;
-  text-align: center;
-  padding: 24px;
 }
 
 .input-area {
@@ -818,8 +971,8 @@ export default {
   background: linear-gradient(135deg, #f47171, #eb4f4f) !important;
 }
 
-.chat-hall-page.fullscreen .online-users-sidebar {
-  width: 240px !important;
+.chat-hall-page.fullscreen .sidebar-container {
+  width: 260px !important;
 }
 
 .markdown-content code {
@@ -880,10 +1033,10 @@ export default {
     height: auto;
   }
 
-  .online-users-sidebar,
-  .chat-hall-page.fullscreen .online-users-sidebar {
+  .sidebar-container,
+  .chat-hall-page.fullscreen .sidebar-container {
     width: 100% !important;
-    max-height: 200px;
+    max-height: 400px;
   }
 
   .chat-content-area {

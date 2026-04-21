@@ -285,6 +285,17 @@ CREATE TABLE `vote_records` (
     INDEX `idx_option_id` (`option_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='投票流水记录表';
 
+CREATE TABLE chat_file (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    file_name VARCHAR(255) NOT NULL,       -- 用户看到的原始文件名
+    storage_name VARCHAR(255) NOT NULL,    -- 磁盘上真实的文件名 (UUID)
+    file_size BIGINT DEFAULT 0,            -- 文件大小 (字节)
+    uploader_id varchar(32) NOT NULL,              -- 上传者ID-取7位员工工号
+    uploader_name VARCHAR(50),             -- 上传者昵称（聊天窗口的用户名）
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX (create_time)                    -- 方便按时间排序
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='聊天文件表表';
+
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
 /*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;

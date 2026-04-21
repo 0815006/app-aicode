@@ -11,10 +11,17 @@ public class WebConfig implements WebMvcConfigurer {
     @Value("${vote.upload-path}")
     private String uploadPath;
 
+    @Value("${chat.upload-path}")
+    private String chatUploadPath;
+
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         // 将 /api/uploads/vote/** 映射到本地物理路径
         registry.addResourceHandler("/api/uploads/vote/**")
                 .addResourceLocations("file:" + uploadPath);
+        
+        // 将 /api/uploads/chat/** 映射到本地物理路径
+        registry.addResourceHandler("/api/uploads/chat/**")
+                .addResourceLocations("file:" + chatUploadPath);
     }
 }
