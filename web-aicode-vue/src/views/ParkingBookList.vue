@@ -424,15 +424,24 @@ export default {
 
 <style scoped>
 .parking-list-container {
-  height: 100%;
+  height: calc(100% - 32px);
   box-sizing: border-box;
-  overflow: auto;
+  overflow-y: auto;
   padding: 20px;
   margin: 16px;
   border-radius: 14px;
   background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
   border: 1px solid #dbe7f7;
   box-shadow: 0 10px 22px rgba(21, 52, 105, 0.08);
+}
+
+.parking-list-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.parking-list-container::-webkit-scrollbar-thumb {
+  background: #c8d8f0;
+  border-radius: 8px;
 }
 
 .page-title {

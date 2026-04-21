@@ -210,10 +210,13 @@ export default {
 .resource-check-container {
   padding: 20px;
   margin: 16px;
+  height: calc(100% - 32px);
+  overflow-y: auto;
   border-radius: 14px;
   background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
   border: 1px solid #dbe7f7;
   box-shadow: 0 10px 22px rgba(21, 52, 105, 0.08);
+  box-sizing: border-box;
 }
 
 .page-title {
@@ -251,5 +254,14 @@ export default {
 ::v-deep .el-collapse-item__header {
   font-weight: 600;
   color: #334155;
+}
+
+.resource-check-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.resource-check-container::-webkit-scrollbar-thumb {
+  background: #c8d8f0;
+  border-radius: 8px;
 }
 </style>

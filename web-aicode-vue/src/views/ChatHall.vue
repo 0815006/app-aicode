@@ -552,11 +552,15 @@ export default {
 .online-users-sidebar {
   flex: 1;
   overflow-y: auto;
+  min-height: 0;
 }
 
 .file-list-sidebar {
   flex: 1;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .online-users-sidebar h3, .file-list-header h3 {
@@ -570,6 +574,7 @@ export default {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 14px;
+  flex-shrink: 0;
 }
 
 .online-users-list {
@@ -601,6 +606,7 @@ export default {
 .file-list-content {
   flex: 1;
   overflow-y: auto;
+  min-height: 0;
 }
 
 .file-items-list {
@@ -765,11 +771,15 @@ export default {
   margin-bottom: 14px;
 }
 
-.messages::-webkit-scrollbar, .file-list-content::-webkit-scrollbar {
+.messages::-webkit-scrollbar, 
+.file-list-content::-webkit-scrollbar,
+.online-users-sidebar::-webkit-scrollbar {
   width: 6px;
 }
 
-.messages::-webkit-scrollbar-thumb, .file-list-content::-webkit-scrollbar-thumb {
+.messages::-webkit-scrollbar-thumb, 
+.file-list-content::-webkit-scrollbar-thumb,
+.online-users-sidebar::-webkit-scrollbar-thumb {
   background: #c8d8f0;
   border-radius: 8px;
 }
