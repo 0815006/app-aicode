@@ -215,13 +215,15 @@ public class PerformanceTranController {
                     
                     batch.setJobDataType(row.get(9));
                     batch.setJobDataVolume(row.get(10));
-                    batch.setJobDuration(row.get(11));
-                    batch.setJobExecTimePoint(row.get(12));
+                    batch.setJobActualDuration(row.get(11));
+                    batch.setJobDuration(row.get(12));
+                    batch.setJobExecTimePoint(row.get(13));
                     
-                    batch.setIsMixedLink(row.get(13));
-                    batch.setMixedTranNames(row.get(14));
-                    batch.setHasRetry(row.get(15));
-                    batch.setRetryDesc(row.get(16));
+                    batch.setIsMixedLink(row.get(14));
+                    batch.setMixedTranNames(row.get(15));
+                    batch.setHasRetry(row.get(16));
+                    batch.setRetryDesc(row.get(17));
+                    batch.setSelectReason(row.get(18));
                     
                     batches.add(batch);
                 }
@@ -334,6 +336,23 @@ public class PerformanceTranController {
                     // 是否选中 (17列)
                     String selected = row.get(16);
                     tran.setIsSelected("是".equals(selected) || "1".equals(selected) ? 1 : 0);
+                    
+                    // 选取原因 (18列)
+                    tran.setSelectReason(row.get(17));
+                    
+                    // 指标来源 (19列)
+                    String sourceStr = row.get(18);
+                    if (sourceStr != null) {
+                        if (sourceStr.contains("实测")) tran.setIndicatorSource(1);
+                        else if (sourceStr.contains("采样")) tran.setIndicatorSource(2);
+                        else if (sourceStr.contains("经验")) tran.setIndicatorSource(3);
+                        else tran.setIndicatorSource(1);
+                    } else {
+                        tran.setIndicatorSource(1);
+                    }
+                    
+                    // 推算过程 (20列)
+                    tran.setCalculationProcess(row.get(19));
                     
                     trans.add(tran);
                 } else if (isSummarySection) {

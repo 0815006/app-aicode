@@ -131,9 +131,9 @@
               <el-table-column prop="jobName" label="作业名称" min-width="150" show-overflow-tooltip></el-table-column>
               <el-table-column prop="jobDataType" label="数据类型" width="90" show-overflow-tooltip></el-table-column>
               <el-table-column prop="jobDataVolume" label="预估数据量" width="100" show-overflow-tooltip></el-table-column>
-              <el-table-column prop="jobActualDuration" label="实际时长" width="100"></el-table-column>
-              <el-table-column prop="jobDuration" label="预估时长" width="180"></el-table-column>
-              <el-table-column prop="jobExecTimePoint" label="执行时间点" width="150" show-overflow-tooltip></el-table-column>
+              <el-table-column prop="jobActualDuration" label="实际运行时长" width="120"></el-table-column>
+              <el-table-column prop="jobDuration" label="预估时长" min-width="120" show-overflow-tooltip></el-table-column>
+              <el-table-column prop="jobExecTimePoint" label="执行时间点" min-width="120" show-overflow-tooltip></el-table-column>
               <el-table-column label="混合/重做" width="90" align="center">
                 <template slot-scope="scope">
                   <el-tooltip :content="'叠加联机: ' + scope.row.isMixedLink" placement="top">

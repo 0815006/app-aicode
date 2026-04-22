@@ -1,6 +1,7 @@
 package com.bocfintech.allstar.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -41,6 +42,10 @@ public class PerfTaskBatch {
     private String mixedTranNames;
     private String hasRetry;
     private String retryDesc;
+    
+    // 交易选择结果
+    @TableField("select_reason")
+    private String selectReason;
     
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date createTime;

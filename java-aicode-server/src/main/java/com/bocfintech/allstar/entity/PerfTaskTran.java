@@ -1,6 +1,7 @@
 package com.bocfintech.allstar.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -43,10 +44,12 @@ public class PerfTaskTran {
     private Integer isSelected;
     private String selectReason;
 
-    // 审计与辅助字段
-    private Integer dataSource;
-    private Integer isComplex;
-    
+    // 4. 指标推算审计
+    @TableField("indicator_source")
+    private Integer indicatorSource;
+    @TableField("calculation_process")
+    private String calculationProcess;
+
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date createTime;
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")

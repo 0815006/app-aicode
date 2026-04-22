@@ -40,25 +40,25 @@
             <el-table-column label="日峰值(万)*" width="90">
               <template slot-scope="scope"><el-input-number v-model="scope.row.tranDailyVol" :controls="false" size="mini" style="width: 100%;"></el-input-number></template>
             </el-table-column>
-            <el-table-column label="高峰时段(万)*" width="90">
+            <el-table-column label="高峰时段(万)*" width="110">
               <template slot-scope="scope"><el-input-number v-model="scope.row.tranPeakHourVol" :controls="false" size="mini" style="width: 100%;"></el-input-number></template>
             </el-table-column>
             <el-table-column label="最大TPS*" width="80">
               <template slot-scope="scope"><el-input-number v-model="scope.row.tranPeakTps" :controls="false" size="mini" style="width: 100%;"></el-input-number></template>
             </el-table-column>
-            <el-table-column label="平均RT(s)*" width="80">
+            <el-table-column label="平均RT(s)*" width="90">
               <template slot-scope="scope"><el-input-number v-model="scope.row.tranAvgRt" :controls="false" size="mini" style="width: 100%;"></el-input-number></template>
             </el-table-column>
           </el-table-column>
 
           <el-table-column label="2. 业务交易指标明细要求" align="center">
-            <el-table-column label="目标日峰值*" width="90">
+            <el-table-column label="目标日峰值(万)*" width="110">
               <template slot-scope="scope"><el-input-number v-model="scope.row.targetDailyVol" :controls="false" size="mini" style="width: 100%;"></el-input-number></template>
             </el-table-column>
             <el-table-column label="目标TPS*" width="80">
               <template slot-scope="scope"><el-input-number v-model="scope.row.targetTps" :controls="false" size="mini" style="width: 100%;"></el-input-number></template>
             </el-table-column>
-            <el-table-column label="目标RT(s)*" width="80">
+            <el-table-column label="目标RT(s)*" width="90">
               <template slot-scope="scope"><el-input-number v-model="scope.row.targetRt" :controls="false" size="mini" style="width: 100%;"></el-input-number></template>
             </el-table-column>
             <el-table-column label="成功率%*" width="80">
@@ -70,8 +70,37 @@
             <el-table-column label="选中*" width="60">
               <template slot-scope="scope"><el-checkbox v-model="scope.row.isSelected" :true-label="1" :false-label="0"></el-checkbox></template>
             </el-table-column>
-            <el-table-column label="选取原因" width="150">
-              <template slot-scope="scope"><el-input v-model="scope.row.selectReason" size="mini"></el-input></template>
+            <el-table-column label="选取原因" min-width="150">
+              <template slot-scope="scope">
+                <el-cascader
+                  v-model="scope.row.selectReasonArray"
+                  :options="selectReasonOptions"
+                  :props="{ multiple: true, emitPath: false }"
+                  :show-all-levels="false"
+                  clearable
+                  size="mini"
+                  placeholder="请选择选取原因"
+                  style="width: 100%"
+                  @change="handleReasonChange(scope.row)"
+                ></el-cascader>
+              </template>
+            </el-table-column>
+          </el-table-column>
+
+          <el-table-column label="4. 指标推算审计" align="center">
+            <el-table-column label="指标来源*" width="90">
+              <template slot-scope="scope">
+                <el-select v-model="scope.row.indicatorSource" size="mini" placeholder="请选择">
+                  <el-option label="实测" :value="1"></el-option>
+                  <el-option label="采样折算" :value="2"></el-option>
+                  <el-option label="经验对标" :value="3"></el-option>
+                </el-select>
+              </template>
+            </el-table-column>
+            <el-table-column label="推算过程" min-width="100">
+              <template slot-scope="scope">
+                <el-input v-model="scope.row.calculationProcess" type="textarea" :rows="1" size="mini" placeholder="描述推算过程"></el-input>
+              </template>
             </el-table-column>
           </el-table-column>
 
@@ -157,7 +186,30 @@
             <div class="guide-title">☆ 交易选择结果</div>
             <div class="guide-desc">
               由测试项目组主导评估填写：<br/>
-              1、是否选为性能测试交易：是否在性能测试场景设置中包含此交易；
+              1、是否选为性能测试交易：是否在性能测试场景设置中包含此交易；<br/>
+              2、选取原因参考：<br/>
+              <strong>1. 业务覆盖维度 (Business Coverage)</strong><br/>
+              - 核心业务路径：属于产品最基础、使用最频繁的核心功能（如：登录、转账、余额查询）<br/>
+              - 高频高并发：生产环境中日交易量排名靠前，或高峰时段并发量极高的交易<br/>
+              - 资金风险环节：涉及账务处理、支付扣款、资金对账等对准确性要求极高的关键环节<br/>
+              - 重要业务保障：因近期重大营销活动（如双11、开门红）或特定政策要求需重点保障<br/>
+              <strong>2. 技术复杂度维度 (Technical Complexity)</strong><br/>
+              - 高资源消耗：涉及大量 CPU 运算、复杂加密解密或大数据量排序的交易<br/>
+              - 长链路交易：跨越多个子系统、涉及多次中间件或第三方接口调用的复杂流程<br/>
+              - 数据库重载：涉及多表关联查询（Join）、大表全扫描或高频写锁竞争的交易<br/>
+              - 异步处理/重压测试：涉及 MQ 消息堆积处理或大量 IO 读写的后台任务<br/>
+              <strong>3. 架构变更维度 (Architecture Changes)</strong><br/>
+              - 信创改造/平台迁移：针对国产化数据库、中间件适配后的性能核对<br/>
+              - 新上线交易：本批次新开发的需求，无生产运行历史数据参考<br/>
+              - 逻辑重大调整：原有交易代码结构、架构模式（如单体转微服务）发生了较大变动<br/>
+              - 环境变更/版本升级：系统内核、依赖库或运行环境版本发生重大升级<br/>
+              <strong>4. 历史遗留维度 (Historical Performance)</strong><br/>
+              - 历史性能瓶颈：历史上曾发生过性能告警、超时或生产事故的交易<br/>
+              - 容量水位预警：生产交易量增长过快，已接近当前系统容量设计上限的交易<br/>
+              - 定标对比需求：需与往期基准数据、竞品数据或同业标准进行性能对标<br/>
+              <strong>5. 其他特殊维度 (Others)</strong><br/>
+              - 配合压测场景：作为混合负载场景中的“背景噪音”交易，用以模拟真实生产环境<br/>
+              - 监管/审计要求：根据监管部门（如人行、银保监）要求必须展示性能指标的交易
             </div>
           </div>
           <div class="guide-item">
@@ -168,6 +220,29 @@
               2、日均在线用户数：系统每日平均同时在线用户数均值，平台类系统无需填写；<br/>
               3、日交易峰值TPS：系统普通日（不包括国庆、春节、电商促销等特殊日）的TPS；<br/>
               4、年交易峰值TPS：系统年峰值（包括国庆、春节、电商促销等特殊日）的TPS；
+            </div>
+          </div>
+          <div class="guide-item">
+            <div class="guide-title">☆ 指标来源与推算说明</div>
+            <div class="guide-desc">
+              在进行性能测试需求调研时，指标的真实性直接决定了测试场景的有效性。请参照以下说明填写“指标来源”与“指标推算过程”。<br/><br/>
+              <strong>1. 指标来源 (Indicator Source)</strong><br/>
+              请根据数据的获取渠道选择对应的来源类型：<br/>
+              [1] <strong>实测 (Actual Measurement)</strong>：直接从生产环境的监控系统（如 APM、Grafana、SkyWalking）、数据库审计日志、或系统运行报告中获取的精确数据。适用于已投产且监控体系完善的存量系统。<br/>
+              [2] <strong>采样折算 (Sampling Conversion)</strong>：无法获取全天或峰值精确数据，通过采集某一特定时段（如业务高峰的 15 分钟）的数据，经过数学公式推算出的全量数据。适用于监控日志不完整，或仅有部分统计信息的系统。<br/>
+              [3] <strong>经验对标 (Benchmarking)</strong>：新系统上线或业务模式完全变更，无历史数据可参考。通过参考同类业务、竞品数据或行业标准（如：网银转账响应时间应在 2s 内）设定的指标。适用于新项目上线、信创首发系统。<br/><br/>
+              <strong>2. 指标推算过程 (Calculation Process) —— 填写范例</strong><br/>
+              若您的指标来源选择为 [采样折算] 或 [经验对标]，请务必在推算过程栏中注明逻辑。<br/>
+              💡 <strong>场景 A：从日均量推算峰值 TPS (采样折算)</strong><br/>
+              范例：参考 2026-03 生产日志，日均 100 万笔，按 8/2 原则计算：高峰 4.8 小时处理 80 万笔，折算高峰 TPS 约 46 笔/秒。<br/>
+              💡 <strong>场景 B：新业务上线指标设定 (经验对标)</strong><br/>
+              范例：参考旧版“余额查询”TPS（20/s），考虑到新版增加了营销弹窗吸引流量，按 1.5 倍增长系数对标，设定目标 TPS 为 30/s。<br/>
+              💡 <strong>场景 C：批量作业时间窗口推算</strong><br/>
+              范例：生产日终窗口为 00:00-02:00（120分钟），前导清算作业耗时 80 分钟，本作业（生成报表）必须在 40 分钟内完成，否则将影响后续下发任务。<br/><br/>
+              ⚠️ <strong>填写注意事项</strong><br/>
+              - 单位对齐：请严格检查单位，交易量统一使用“万笔/日”或“万笔/小时”，响应时间统一使用“秒”。<br/>
+              - 极端异常排除：实测最大响应时间（Max RT）时，请排除网络波动导致的单笔异常极端值，取相对合理的峰值。<br/>
+              - 证据留存：建议将推算依据的原始 Excel 或监控截图保存，以便在性能方案评审时作为佐证材料。
             </div>
           </div>
           <div class="guide-item" style="color: #F56C6C; font-weight: bold; margin-top: 20px;">
@@ -195,14 +270,72 @@ export default {
         dailyOnlineUserCount: 0,
         dailyPeakTps: 0,
         annualPeakTps: 0
-      }
+      },
+      selectReasonOptions: [
+        {
+          label: '1. 业务覆盖维度',
+          value: '业务覆盖维度',
+          children: [
+            { label: '核心业务路径', value: '核心业务路径' },
+            { label: '高频高并发', value: '高频高并发' },
+            { label: '资金风险环节', value: '资金风险环节' },
+            { label: '重要业务保障', value: '重要业务保障' }
+          ]
+        },
+        {
+          label: '2. 技术复杂度维度',
+          value: '技术复杂度维度',
+          children: [
+            { label: '高资源消耗', value: '高资源消耗' },
+            { label: '长链路交易', value: '长链路交易' },
+            { label: '数据库重载', value: '数据库重载' },
+            { label: '异步处理/重压测试', value: '异步处理/重压测试' }
+          ]
+        },
+        {
+          label: '3. 架构变更维度',
+          value: '架构变更维度',
+          children: [
+            { label: '信创改造/平台迁移', value: '信创改造/平台迁移' },
+            { label: '新上线交易', value: '新上线交易' },
+            { label: '逻辑重大调整', value: '逻辑重大调整' },
+            { label: '环境变更/版本升级', value: '环境变更/版本升级' }
+          ]
+        },
+        {
+          label: '4. 历史遗留维度',
+          value: '历史遗留维度',
+          children: [
+            { label: '历史性能瓶颈', value: '历史性能瓶颈' },
+            { label: '容量水位预警', value: '容量水位预警' },
+            { label: '定标对比需求', value: '定标对比需求' }
+          ]
+        },
+        {
+          label: '5. 其他特殊维度',
+          value: '其他特殊维度',
+          children: [
+            { label: '配合压测场景', value: '配合压测场景' },
+            { label: '监管/审计要求', value: '监管/审计要求' }
+          ]
+        }
+      ]
     }
   },
   methods: {
     init(taskId, trans, task) {
       this.visible = true
       this.taskId = taskId
-      this.list = JSON.parse(JSON.stringify(trans || []))
+      const list = JSON.parse(JSON.stringify(trans || []))
+      // 初始化选取原因数组
+      list.forEach(item => {
+        if (item.selectReason) {
+          item.selectReasonArray = item.selectReason.split(',').filter(s => s)
+        } else {
+          item.selectReasonArray = []
+        }
+      })
+      this.list = list
       // 从任务对象中提取汇总信息
       if (task) {
         this.summaryData = {
@@ -235,8 +368,14 @@ export default {
         targetRt: 0,
         targetSuccessRate: 100,
         isSelected: 1, 
-        dataSource: 1 
+        selectReason: '',
+        selectReasonArray: [],
+        indicatorSource: 1,
+        calculationProcess: ''
       })
+    },
+    handleReasonChange(row) {
+      row.selectReason = row.selectReasonArray ? row.selectReasonArray.join(',') : ''
     },
     handleDownloadTemplate() {
       window.open(getTemplateDownloadByKeywordUrl('业务交易调查表'))
@@ -249,7 +388,15 @@ export default {
         const res = await parseTranExcel(formData)
         if (res.code === 200) {
           this.$message.success('解析成功')
-          this.list = res.data.trans
+          const trans = res.data.trans || []
+          trans.forEach(item => {
+            if (item.selectReason) {
+              item.selectReasonArray = item.selectReason.split(',').filter(s => s)
+            } else {
+              item.selectReasonArray = []
+            }
+          })
+          this.list = trans
           if (res.data.summary) {
             this.summaryData = res.data.summary
           }

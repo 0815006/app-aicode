@@ -56,6 +56,8 @@ export default {
       const defaults = [
         { sceneName: '单交易基准测试', sceneType: 1, isSelected: 1 },
         { sceneName: '单交易负载测试', sceneType: 2, isSelected: 1 },
+        { sceneName: '60%混合负载测试', sceneType: 3, isSelected: 1 },
+        { sceneName: '80%混合负载测试', sceneType: 3, isSelected: 1 },
         { sceneName: '100%混合负载测试', sceneType: 3, isSelected: 1 },
         { sceneName: '80%稳定性测试(4小时)', sceneType: 4, isSelected: 1 },
         { sceneName: '极限场景测试', sceneType: 5, isSelected: 1 },
