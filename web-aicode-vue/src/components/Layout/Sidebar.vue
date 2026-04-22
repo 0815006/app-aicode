@@ -43,6 +43,11 @@
         <span slot="title">思维导图</span>
       </el-menu-item>
 
+      <el-menu-item index="/performance">
+        <i class="el-icon-s-opportunity"></i>
+        <span slot="title">性能测试</span>
+      </el-menu-item>
+
     </el-menu>
   </div>
 </template>

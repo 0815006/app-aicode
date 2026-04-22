@@ -56,3 +56,5 @@ vote:
   upload-path: "D:/data/aicode-v1/uploads/vote/"
 chat:
   upload-path: "D:/data/aicode-v1/uploads/chat/"
+performance:
+  template-path: "D:/data/aicode-v1/uploads/performance/templates/"

@@ -8,6 +8,7 @@ import ChatHall from '@/views/ChatHall.vue' // 新增
 import DataMigration from '@/views/DataMigration.vue'
 import VoteManagement from '@/views/VoteManagement.vue'
 import XmindConverter from '@/views/XmindConverter.vue'
+import PerformanceTest from '@/views/PerformanceTest.vue'
 
 Vue.use(Router)
 
@@ -53,6 +54,12 @@ export default new Router({
           name: 'XmindConverter',
           component: XmindConverter,
           meta: { title: 'XMind 转换' }
+        },
+        {
+          path: 'performance',
+          name: 'PerformanceTest',
+          component: PerformanceTest,
+          meta: { title: '性能测试方案' }
         }
       ]
     }

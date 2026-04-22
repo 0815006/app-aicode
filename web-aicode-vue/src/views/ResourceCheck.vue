@@ -238,7 +238,7 @@
 
 <script>
 import { checkResources, deleteResourceByFile, getProductIds } from '@/api/resource'
-import UploadResourceDialog from '@/components/data-migration/UploadResourceDialog.vue'
+import UploadResourceDialog from '@/components/resource-check/UploadResourceDialog.vue'
 
 export default {
   name: 'ResourceCheck',
