@@ -22,6 +22,16 @@ public interface PerfTaskService extends BaseService<PerfTask> {
     
     void saveOrUpdateScenes(Long taskId, List<PerfTaskScene> scenes);
 
+    void initDefaultScenes(Long taskId);
+
+    List<PerfTaskScene> getScenesByTaskId(Long taskId);
+
+    List<PerfTaskSceneDetail> getSceneDetailsBySceneId(Long sceneId);
+
+    void updateSceneAndDetails(PerfTaskScene scene, List<PerfTaskSceneDetail> details);
+
+    void saveAllScenes(Long taskId, List<SceneDTO> scenes);
+
     PerfDataPlan getDataPlan(Long taskId);
     
     void saveDataPlan(PerfDataPlan plan);

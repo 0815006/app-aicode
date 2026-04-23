@@ -182,8 +182,9 @@
             </div>
             <el-table :data="scenes" border stripe size="small">
               <el-table-column prop="sceneName" label="场景名称" min-width="180"></el-table-column>
-              <el-table-column prop="targetTps" label="预期TPS" width="100"></el-table-column>
-              <el-table-column prop="targetRt" label="预期RT(s)" width="100"></el-table-column>
+              <el-table-column prop="targetTpsRatio" label="TPS比例(%)" width="100"></el-table-column>
+              <el-table-column prop="targetTotalTps" label="预期总TPS" width="100"></el-table-column>
+              <el-table-column prop="globalDuration" label="持续时间(分)" width="100"></el-table-column>
               <el-table-column label="状态" width="80">
                 <template slot-scope="scope">
                   <el-tag :type="scope.row.isSelected ? 'primary' : 'info'" size="mini">{{ scope.row.isSelected ? '已选' : '未选' }}</el-tag>
@@ -302,7 +303,7 @@ export default {
       this.$refs.dataEditDialog.init(this.activeTaskId, this.datas)
     },
     openSceneEdit() {
-      this.$refs.sceneEditDialog.init(this.activeTaskId, this.scenes)
+      this.$refs.sceneEditDialog.init(this.activeTaskId, this.trans)
     }
   }
 }

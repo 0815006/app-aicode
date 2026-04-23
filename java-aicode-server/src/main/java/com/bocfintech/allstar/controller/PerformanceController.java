@@ -81,10 +81,29 @@ public class PerformanceController {
         return ResultBean.success("保存成功");
     }
 
-    @ApiOperation("保存/更新测试场景")
-    @PostMapping("/saveScenes")
-    public ResultBean<String> saveScenes(@RequestParam Long taskId, @RequestBody List<PerfTaskScene> scenes) {
-        perfTaskService.saveOrUpdateScenes(taskId, scenes);
+    @ApiOperation("初始化默认场景")
+    @GetMapping("/initScenes")
+    public ResultBean<List<PerfTaskScene>> initScenes(@RequestParam Long taskId) {
+        perfTaskService.initDefaultScenes(taskId);
+        return ResultBean.success(perfTaskService.getScenesByTaskId(taskId));
+    }
+
+    @ApiOperation("获取场景列表")
+    @GetMapping("/getScenes")
+    public ResultBean<List<PerfTaskScene>> getScenes(@RequestParam Long taskId) {
+        return ResultBean.success(perfTaskService.getScenesByTaskId(taskId));
+    }
+
+    @ApiOperation("获取场景明细")
+    @GetMapping("/getSceneDetails")
+    public ResultBean<List<PerfTaskSceneDetail>> getSceneDetails(@RequestParam Long sceneId) {
+        return ResultBean.success(perfTaskService.getSceneDetailsBySceneId(sceneId));
+    }
+
+    @ApiOperation("保存所有场景及明细")
+    @PostMapping("/saveAllScenes")
+    public ResultBean<String> saveAllScenes(@RequestParam Long taskId, @RequestBody List<SceneDTO> scenes) {
+        perfTaskService.saveAllScenes(taskId, scenes);
         return ResultBean.success("保存成功");
     }
 

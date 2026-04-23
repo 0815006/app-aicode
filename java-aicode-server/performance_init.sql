@@ -1,3 +1,4 @@
+
 -- 性能测试任务主表
 CREATE TABLE IF NOT EXISTS `perf_task` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
@@ -144,31 +145,87 @@ CREATE TABLE IF NOT EXISTS `perf_data_detail` (
   KEY `idx_task_id` (`task_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='性能测试数据准备明细表(表级规模)';
 
--- 性能测试场景定义与实测结果表
+-- 性能测试场景定义主表
 CREATE TABLE `perf_task_scene` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
   `task_id` bigint(20) NOT NULL COMMENT '关联主表id',
-  `scene_type` int(11) NOT NULL COMMENT '1:基准, 2:单负载, 3:混合负载, 4:稳定性, 5:专项/极限, 6:批量',
+  `scene_type` int(11) NOT NULL COMMENT '1:基准, 2:单负载, 3:混合负载, 4:稳定性, 5:极限, 6:批量',
   `scene_name` varchar(128) NOT NULL COMMENT '场景名称',
-  -- 方案阶段维度
-  `is_selected` tinyint(1) DEFAULT '1' COMMENT '方案阶段是否勾选(1:是, 0:否)',
-  `select_reason` varchar(255) DEFAULT NULL COMMENT '勾选原因或专项场景说明',
-  -- 指标要求 (指标由调研表推算而来)
-  `target_tps` decimal(10,3) DEFAULT NULL COMMENT '预期TPS',
-  `target_rt` decimal(10,3) DEFAULT NULL COMMENT '预期响应时间(秒)',
-  `target_success_rate` decimal(5,2) DEFAULT '100.00' COMMENT '预期成功率(%)',
-  `test_setting_json` text COMMENT '压测配置(并发数/Ramp-Up/持续时间等)',
-  -- 执行结果 (方案阶段为空，测试完成后填报)
-  `actual_tps` decimal(10,3) DEFAULT NULL COMMENT '实测TPS',
-  `actual_rt` decimal(10,3) DEFAULT NULL COMMENT '实测平均RT(秒)',
-  `actual_rt_90` decimal(10,3) DEFAULT NULL COMMENT '实测90%RT(秒)',
-  `actual_success_rate` decimal(5,2) DEFAULT NULL COMMENT '实测成功率(%)',
-  -- 时间审计 (核心需求：用于获取监控图)
-  `run_start_time` datetime DEFAULT NULL COMMENT '场景实际执行开始时间',
-  `run_end_time` datetime DEFAULT NULL COMMENT '场景实际执行结束时间',
-  -- 审计字段
+  -- 目标容量定义
+  `target_tps_ratio` decimal(5,2) DEFAULT '100.00' COMMENT '目标TPS百分比(如: 80.00, 100.00, 150.00)',
+  `target_total_tps` decimal(10,2) DEFAULT NULL COMMENT '目标总TPS值(该场景所有交易预期TPS之和)',
+  -- 方案阶段核心字段
+  `test_objective` text COMMENT '测试目的',
+  `implementation_method` text COMMENT '实施方法',
+  `end_condition` text COMMENT '结束条件(主要针对极限测试)',
+  -- 全局配置
+  `is_selected` tinyint(1) DEFAULT '1' COMMENT '是否勾选执行',
+  `global_duration` int(11) DEFAULT NULL COMMENT '全局预计持续时间(分)',
   `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `last_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_task_id` (`task_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='性能测试场景定义与实测结果表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='性能测试场景定义主表';
+
+-- 场景内交易配置明细表
+CREATE TABLE `perf_task_scene_detail` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `scene_id` bigint(20) NOT NULL COMMENT '关联perf_task_scene.id',
+  `tran_id` bigint(20) NOT NULL COMMENT '关联perf_task_tran.id',
+  -- 冗余字段
+  `tran_name` varchar(128) DEFAULT NULL COMMENT '交易名称(冗余，方便页面直接显示)',
+  -- 压测参数 (交易级别)
+  `target_tps` decimal(10,2) DEFAULT NULL COMMENT '预期目标TPS',
+  `target_rt` decimal(10,3) DEFAULT NULL COMMENT '预期响应时间(秒)',
+  `target_success_rate` decimal(5,2) DEFAULT '100.00' COMMENT '预期成功率(%)',
+  -- 压测手段
+  `vu_count` int(11) DEFAULT NULL COMMENT '并发用户数',
+  `ramp_up` int(11) DEFAULT NULL COMMENT '启动时间(秒)',
+  `pacing` decimal(10,2) DEFAULT NULL COMMENT '迭代间隔',
+  `throughput_timer` decimal(10,2) DEFAULT NULL COMMENT '常数吞吐量定时器配置',
+  `iterations` int(11) DEFAULT NULL COMMENT '迭代次数(主要针对基准测试)',
+  PRIMARY KEY (`id`),
+  KEY `idx_scene_id` (`scene_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='场景内交易配置明细表';
+
+-- 场景执行结果主表(记录压测轮次和时间轴)
+CREATE TABLE `perf_task_scene_result` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `scene_id` bigint(20) NOT NULL COMMENT '关联perf_task_scene.id',
+  `round_number` int(11) DEFAULT '1' COMMENT '轮次(第1轮, 第2轮...)',
+  `test_env` varchar(64) DEFAULT NULL COMMENT '执行环境(如：测试环境A/隔离环境B)',
+  `run_status` int(11) DEFAULT '0' COMMENT '执行状态(0:执行中, 1:已完成, 2:异常中断)',
+  -- 时间审计：核心字段，用于关联监控工具获取资源曲线
+  `run_start_time` datetime DEFAULT NULL COMMENT '压测实际开始时间',
+  `run_end_time` datetime DEFAULT NULL COMMENT '压测实际结束时间',
+  -- 汇总评价
+  `is_standard` tinyint(1) DEFAULT '0' COMMENT '是否作为达标轮次(1:是, 0:否)',
+  `actual_total_tps` decimal(10,2) DEFAULT NULL COMMENT '本轮实测总TPS',
+  `result_status` int(11) DEFAULT '0' COMMENT '结果状态(0:未达标, 1:已达标, 2:待评审)',
+  `summary_remark` varchar(512) DEFAULT NULL COMMENT '执行总结(如：网络波动导致成功率下降)',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_scene_id` (`scene_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='场景执行结果主表(记录压测轮次和时间轴)';
+
+-- 场景执行结果交易明细表(记录每轮各交易实测值)
+CREATE TABLE `perf_task_scene_result_detail` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `result_id` bigint(20) NOT NULL COMMENT '关联perf_task_scene_result.id',
+  `tran_id` bigint(20) NOT NULL COMMENT '关联perf_task_tran.id',
+  -- 冗余字段
+  `tran_name` varchar(128) DEFAULT NULL COMMENT '交易名称(冗余，方便页面直接显示)',
+  -- 实测性能指标
+  `actual_tps` decimal(10,2) DEFAULT NULL COMMENT '实测TPS',
+  `actual_rt` decimal(10,3) DEFAULT NULL COMMENT '实测平均响应时间(s)',
+  `actual_rt_90` decimal(10,3) DEFAULT NULL COMMENT '实测90%响应时间(s)',
+  `actual_rt_max` decimal(10,3) DEFAULT NULL COMMENT '实测最大响应时间(s)',
+  `actual_success_rate` decimal(5,2) DEFAULT NULL COMMENT '实测成功率(%)',
+  `total_request_count` bigint(20) DEFAULT NULL COMMENT '总请求笔数',
+  `actual_db_count` bigint(20) DEFAULT NULL COMMENT '实际落表笔数(部分场景特有)',
+  -- 结果判定
+  `is_compliant` tinyint(1) DEFAULT '1' COMMENT '单交易是否达标(1:是, 0:否)',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_result_id` (`result_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='场景执行结果交易明细表(记录每轮各交易实测值)';

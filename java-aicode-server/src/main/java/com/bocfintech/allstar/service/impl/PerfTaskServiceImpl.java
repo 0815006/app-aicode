@@ -28,6 +28,8 @@ public class PerfTaskServiceImpl extends BaseServiceImpl<PerfTaskMapper, PerfTas
     @Autowired
     private PerfTaskSceneMapper sceneMapper;
     @Autowired
+    private PerfTaskSceneDetailMapper sceneDetailMapper;
+    @Autowired
     private PerfDataPlanMapper dataPlanMapper;
     @Autowired
     private PerfDataDetailMapper dataDetailMapper;
@@ -225,6 +227,189 @@ public class PerfTaskServiceImpl extends BaseServiceImpl<PerfTaskMapper, PerfTas
                 scene.setTaskId(taskId);
                 sceneMapper.insert(scene);
             }
+        }
+    }
+
+    @Override
+    @Transactional
+    public void initDefaultScenes(Long taskId) {
+        // 1. 删除旧场景及明细
+        List<PerfTaskScene> oldScenes = sceneMapper.selectList(new LambdaQueryWrapper<PerfTaskScene>().eq(PerfTaskScene::getTaskId, taskId));
+        for (PerfTaskScene s : oldScenes) {
+            sceneDetailMapper.delete(new LambdaQueryWrapper<PerfTaskSceneDetail>().eq(PerfTaskSceneDetail::getSceneId, s.getId()));
+        }
+        sceneMapper.delete(new LambdaQueryWrapper<PerfTaskScene>().eq(PerfTaskScene::getTaskId, taskId));
+
+        // 2. 获取选中的交易
+        List<PerfTaskTran> trans = tranMapper.selectList(new LambdaQueryWrapper<PerfTaskTran>()
+                .eq(PerfTaskTran::getTaskId, taskId)
+                .eq(PerfTaskTran::getIsSelected, 1));
+        if (trans.isEmpty()) {
+            return;
+        }
+
+        // 3. 定义场景模板
+        List<SceneTemplate> templates = new ArrayList<>();
+        templates.add(new SceneTemplate(1, "1-单交易基准", new java.math.BigDecimal("100"), "探测单交易在低压力下的纯净响应时间，作为后续性能比对的基准数据。", "1并发(VU=1)，每个交易独立运行固定迭代次数（如100次）。", "完成预设迭代次数，成功率100%。"));
+        templates.add(new SceneTemplate(2, "2-单负载测试", new java.math.BigDecimal("100"), "验证单笔交易在达到生产预估峰值压力时的性能表现。", "按照调研确定的目标TPS，逐步加压至目标值后稳压运行10分钟。", "达到目标TPS且各项指标（RT/成功率）满足SLA。"));
+        templates.add(new SceneTemplate(3, "3-混合负载(60%TPS)", new java.math.BigDecimal("60"), "模拟生产真实交易分布，验证系统在综合压力下的整体吞吐量与稳定性。", "按照生产交易比例同时发起压力，稳压运行30分钟。", "系统资源充足，各项交易指标平稳达标。"));
+        templates.add(new SceneTemplate(3, "3-混合负载(80%TPS)", new java.math.BigDecimal("80"), "模拟生产真实交易分布，验证系统在综合压力下的整体吞吐量与稳定性。", "按照生产交易比例同时发起压力，稳压运行30分钟。", "系统资源充足，各项交易指标平稳达标。"));
+        templates.add(new SceneTemplate(3, "3-混合负载(100%TPS)", new java.math.BigDecimal("100"), "模拟生产真实交易分布，验证系统在综合压力下的整体吞吐量与稳定性。", "按照生产交易比例同时发起压力，稳压运行30分钟。", "系统资源充足，各项交易指标平稳达标。"));
+        templates.add(new SceneTemplate(4, "4-稳定性测试", new java.math.BigDecimal("80"), "验证系统在长时间持续压力下，是否存在内存泄漏、资源无法回收或性能衰减。", "在混合负载（通常80%-100%压力）下持续运行8-12小时。", "运行时间内无报错、无OOM、性能指标无明显波动。"));
+        templates.add(new SceneTemplate(5, "5-极限测试(左值)", new java.math.BigDecimal("120"), "探测系统处理能力的上限拐点，识别压力下的首要瓶颈点。", "以混合负载为基础，按比例阶梯式增加压力，直到系统崩溃或RT突变。", "RT超过阈值、成功率下跌或资源使用率(CPU/IO)超过90%。"));
+        templates.add(new SceneTemplate(5, "5-极限测试(右值)", new java.math.BigDecimal("140"), "探测系统处理能力的上限拐点，识别压力下的首要瓶颈点。", "以混合负载为基础，按比例阶梯式增加压力，直到系统崩溃或RT突变。", "RT超过阈值、成功率下跌或资源使用率(CPU/IO)超过90%。"));
+
+        // 4. 生成场景及明细
+        for (SceneTemplate temp : templates) {
+            PerfTaskScene scene = new PerfTaskScene();
+            scene.setTaskId(taskId);
+            scene.setSceneType(temp.type);
+            scene.setSceneName(temp.name);
+            scene.setTargetTpsRatio(temp.ratio);
+            scene.setTestObjective(temp.objective);
+            scene.setImplementationMethod(temp.method);
+            scene.setEndCondition(temp.condition);
+            scene.setIsSelected(1);
+            if (temp.type == 4) {
+                scene.setGlobalDuration(240); // 4小时
+            } else if (temp.type == 3 || temp.type == 5) {
+                scene.setGlobalDuration(30); // 30分钟
+            } else if (temp.type == 2) {
+                scene.setGlobalDuration(10); // 10分钟
+            } else {
+                scene.setGlobalDuration(0); // 基准等其他场景
+            }
+            sceneMapper.insert(scene);
+
+            java.math.BigDecimal totalTps = java.math.BigDecimal.ZERO;
+            for (PerfTaskTran tran : trans) {
+                PerfTaskSceneDetail detail = calculateDetail(scene, tran);
+                detail.setSceneId(scene.getId());
+                sceneDetailMapper.insert(detail);
+                if (detail.getTargetTps() != null) {
+                    totalTps = totalTps.add(detail.getTargetTps());
+                }
+            }
+            scene.setTargetTotalTps(totalTps);
+            sceneMapper.updateById(scene);
+        }
+    }
+
+    private PerfTaskSceneDetail calculateDetail(PerfTaskScene scene, PerfTaskTran tran) {
+        PerfTaskSceneDetail detail = new PerfTaskSceneDetail();
+        detail.setTranId(tran.getId());
+        detail.setTranName(tran.getTranName());
+        detail.setTargetRt(tran.getTargetRt());
+        detail.setTargetSuccessRate(tran.getTargetSuccessRate());
+
+        java.math.BigDecimal ratio = scene.getTargetTpsRatio().divide(new java.math.BigDecimal("100"));
+        java.math.BigDecimal baseTps = tran.getTargetTps() != null ? tran.getTargetTps() : java.math.BigDecimal.ZERO;
+        
+        if (scene.getSceneType() == 1) {
+            // 基准测试
+            detail.setVuCount(1);
+            detail.setRampUp(0);
+            detail.setIterations(100);
+            detail.setTargetTps(null);
+        } else {
+            // 其他场景
+            java.math.BigDecimal targetTps = baseTps.multiply(ratio);
+            detail.setTargetTps(targetTps);
+            
+            // VU = ROUNDUP(TPS * RT * 1.1, 0)
+            java.math.BigDecimal rt = tran.getTargetRt() != null ? tran.getTargetRt() : new java.math.BigDecimal("0.5");
+            int vu = targetTps.multiply(rt).multiply(new java.math.BigDecimal("1.1")).setScale(0, java.math.RoundingMode.CEILING).intValue();
+            detail.setVuCount(vu > 0 ? vu : 1);
+            
+            // Ramp-up = ROUNDUP(VU / 5, 0)
+            detail.setRampUp((int) Math.ceil(detail.getVuCount() / 5.0));
+            
+            // Throughput Timer = ROUNDUP(TPS * 60 * 1.1, -1)
+            java.math.BigDecimal timer = targetTps.multiply(new java.math.BigDecimal("66")); // 60 * 1.1
+            detail.setThroughputTimer(timer.setScale(-1, java.math.RoundingMode.CEILING));
+        }
+        return detail;
+    }
+
+    @Override
+    public List<PerfTaskScene> getScenesByTaskId(Long taskId) {
+        return sceneMapper.selectList(new LambdaQueryWrapper<PerfTaskScene>().eq(PerfTaskScene::getTaskId, taskId));
+    }
+
+    @Override
+    public List<PerfTaskSceneDetail> getSceneDetailsBySceneId(Long sceneId) {
+        return sceneDetailMapper.selectList(new LambdaQueryWrapper<PerfTaskSceneDetail>().eq(PerfTaskSceneDetail::getSceneId, sceneId));
+    }
+
+    @Override
+    @Transactional
+    public void updateSceneAndDetails(PerfTaskScene scene, List<PerfTaskSceneDetail> details) {
+        if (scene.getId() == null) {
+            sceneMapper.insert(scene);
+        } else {
+            sceneMapper.updateById(scene);
+        }
+        
+        if (details != null) {
+            // 对于明细，我们采取先删后增的方式，因为明细通常没有外部关联
+            sceneDetailMapper.delete(new LambdaQueryWrapper<PerfTaskSceneDetail>().eq(PerfTaskSceneDetail::getSceneId, scene.getId()));
+            for (PerfTaskSceneDetail detail : details) {
+                detail.setSceneId(scene.getId());
+                detail.setId(null);
+                sceneDetailMapper.insert(detail);
+            }
+        }
+    }
+
+    @Override
+    @Transactional
+    public void saveAllScenes(Long taskId, List<SceneDTO> sceneDTOs) {
+        // 1. 获取当前数据库中的所有场景ID
+        List<PerfTaskScene> currentScenes = sceneMapper.selectList(new LambdaQueryWrapper<PerfTaskScene>().eq(PerfTaskScene::getTaskId, taskId));
+        Set<Long> incomingIds = new HashSet<>();
+        if (sceneDTOs != null) {
+            for (SceneDTO dto : sceneDTOs) {
+                if (dto.getScene().getId() != null) {
+                    incomingIds.add(dto.getScene().getId());
+                }
+            }
+        }
+
+        // 2. 删除不在传入列表中的场景
+        for (PerfTaskScene oldScene : currentScenes) {
+            if (!incomingIds.contains(oldScene.getId())) {
+                // 删除明细
+                sceneDetailMapper.delete(new LambdaQueryWrapper<PerfTaskSceneDetail>().eq(PerfTaskSceneDetail::getSceneId, oldScene.getId()));
+                // 删除场景
+                sceneMapper.deleteById(oldScene.getId());
+            }
+        }
+
+        // 3. 保存/更新传入的场景
+        if (sceneDTOs != null) {
+            for (SceneDTO dto : sceneDTOs) {
+                PerfTaskScene scene = dto.getScene();
+                scene.setTaskId(taskId);
+                updateSceneAndDetails(scene, dto.getDetails());
+            }
+        }
+    }
+
+    private static class SceneTemplate {
+        int type;
+        String name;
+        java.math.BigDecimal ratio;
+        String objective;
+        String method;
+        String condition;
+
+        SceneTemplate(int type, String name, java.math.BigDecimal ratio, String objective, String method, String condition) {
+            this.type = type;
+            this.name = name;
+            this.ratio = ratio;
+            this.objective = objective;
+            this.method = method;
+            this.condition = condition;
         }
     }
 }

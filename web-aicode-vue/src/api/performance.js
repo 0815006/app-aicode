@@ -59,9 +59,33 @@ export function saveDatas(taskId, data) {
   })
 }
 
-export function saveScenes(taskId, data) {
+export function initScenes(taskId) {
   return request({
-    url: '/performance/saveScenes',
+    url: '/performance/initScenes',
+    method: 'get',
+    params: { taskId }
+  })
+}
+
+export function getScenes(taskId) {
+  return request({
+    url: '/performance/getScenes',
+    method: 'get',
+    params: { taskId }
+  })
+}
+
+export function getSceneDetails(sceneId) {
+  return request({
+    url: '/performance/getSceneDetails',
+    method: 'get',
+    params: { sceneId }
+  })
+}
+
+export function saveAllScenes(taskId, data) {
+  return request({
+    url: '/performance/saveAllScenes',
     method: 'post',
     params: { taskId },
     data

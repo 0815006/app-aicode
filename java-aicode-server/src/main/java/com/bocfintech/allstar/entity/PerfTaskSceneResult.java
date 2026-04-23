@@ -10,27 +10,29 @@ import java.math.BigDecimal;
 import java.util.Date;
 
 /**
- * 性能测试场景定义主表
+ * 场景执行结果主表
  */
 @Data
-@TableName("perf_task_scene")
-public class PerfTaskScene {
+@TableName("perf_task_scene_result")
+public class PerfTaskSceneResult {
     @TableId(type = IdType.AUTO)
     private Long id;
-    private Long taskId;
-    private Integer sceneType;
-    private String sceneName;
-    private BigDecimal targetTpsRatio;
-    private BigDecimal targetTotalTps;
-    private String testObjective;
-    private String implementationMethod;
-    private String endCondition;
-    private Integer isSelected;
-    private Integer globalDuration;
+    private Long sceneId;
+    private Integer roundNumber;
+    private String testEnv;
+    private Integer runStatus;
+    
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    private Date runStartTime;
+    
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    private Date runEndTime;
+    
+    private Integer isStandard;
+    private BigDecimal actualTotalTps;
+    private Integer resultStatus;
+    private String summaryRemark;
     
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date createTime;
-    
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
-    private Date updateTime;
 }
