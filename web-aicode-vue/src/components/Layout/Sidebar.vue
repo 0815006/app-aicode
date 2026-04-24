@@ -48,6 +48,11 @@
         <span slot="title">性能测试</span>
       </el-menu-item>
 
+      <el-menu-item index="/text-comparison">
+        <i class="el-icon-document"></i>
+        <span slot="title">文本比对</span>
+      </el-menu-item>
+
     </el-menu>
   </div>
 </template>

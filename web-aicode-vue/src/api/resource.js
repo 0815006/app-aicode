@@ -33,7 +33,7 @@ export function uploadResource(productId, file, fileSource) {
   formData.append('file', file)
   formData.append('fileSource', fileSource)
 
-  return request.post('/performance/uploadResource', formData, {
+  return request.post('/resource/uploadResource', formData, {
     headers: {
       'Content-Type': 'multipart/form-data'
     }

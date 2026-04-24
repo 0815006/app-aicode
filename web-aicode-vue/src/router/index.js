@@ -9,6 +9,7 @@ import DataMigration from '@/views/DataMigration.vue'
 import VoteManagement from '@/views/VoteManagement.vue'
 import XmindConverter from '@/views/XmindConverter.vue'
 import PerformanceTest from '@/views/PerformanceTest.vue'
+import TextComparison from '@/views/TextComparison.vue'
 
 Vue.use(Router)
 
@@ -60,6 +61,12 @@ export default new Router({
           name: 'PerformanceTest',
           component: PerformanceTest,
           meta: { title: '性能测试方案' }
+        },
+        {
+          path: 'text-comparison',
+          name: 'TextComparison',
+          component: TextComparison,
+          meta: { title: '文本比对' }
         }
       ]
     }
