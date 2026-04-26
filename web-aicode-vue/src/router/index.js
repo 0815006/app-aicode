@@ -10,6 +10,7 @@ import VoteManagement from '@/views/VoteManagement.vue'
 import XmindConverter from '@/views/XmindConverter.vue'
 import PerformanceTest from '@/views/PerformanceTest.vue'
 import TextComparison from '@/views/TextComparison.vue'
+import MediaCrawl from '@/views/MediaCrawl.vue'
 
 Vue.use(Router)
 
@@ -67,6 +68,12 @@ export default new Router({
           name: 'TextComparison',
           component: TextComparison,
           meta: { title: '文本比对' }
+        },
+        {
+          path: 'media-crawl',
+          name: 'MediaCrawl',
+          component: MediaCrawl,
+          meta: { title: '媒体抓取' }
         }
       ]
     }

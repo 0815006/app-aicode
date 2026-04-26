@@ -53,6 +53,11 @@
         <span slot="title">文本比对</span>
       </el-menu-item>
 
+      <el-menu-item index="/media-crawl">
+        <i class="el-icon-download"></i>
+        <span slot="title">媒体抓取</span>
+      </el-menu-item>
+
     </el-menu>
   </div>
 </template>

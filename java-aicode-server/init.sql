@@ -297,6 +297,30 @@ CREATE TABLE chat_file (
     INDEX (create_time)                    -- 方便按时间排序
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='聊天文件表表';
 
+CREATE TABLE `media_crawl_task` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `url` varchar(1000) NOT NULL COMMENT '目标网页网址',
+  `title` varchar(255) DEFAULT NULL COMMENT '网页标题(截取前20位)',
+  `crawl_type` varchar(20) DEFAULT 'IMAGE' COMMENT '采集类型: IMAGE-仅图片, VIDEO-仅视频, BOTH-图片和视频',
+  `min_size_limit` int(11) DEFAULT '0' COMMENT '最小文件过滤限制(KB)',
+  `status` varchar(20) DEFAULT 'PENDING' COMMENT '状态: PENDING-未处理, PROCESSING-抓取中, SUCCESS-已提取, FAILED-无法访问',
+  -- 图片统计信息
+  `img_count` int(11) DEFAULT '0' COMMENT '下载图片数量',
+  `img_total_size` bigint(20) DEFAULT '0' COMMENT '图片总大小(Bytes)',
+  -- 视频统计信息
+  `video_count` int(11) DEFAULT '0' COMMENT '下载视频数量',
+  `video_total_size` bigint(20) DEFAULT '0' COMMENT '视频总大小(Bytes)',
+  -- 存储关键信息
+  `folder_name` varchar(150) DEFAULT NULL COMMENT '生成的目录名(标题前20位+时间戳)',
+  -- 时间记录
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '任务添加日期',
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后状态更新时间',
+  PRIMARY KEY (`id`),
+  -- 索引优化查询速度
+  KEY `idx_status` (`status`),
+  KEY `idx_create_time` (`create_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='媒体抓取任务管理表';
+
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
 /*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
