@@ -158,4 +158,56 @@ public class MediaCrawlTaskServiceImpl extends BaseServiceImpl<MediaCrawlTaskMap
         task.setUpdateTime(new Date());
         mapper.updateById(task);
     }
+
+    @Override
+    public boolean deleteTask(Long id) {
+        MediaCrawlTask task = mapper.selectById(id);
+        if (task == null) {
+            return false;
+        }
+
+        // 删除本地文件目录
+        if (task.getFolderName() != null) {
+            // 删除图片目录
+            String imgDirPath = imageBasePath + File.separator + task.getFolderName();
+            File imgDir = new File(imgDirPath);
+            if (imgDir.exists() && imgDir.isDirectory()) {
+                deleteDirectory(imgDir);
+                log.info("已删除图片目录: {}", imgDirPath);
+            }
+
+            // 删除视频目录
+            String vidDirPath = videoBasePath + File.separator + task.getFolderName();
+            File vidDir = new File(vidDirPath);
+            if (vidDir.exists() && vidDir.isDirectory()) {
+                deleteDirectory(vidDir);
+                log.info("已删除视频目录: {}", vidDirPath);
+            }
+        }
+
+        // 删除数据库记录
+        int rows = mapper.deleteById(id);
+        log.info("已删除任务记录: id={}, 影响行数={}", id, rows);
+        return rows > 0;
+    }
+
+    /**
+     * 递归删除目录及其所有内容
+     */
+    private void deleteDirectory(File dir) {
+        if (dir == null || !dir.exists()) {
+            return;
+        }
+        File[] files = dir.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                if (file.isDirectory()) {
+                    deleteDirectory(file);
+                } else {
+                    file.delete();
+                }
+            }
+        }
+        dir.delete();
+    }
 }

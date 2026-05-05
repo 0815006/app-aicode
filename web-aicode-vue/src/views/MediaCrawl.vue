@@ -9,24 +9,26 @@
 
     <!-- 顶部：添加网址输入区 -->
     <div class="input-section">
-      <el-form :inline="true" :model="form" class="crawl-form">
-        <el-form-item label="目标网址" class="form-item-url">
+      <div class="crawl-form">
+        <div class="form-item-url">
+          <span class="form-label">目标网址</span>
           <el-input
             v-model="form.url"
             placeholder="请输入需要采集的网页 URL，例如 https://example.com"
             clearable
             class="url-input"
-            style="width: 1000px"
           />
-        </el-form-item>
-        <el-form-item label="采集类型">
+        </div>
+        <div class="form-item-inline">
+          <span class="form-label">采集类型</span>
           <el-select v-model="form.crawlType" style="width: 140px">
             <el-option label="仅图片" value="IMAGE" />
             <el-option label="仅视频" value="VIDEO" />
             <el-option label="图片+视频" value="BOTH" />
           </el-select>
-        </el-form-item>
-        <el-form-item label="最小体积(KB)">
+        </div>
+        <div class="form-item-inline">
+          <span class="form-label">最小体积(KB)</span>
           <el-input-number
             v-model="form.minSizeLimit"
             :min="0"
@@ -34,13 +36,11 @@
             :step="10"
             style="width: 140px"
           />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" icon="el-icon-plus" @click="handleAddTask" :loading="adding">
-            添加任务
-          </el-button>
-        </el-form-item>
-      </el-form>
+        </div>
+        <el-button type="primary" icon="el-icon-plus" @click="handleAddTask" :loading="adding" class="add-btn">
+          添加任务
+        </el-button>
+      </div>
     </div>
 
     <!-- 下方分栏：左右交互区 -->
@@ -49,14 +49,25 @@
       <div class="left-panel">
         <div class="panel-header">
           <span class="panel-title">📋 任务列表</span>
-          <el-button
-            size="small"
-            icon="el-icon-refresh"
-            circle
-            @click="handleRefresh"
-            :loading="loading"
-            title="刷新列表"
-          />
+          <div class="panel-actions">
+            <el-button
+              size="small"
+              icon="el-icon-video-play"
+              circle
+              @click="handleStartEngine"
+              :loading="engineStarting"
+              title="手工触发抓取引擎"
+            />
+            <el-button
+              size="small"
+              icon="el-icon-refresh"
+              circle
+              @click="handleRefresh"
+              :loading="loading"
+              title="刷新列表"
+              style="margin-left: 8px"
+            />
+          </div>
         </div>
         <div class="task-list-wrapper">
           <el-table
@@ -92,6 +103,17 @@
             <el-table-column prop="videoTotalSize" label="视频大小" width="90" align="center">
               <template slot-scope="{ row }">
                 {{ formatSize(row.videoTotalSize) }}
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="50" align="center" fixed="right">
+              <template slot-scope="{ row }">
+                <el-button
+                  size="mini"
+                  icon="el-icon-delete"
+                  circle
+                  @click.stop="handleDeleteTask(row)"
+                  title="删除任务"
+                />
               </template>
             </el-table-column>
           </el-table>
@@ -202,7 +224,9 @@
 import {
   addCrawlTask,
   listCrawlTasks,
-  getTaskMediaFiles
+  getTaskMediaFiles,
+  startCrawlEngine,
+  deleteCrawlTask
 } from '@/api/media-crawl'
 
 export default {
@@ -220,6 +244,7 @@ export default {
       // 列表
       taskList: [],
       loading: false,
+      engineStarting: false,
       currentPage: 1,
       pageSize: 20,
       total: 0,
@@ -287,6 +312,49 @@ export default {
     // 刷新列表
     handleRefresh() {
       this.fetchTaskList()
+    },
+
+    // 手工触发抓取引擎
+    async handleStartEngine() {
+      this.engineStarting = true
+      try {
+        const res = await startCrawlEngine()
+        if (res.code === 200) {
+          this.$message.success('抓取引擎已触发，请稍后刷新列表查看结果')
+        }
+      } catch (e) {
+        console.error('触发抓取引擎失败', e)
+        this.$message.error('触发抓取引擎失败')
+      } finally {
+        this.engineStarting = false
+      }
+    },
+
+    // 删除任务
+    async handleDeleteTask(row) {
+      this.$confirm(`确定要删除任务「${row.title || row.url}」吗？此操作将同时删除本地已下载的媒体文件，且不可恢复。`, '确认删除', {
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(async () => {
+        try {
+          const res = await deleteCrawlTask(row.id)
+          if (res.code === 200) {
+            this.$message.success('任务已删除')
+            // 如果删除的是当前选中的任务，清空选中状态
+            if (this.selectedTask && this.selectedTask.id === row.id) {
+              this.selectedTask = null
+              this.mediaInfo = {}
+            }
+            this.fetchTaskList()
+          }
+        } catch (e) {
+          console.error('删除任务失败', e)
+          this.$message.error('删除任务失败')
+        }
+      }).catch(() => {
+        // 用户取消删除
+      })
     },
 
     // 分页切换
@@ -424,17 +492,46 @@ export default {
 
 .crawl-form {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
+  flex-wrap: nowrap;
+  width: 100%;
 }
 
 .form-item-url {
-  flex: 1;
-  min-width: 300px;
+  flex: 100;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  margin-right: 2px;
+}
+
+.form-label {
+  white-space: nowrap;
+  margin-right: 3px;
+  font-size: 14px;
+  color: #606266;
 }
 
 .url-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.url-input .el-input__inner {
   width: 100%;
+}
+
+.form-item-inline {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  margin-right: 2px;
+  flex-shrink: 0;
+}
+
+.add-btn {
+  margin-left: 0;
+  flex-shrink: 0;
 }
 
 /* 主区域 */

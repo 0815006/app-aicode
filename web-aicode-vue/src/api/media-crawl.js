@@ -52,3 +52,13 @@ export function startCrawlEngine() {
     method: 'post'
   })
 }
+
+/**
+ * 删除任务（连带删除本地文件）
+ */
+export function deleteCrawlTask(id) {
+  return request({
+    url: `/media-crawl/task/${id}`,
+    method: 'delete'
+  })
+}

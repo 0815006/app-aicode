@@ -71,4 +71,15 @@ public class MediaCrawlController {
         crawlEngineService.startEngine();
         return ResultBean.success("抓取引擎已启动");
     }
+
+    @ApiOperation("删除任务（连带删除本地文件）")
+    @DeleteMapping("/task/{id}")
+    public ResultBean<String> deleteTask(@PathVariable Long id) {
+        boolean success = taskService.deleteTask(id);
+        if (success) {
+            return ResultBean.success("任务已删除");
+        } else {
+            return ResultBean.error("任务不存在或删除失败");
+        }
+    }
 }

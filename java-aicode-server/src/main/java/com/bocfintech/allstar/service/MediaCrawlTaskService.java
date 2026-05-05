@@ -47,4 +47,9 @@ public interface MediaCrawlTaskService extends BaseService<MediaCrawlTask> {
     void updateTaskResult(Long id, String title, String folderName, String status,
                           Integer imgCount, Long imgTotalSize,
                           Integer videoCount, Long videoTotalSize);
+
+    /**
+     * 删除任务（连带删除本地文件）
+     */
+    boolean deleteTask(Long id);
 }
