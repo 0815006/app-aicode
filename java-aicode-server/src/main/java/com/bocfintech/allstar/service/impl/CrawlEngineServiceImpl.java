@@ -4,6 +4,7 @@ import com.bocfintech.allstar.entity.MediaCrawlTask;
 import com.bocfintech.allstar.service.CrawlEngineService;
 import com.bocfintech.allstar.service.MediaCrawlTaskService;
 import com.microsoft.playwright.*;
+import com.microsoft.playwright.options.LoadState;
 import com.microsoft.playwright.options.WaitUntilState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,18 +16,14 @@ import org.springframework.stereotype.Service;
 import javax.annotation.PreDestroy;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.InputStream;
 import java.net.URL;
-import java.net.URLConnection;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.Collections;
 
 /**
  * Playwright 抓取引擎实现类
@@ -161,8 +158,12 @@ public class CrawlEngineServiceImpl implements CrawlEngineService {
                             .setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
             );
 
+            // 使用 ConcurrentHashMap 存储图片数据（URL -> 字节数组）
+            Map<String, byte[]> mediaDataMap = new ConcurrentHashMap<>();
+            // 存储媒体类型（URL -> contentType）
+            Map<String, String> mediaContentTypeMap = new ConcurrentHashMap<>();
+
             // 设置请求拦截，收集媒体资源
-            Set<String> mediaUrls = new HashSet<>();
             context.onResponse(response -> {
                 String contentType = response.headers().get("content-type");
                 String url = response.url();
@@ -177,7 +178,17 @@ public class CrawlEngineServiceImpl implements CrawlEngineService {
                     boolean isVideo = contentType.startsWith("video/") &&
                             (task.getCrawlType().equals("VIDEO") || task.getCrawlType().equals("BOTH"));
                     if (isImage || isVideo) {
-                        mediaUrls.add(url);
+                        try {
+                            // 使用 Playwright 的 response.body() 直接获取字节流，避免二次请求
+                            byte[] body = response.body();
+                            if (body != null && body.length > 0) {
+                                mediaDataMap.put(url, body);
+                                mediaContentTypeMap.put(url, contentType);
+                                log.debug("任务 {}: 拦截到媒体资源: {} ({} bytes)", taskId, url, body.length);
+                            }
+                        } catch (Exception e) {
+                            log.warn("任务 {}: 获取媒体内容失败: {}", taskId, url, e);
+                        }
                     }
                 }
             });
@@ -196,22 +207,78 @@ public class CrawlEngineServiceImpl implements CrawlEngineService {
                 log.warn("任务 {}: 页面加载超时或失败: {}", taskId, task.getUrl());
             }
 
-            log.info("任务 {}: 模拟滚动", taskId);
-            // 模拟滚动，触发懒加载
+            // 等待 DOM 加载完成
             try {
-                page.evaluate("window.scrollTo(0, document.body.scrollHeight)");
-                Thread.sleep(2000);
+                page.waitForLoadState(LoadState.DOMCONTENTLOADED);
+                // 给 SPA 一点额外时间更新 title
+                page.waitForTimeout(1000);
+                log.info("任务 {}: DOM 加载完成", taskId);
+            } catch (Exception e) {
+                log.warn("任务 {}: 等待 DOM 加载异常", taskId, e);
+            }
+
+            // 模拟步进式滚动，触发懒加载
+            log.info("任务 {}: 开始步进式滚动以触发懒加载", taskId);
+            try {
+                page.evaluate("async () => {" +
+                    "  await new Promise((resolve) => {" +
+                    "    let totalHeight = 0;" +
+                    "    let distance = 200;" +
+                    "    let timer = setInterval(() => {" +
+                    "      let scrollHeight = document.body.scrollHeight;" +
+                    "      window.scrollBy(0, distance);" +
+                    "      totalHeight += distance;" +
+                    "      if(totalHeight >= scrollHeight) {" +
+                    "        clearInterval(timer);" +
+                    "        resolve();" +
+                    "      }" +
+                    "    }, 100);" +
+                    "  });" +
+                    "});");
+                // 滚动完成后等待一下，确保所有懒加载触发完成
+                page.waitForTimeout(2000);
+                // 滚回顶部
                 page.evaluate("window.scrollTo(0, 0)");
-                Thread.sleep(1000);
-                log.info("任务 {}: 模拟滚动完成", taskId);
+                page.waitForTimeout(500);
+                log.info("任务 {}: 步进式滚动完成", taskId);
             } catch (Exception e) {
                 log.warn("任务 {}: 页面滚动异常", taskId, e);
             }
 
-            // 获取网页标题
+            // 获取网页标题（优化版）
             String pageTitle = "";
             try {
                 pageTitle = page.title();
+                // 如果标题为空，尝试从 h1 获取
+                if (pageTitle == null || pageTitle.isEmpty()) {
+                    try {
+                        pageTitle = page.innerText("h1");
+                    } catch (Exception e) {
+                        log.debug("任务 {}: 从 h1 获取标题失败", taskId);
+                    }
+                }
+                // 如果还是为空，尝试从 og:title meta 获取
+                if (pageTitle == null || pageTitle.isEmpty()) {
+                    try {
+                        String ogTitle = page.getAttribute("meta[property='og:title']", "content");
+                        if (ogTitle != null && !ogTitle.isEmpty()) {
+                            pageTitle = ogTitle;
+                        }
+                    } catch (Exception e) {
+                        log.debug("任务 {}: 从 og:title 获取标题失败", taskId);
+                    }
+                }
+                // 最后尝试从 title 标签获取
+                if (pageTitle == null || pageTitle.isEmpty()) {
+                    try {
+                        Object titleContent = page.evaluate("() => document.querySelector('title')?.textContent");
+                        if (titleContent != null) {
+                            pageTitle = titleContent.toString();
+                        }
+                    } catch (Exception e) {
+                        log.debug("任务 {}: 从 title 标签获取标题失败", taskId);
+                    }
+                }
                 log.info("任务 {}: 获取网页标题: {}", taskId, pageTitle);
             } catch (Exception e) {
                 log.warn("任务 {}: 获取网页标题失败", taskId, e);
@@ -232,6 +299,62 @@ public class CrawlEngineServiceImpl implements CrawlEngineService {
             Files.createDirectories(Paths.get(vidDirPath));
             log.info("任务 {}: 目录创建成功", taskId);
 
+            // 处理 Data URI (Base64 内嵌图片)
+            try {
+                List<ElementHandle> imgs = page.querySelectorAll("img[src^='data:image']");
+                for (ElementHandle img : imgs) {
+                    try {
+                        String src = img.getAttribute("src");
+                        if (src != null && src.startsWith("data:image/")) {
+                            // 解析 Base64 数据
+                            String base64Data = src.substring(src.indexOf(",") + 1);
+                            String contentType = src.substring(5, src.indexOf(";"));
+                            byte[] imageBytes = Base64.getDecoder().decode(base64Data);
+                            String dataUriKey = "data-uri-" + System.currentTimeMillis() + "-" + imgs.indexOf(img);
+                            mediaDataMap.put(dataUriKey, imageBytes);
+                            mediaContentTypeMap.put(dataUriKey, contentType);
+                            log.debug("任务 {}: 提取到 Data URI 图片: {} bytes", taskId, imageBytes.length);
+                        }
+                    } catch (Exception e) {
+                        log.warn("任务 {}: 处理 Data URI 失败", taskId, e);
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("任务 {}: 遍历 Data URI 图片异常", taskId, e);
+            }
+
+            // 处理懒加载属性（data-src, data-original 等）
+            try {
+                // 处理 data-src
+                List<ElementHandle> lazyImgs = page.querySelectorAll("img[data-src], img[data-original], img[data-lazy]");
+                for (ElementHandle img : lazyImgs) {
+                    try {
+                        String dataSrc = img.getAttribute("data-src");
+                        if (dataSrc == null || dataSrc.isEmpty()) {
+                            dataSrc = img.getAttribute("data-original");
+                        }
+                        if (dataSrc == null || dataSrc.isEmpty()) {
+                            dataSrc = img.getAttribute("data-lazy");
+                        }
+                        if (dataSrc != null && !dataSrc.isEmpty() && !dataSrc.startsWith("data:")) {
+                            // 尝试通过 Playwright 加载这个 URL
+                            log.debug("任务 {}: 发现懒加载图片: {}", taskId, dataSrc);
+                            // 使用 JavaScript 设置 src 属性来触发加载
+                            try {
+                                img.evaluate("(element, newSrc) => { element.src = newSrc; }", dataSrc);
+                                page.waitForTimeout(500); // 等待图片加载
+                            } catch (Exception e) {
+                                log.debug("任务 {}: 设置懒加载图片 src 失败: {}", taskId, dataSrc);
+                            }
+                        }
+                    } catch (Exception e) {
+                        log.warn("任务 {}: 处理懒加载属性失败", taskId, e);
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("任务 {}: 遍历懒加载图片异常", taskId, e);
+            }
+
             // 下载媒体资源
             int imgCount = 0;
             long imgTotalSize = 0;
@@ -239,88 +362,82 @@ public class CrawlEngineServiceImpl implements CrawlEngineService {
             long videoTotalSize = 0;
             int minSizeBytes = (task.getMinSizeLimit() != null ? task.getMinSizeLimit() : 0) * 1024;
 
-            log.info("任务 {}: 开始下载媒体资源，共 {} 个URL", taskId, mediaUrls.size());
-            for (String mediaUrl : mediaUrls) {
-                log.info("任务 {}: 尝试下载媒体文件: {}", taskId, mediaUrl);
+            log.info("任务 {}: 开始保存媒体资源，共 {} 个资源", taskId, mediaDataMap.size());
+            for (Map.Entry<String, byte[]> entry : mediaDataMap.entrySet()) {
+                String mediaUrl = entry.getKey();
+                byte[] mediaBytes = entry.getValue();
+                String contentType = mediaContentTypeMap.get(mediaUrl);
+                
+                if (mediaBytes == null || mediaBytes.length == 0) {
+                    continue;
+                }
+
+                // 检查文件大小
+                if (mediaBytes.length < minSizeBytes) {
+                    log.debug("任务 {}: 文件太小，跳过: {} ({} bytes)", taskId, mediaUrl, mediaBytes.length);
+                    continue;
+                }
+
                 try {
-                    URL url = new URL(mediaUrl);
-                    URLConnection conn = url.openConnection();
-                    conn.setConnectTimeout(60000);
-                    conn.setReadTimeout(60000);
-                    conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
-                    conn.setRequestProperty("Referer", task.getUrl());
-
-                    // 获取文件大小
-                    long fileSize = conn.getContentLengthLong();
-                    if (fileSize > 0 && fileSize < minSizeBytes) {
-                        log.debug("任务 {}: 文件太小，跳过: {} ({} bytes)", taskId, mediaUrl, fileSize);
-                        continue;
-                    }
-
                     // 从 URL 提取文件名
-                    String pathStr = url.getPath();
-                    String fileName = pathStr.substring(pathStr.lastIndexOf('/') + 1);
-                    if (fileName.isEmpty() || !fileName.contains(".")) {
-                        String contentType = conn.getContentType();
-                        if (contentType != null) {
-                            if (contentType.startsWith("image/")) {
-                                String ext = contentType.replace("image/", "");
-                                fileName = "img_" + imgCount + "." + ext;
-                            } else if (contentType.startsWith("video/")) {
-                                String ext = contentType.replace("video/", "");
-                                fileName = "vid_" + videoCount + "." + ext;
-                            }
+                    String fileName;
+                    if (mediaUrl.startsWith("data-uri-")) {
+                        // Data URI 生成的文件名
+                        if (contentType != null && contentType.startsWith("image/")) {
+                            String ext = contentType.replace("image/", "");
+                            fileName = "img_datauri_" + imgCount + "." + ext;
+                        } else {
+                            fileName = "media_datauri_" + System.currentTimeMillis() + ".bin";
                         }
+                    } else {
+                        String pathStr = new URL(mediaUrl).getPath();
+                        fileName = pathStr.substring(pathStr.lastIndexOf('/') + 1);
                         if (fileName.isEmpty() || !fileName.contains(".")) {
-                            fileName = "media_" + System.currentTimeMillis() + "_" + (imgCount + videoCount);
+                            if (contentType != null) {
+                                if (contentType.startsWith("image/")) {
+                                    String ext = contentType.replace("image/", "");
+                                    fileName = "img_" + imgCount + "." + ext;
+                                } else if (contentType.startsWith("video/")) {
+                                    String ext = contentType.replace("video/", "");
+                                    fileName = "vid_" + videoCount + "." + ext;
+                                }
+                            }
+                            if (fileName.isEmpty() || !fileName.contains(".")) {
+                                fileName = "media_" + System.currentTimeMillis() + "_" + (imgCount + videoCount);
+                            }
                         }
                     }
 
                     // 清理文件名中的特殊字符
                     fileName = sanitizeFileName(fileName);
 
-                    String contentType = conn.getContentType();
                     if (contentType != null && contentType.startsWith("image/")) {
-                        // 下载图片
+                        // 保存图片
                         Path targetPath = Paths.get(imgDirPath, fileName);
-                        try (InputStream is = conn.getInputStream();
-                             FileOutputStream fos = new FileOutputStream(targetPath.toFile())) {
-                            byte[] buffer = new byte[8192];
-                            int bytesRead;
-                            long totalBytes = 0;
-                            while ((bytesRead = is.read(buffer)) != -1) {
-                                fos.write(buffer, 0, bytesRead);
-                                totalBytes += bytesRead;
-                            }
+                        try (FileOutputStream fos = new FileOutputStream(targetPath.toFile())) {
+                            fos.write(mediaBytes);
                             imgCount++;
-                            imgTotalSize += totalBytes;
-                            log.debug("任务 {}: 下载图片: {} ({} bytes)", taskId, fileName, totalBytes);
+                            imgTotalSize += mediaBytes.length;
+                            log.debug("任务 {}: 保存图片: {} ({} bytes)", taskId, fileName, mediaBytes.length);
                         }
-                        log.info("任务 {}: 图片下载完成: {}", taskId, fileName);
+                        log.info("任务 {}: 图片保存完成: {}", taskId, fileName);
                     } else if (contentType != null && contentType.startsWith("video/")) {
-                        // 下载视频
+                        // 保存视频
                         Path targetPath = Paths.get(vidDirPath, fileName);
-                        try (InputStream is = conn.getInputStream();
-                             FileOutputStream fos = new FileOutputStream(targetPath.toFile())) {
-                            byte[] buffer = new byte[8192];
-                            int bytesRead;
-                            long totalBytes = 0;
-                            while ((bytesRead = is.read(buffer)) != -1) {
-                                fos.write(buffer, 0, bytesRead);
-                                totalBytes += bytesRead;
-                            }
+                        try (FileOutputStream fos = new FileOutputStream(targetPath.toFile())) {
+                            fos.write(mediaBytes);
                             videoCount++;
-                            videoTotalSize += totalBytes;
-                            log.debug("任务 {}: 下载视频: {} ({} bytes)", taskId, fileName, totalBytes);
+                            videoTotalSize += mediaBytes.length;
+                            log.debug("任务 {}: 保存视频: {} ({} bytes)", taskId, fileName, mediaBytes.length);
                         }
-                        log.info("任务 {}: 视频下载完成: {}", taskId, fileName);
+                        log.info("任务 {}: 视频保存完成: {}", taskId, fileName);
                     }
                 } catch (Throwable t) {
-                    log.warn("任务 {}: 下载媒体文件失败: {}", taskId, mediaUrl, t);
+                    log.warn("任务 {}: 保存媒体文件失败: {}", taskId, mediaUrl, t);
                 }
             }
 
-            log.info("任务 {}: 媒体资源下载完成", taskId);
+            log.info("任务 {}: 媒体资源保存完成", taskId);
 
             // 更新任务结果
             String status;
