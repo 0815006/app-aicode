@@ -31,7 +31,7 @@
           <span class="form-label">最小体积(KB)</span>
           <el-input-number
             v-model="form.minSizeLimit"
-            :min="0"
+            :min="50"
             :max="99999"
             :step="10"
             style="width: 140px"

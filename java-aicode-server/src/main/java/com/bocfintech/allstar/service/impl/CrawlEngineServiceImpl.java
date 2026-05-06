@@ -17,6 +17,7 @@ import javax.annotation.PreDestroy;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -147,15 +148,46 @@ public class CrawlEngineServiceImpl implements CrawlEngineService {
             log.info("任务 {}: 尝试创建 Playwright 实例", taskId);
             playwright = Playwright.create();
             log.info("任务 {}: Playwright 实例创建成功", taskId);
+            
+            // 启动浏览器，增加反检测参数
             BrowserType.LaunchOptions launchOptions = new BrowserType.LaunchOptions()
-                    .setHeadless(true)
-                    .setTimeout(60000);
+                    .setHeadless(false)  // 改为非无头模式，更不容易被检测
+                    .setTimeout(60000)
+                    .setArgs(Arrays.asList(
+                        "--disable-blink-features=AutomationControlled",  // 关键：禁用自动化控制特征
+                        "--disable-infobars",
+                        "--disable-dev-shm-usage",
+                        "--disable-browser-side-navigation",
+                        "--disable-gpu",
+                        "--no-sandbox",
+                        "--disable-features=IsolateOrigins,site-per-process"
+                    ));
             browser = playwright.chromium().launch(launchOptions);
 
+            // 创建上下文，设置更完整的浏览器指纹
+            Map<String, String> extraHeaders = new HashMap<>();
+            extraHeaders.put("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8");
+            extraHeaders.put("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8");
+            extraHeaders.put("Accept-Encoding", "gzip, deflate, br");
+            
             BrowserContext context = browser.newContext(
                     new Browser.NewContextOptions()
                             .setViewportSize(1920, 1080)
                             .setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                            .setLocale("zh-CN")
+                            .setTimezoneId("Asia/Shanghai")
+            );
+            
+            // 设置额外的 HTTP 请求头
+            context.setExtraHTTPHeaders(extraHeaders);
+
+            // 注入反检测脚本，隐藏 webdriver 等自动化特征
+            context.addInitScript(
+                "Object.defineProperty(navigator, 'webdriver', {get: () => undefined});\n" +
+                "Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]});\n" +
+                "Object.defineProperty(navigator, 'languages', {get: () => ['zh-CN', 'zh', 'en']});\n" +
+                "window.chrome = { runtime: {} };\n" +
+                "delete navigator.__proto__.webdriver;\n"
             );
 
             // 使用 ConcurrentHashMap 存储图片数据（URL -> 字节数组）
@@ -195,91 +227,210 @@ public class CrawlEngineServiceImpl implements CrawlEngineService {
 
             Page page = context.newPage();
 
+            // 额外隐藏特征：移除 playwright 标记
+            page.addInitScript("delete window.__playwright;");
+            page.addInitScript("delete window.__pw_manual;");
+            
+            // 模拟人类行为：随机延迟
+            page.addInitScript(
+                "Math.random = function() {\n" +
+                "  let seed = 1234567890;\n" +
+                "  return function() {\n" +
+                "    seed = (seed * 9301 + 49297) % 233280;\n" +
+                "    return seed / 233280;\n" +
+                "  };\n" +
+                "})();"
+            );
+
             log.info("任务 {}: 导航到目标页面: {}", taskId, task.getUrl());
 
-            // 导航到目标页面
+            // 导航到目标页面 - 修复：使用更宽松的等待条件
             try {
+                // 使用 DOMCONTENTLOADED 而不是 NETWORKIDLE，避免等待所有网络请求完成
+                // 增加超时时间到60秒，给页面足够时间加载
                 page.navigate(task.getUrl(), new Page.NavigateOptions()
-                        .setTimeout(30000)
-                        .setWaitUntil(WaitUntilState.NETWORKIDLE));
+                        .setTimeout(60000)
+                        .setWaitUntil(WaitUntilState.DOMCONTENTLOADED));
                 log.info("任务 {}: 页面导航成功", taskId);
             } catch (Exception e) {
-                log.warn("任务 {}: 页面加载超时或失败: {}", taskId, task.getUrl());
+                log.warn("任务 {}: 页面加载超时或失败，尝试继续: {}", taskId, task.getUrl());
+                // 即使导航超时，也尝试继续处理页面（页面可能已部分加载）
             }
 
             // 等待 DOM 加载完成
             try {
                 page.waitForLoadState(LoadState.DOMCONTENTLOADED);
                 // 给 SPA 一点额外时间更新 title
-                page.waitForTimeout(1000);
+                page.waitForTimeout(3000);  // 增加等待时间到 3 秒
                 log.info("任务 {}: DOM 加载完成", taskId);
             } catch (Exception e) {
                 log.warn("任务 {}: 等待 DOM 加载异常", taskId, e);
             }
 
-            // 模拟步进式滚动，触发懒加载
+            // 模拟步进式滚动，触发懒加载（使用 Java 循环实现）- 修复：使用更可靠的高度获取方法
             log.info("任务 {}: 开始步进式滚动以触发懒加载", taskId);
             try {
-                page.evaluate("async () => {" +
-                    "  await new Promise((resolve) => {" +
-                    "    let totalHeight = 0;" +
-                    "    let distance = 200;" +
-                    "    let timer = setInterval(() => {" +
-                    "      let scrollHeight = document.body.scrollHeight;" +
-                    "      window.scrollBy(0, distance);" +
-                    "      totalHeight += distance;" +
-                    "      if(totalHeight >= scrollHeight) {" +
-                    "        clearInterval(timer);" +
-                    "        resolve();" +
-                    "      }" +
-                    "    }, 100);" +
-                    "  });" +
-                    "});");
-                // 滚动完成后等待一下，确保所有懒加载触发完成
+                // 等待一下让页面初始内容加载
                 page.waitForTimeout(2000);
+                
+                // 使用更可靠的方法获取页面总高度
+                Object scrollHeightObj = page.evaluate("() => Math.max(document.body.scrollHeight, document.documentElement.scrollHeight, document.body.offsetHeight, document.documentElement.offsetHeight, document.body.clientHeight, document.documentElement.clientHeight)");
+                int scrollHeight = scrollHeightObj instanceof Integer ? (Integer) scrollHeightObj : Integer.parseInt(scrollHeightObj.toString());
+                
+                // 如果获取的高度太小，可能是页面还没加载完，再等一下
+                if (scrollHeight < 1000) {
+                    log.debug("任务 {}: 页面高度较小({}px)，等待页面加载...", taskId, scrollHeight);
+                    page.waitForTimeout(3000);
+                    scrollHeightObj = page.evaluate("() => Math.max(document.body.scrollHeight, document.documentElement.scrollHeight)");
+                    scrollHeight = scrollHeightObj instanceof Integer ? (Integer) scrollHeightObj : Integer.parseInt(scrollHeightObj.toString());
+                }
+                
+                int currentHeight = 0;
+                int distance = 200;
+                int stepCount = 0;
+                int maxSteps = (scrollHeight / distance) + 20; // 增加余量到20
+                
+                log.debug("任务 {}: 页面高度={}, 预计滚动{}次", taskId, scrollHeight, maxSteps);
+                
+                while (currentHeight < scrollHeight && stepCount < maxSteps) {
+                    // 滚动一段距离
+                    page.evaluate("() => window.scrollBy(0, 200)");
+                    currentHeight += distance;
+                    stepCount++;
+                    
+                    // 等待一下让懒加载触发
+                    page.waitForTimeout(200); // 增加等待时间到200ms
+                    
+                    // 重新获取页面高度（可能动态变化）
+                    Object newHeightObj = page.evaluate("() => Math.max(document.body.scrollHeight, document.documentElement.scrollHeight)");
+                    int newHeight = newHeightObj instanceof Integer ? (Integer) newHeightObj : Integer.parseInt(newHeightObj.toString());
+                    
+                    // 如果高度增加了，更新scrollHeight
+                    if (newHeight > scrollHeight) {
+                        scrollHeight = newHeight;
+                        log.debug("任务 {}: 页面高度增加到{}px", taskId, scrollHeight);
+                    }
+                }
+                
+                // 滚动完成后等待一下，确保所有懒加载触发完成
+                page.waitForTimeout(3000); // 增加等待时间到3秒
                 // 滚回顶部
-                page.evaluate("window.scrollTo(0, 0)");
+                page.evaluate("() => window.scrollTo(0, 0)");
                 page.waitForTimeout(500);
-                log.info("任务 {}: 步进式滚动完成", taskId);
+                log.info("任务 {}: 步进式滚动完成，共滚动{}次", taskId, stepCount);
             } catch (Exception e) {
                 log.warn("任务 {}: 页面滚动异常", taskId, e);
             }
 
-            // 获取网页标题（优化版）
+            // 获取网页标题（优化版 - 修复标题获取问题）- 修复：增加更多备选方案和等待时间
             String pageTitle = "";
             try {
+                // 等待页面完全加载
+                page.waitForTimeout(5000);
+                
+                // 方法1：直接使用 page.title()
                 pageTitle = page.title();
-                // 如果标题为空，尝试从 h1 获取
-                if (pageTitle == null || pageTitle.isEmpty()) {
+                log.debug("任务 {}: 直接获取标题: '{}'", taskId, pageTitle);
+                
+                // 方法2：如果标题为空或包含 unknown，尝试从 title 标签获取
+                if (pageTitle == null || pageTitle.isEmpty() || pageTitle.toLowerCase().contains("unknown") || pageTitle.equals("china918.net")) {
                     try {
-                        pageTitle = page.innerText("h1");
+                        Object titleContent = page.evaluate("() => document.querySelector('title')?.textContent?.trim()");
+                        if (titleContent != null && !titleContent.toString().isEmpty()) {
+                            pageTitle = titleContent.toString();
+                            log.debug("任务 {}: 从 title 标签获取: '{}'", taskId, pageTitle);
+                        }
+                    } catch (Exception e) {
+                        log.debug("任务 {}: 从 title 标签获取失败", taskId);
+                    }
+                }
+                
+                // 方法3：如果还是为空，尝试从 h1 获取
+                if (pageTitle == null || pageTitle.isEmpty() || pageTitle.toLowerCase().contains("unknown") || pageTitle.equals("china918.net")) {
+                    try {
+                        ElementHandle h1Element = page.querySelector("h1");
+                        if (h1Element != null) {
+                            String h1Text = h1Element.innerText();
+                            if (h1Text != null && !h1Text.isEmpty()) {
+                                pageTitle = h1Text.trim();
+                                log.debug("任务 {}: 从 h1 获取: '{}'", taskId, pageTitle);
+                            }
+                            h1Element.dispose();
+                        }
                     } catch (Exception e) {
                         log.debug("任务 {}: 从 h1 获取标题失败", taskId);
                     }
                 }
-                // 如果还是为空，尝试从 og:title meta 获取
-                if (pageTitle == null || pageTitle.isEmpty()) {
+                
+                // 方法4：如果还是为空，尝试从 og:title meta 获取
+                if (pageTitle == null || pageTitle.isEmpty() || pageTitle.toLowerCase().contains("unknown") || pageTitle.equals("china918.net")) {
                     try {
-                        String ogTitle = page.getAttribute("meta[property='og:title']", "content");
-                        if (ogTitle != null && !ogTitle.isEmpty()) {
-                            pageTitle = ogTitle;
+                        ElementHandle metaElement = page.querySelector("meta[property='og:title']");
+                        if (metaElement != null) {
+                            String ogTitle = metaElement.getAttribute("content");
+                            if (ogTitle != null && !ogTitle.isEmpty()) {
+                                pageTitle = ogTitle.trim();
+                                log.debug("任务 {}: 从 og:title 获取: '{}'", taskId, pageTitle);
+                            }
+                            metaElement.dispose();
                         }
                     } catch (Exception e) {
                         log.debug("任务 {}: 从 og:title 获取标题失败", taskId);
                     }
                 }
-                // 最后尝试从 title 标签获取
-                if (pageTitle == null || pageTitle.isEmpty()) {
+                
+                // 方法5：最后尝试从页面文本中提取可能的标题
+                if (pageTitle == null || pageTitle.isEmpty() || pageTitle.toLowerCase().contains("unknown") || pageTitle.equals("china918.net")) {
                     try {
-                        Object titleContent = page.evaluate("() => document.querySelector('title')?.textContent");
-                        if (titleContent != null) {
-                            pageTitle = titleContent.toString();
+                        Object possibleTitle = page.evaluate(
+                            "() => {\n" +
+                            "  const titleEl = document.querySelector('title');\n" +
+                            "  if (titleEl && titleEl.textContent) return titleEl.textContent.trim();\n" +
+                            "  const h1El = document.querySelector('h1');\n" +
+                            "  if (h1El && h1El.textContent) return h1El.textContent.trim();\n" +
+                            "  const ogTitle = document.querySelector('meta[property=\"og:title\"]');\n" +
+                            "  if (ogTitle) return ogTitle.content;\n" +
+                            "  // 尝试从页面内容中提取可能的标题\n" +
+                            "  const possibleTitles = Array.from(document.querySelectorAll('h1, h2, h3, .title, .post-title')).map(el => el.textContent.trim()).filter(t => t.length > 0);\n" +
+                            "  return possibleTitles.length > 0 ? possibleTitles[0] : '';\n" +
+                            "}"
+                        );
+                        if (possibleTitle != null && !possibleTitle.toString().isEmpty()) {
+                            pageTitle = possibleTitle.toString();
+                            log.debug("任务 {}: 从 JS 综合获取: '{}'", taskId, pageTitle);
                         }
                     } catch (Exception e) {
-                        log.debug("任务 {}: 从 title 标签获取标题失败", taskId);
+                        log.debug("任务 {}: 从 JS 综合获取标题失败", taskId);
                     }
                 }
-                log.info("任务 {}: 获取网页标题: {}", taskId, pageTitle);
+                
+                // 方法6：从 URL 解码标题（特别针对维基百科等网站）
+                if (pageTitle == null || pageTitle.isEmpty() || pageTitle.toLowerCase().contains("unknown") || pageTitle.equals("china918.net")) {
+                    try {
+                        String url = task.getUrl();
+                        // 尝试从 URL 路径中提取标题
+                        // 例如：https://zh.wikipedia.org/wiki/%E8%94%A3%E4%B8%AD%E6%AD%A3
+                        if (url.contains("/wiki/")) {
+                            String wikiTitle = url.substring(url.indexOf("/wiki/") + 6);
+                            // 移除可能的查询参数
+                            if (wikiTitle.contains("?")) {
+                                wikiTitle = wikiTitle.substring(0, wikiTitle.indexOf("?"));
+                            }
+                            // URL 解码
+                            wikiTitle = URLDecoder.decode(wikiTitle, "UTF-8");
+                            // 替换下划线为空格
+                            wikiTitle = wikiTitle.replace("_", " ");
+                            if (wikiTitle != null && !wikiTitle.isEmpty()) {
+                                pageTitle = wikiTitle;
+                                log.debug("任务 {}: 从 URL 解码获取: '{}'", taskId, pageTitle);
+                            }
+                        }
+                    } catch (Exception e) {
+                        log.debug("任务 {}: 从 URL 解码获取标题失败", taskId);
+                    }
+                }
+                
+                log.info("任务 {}: 获取网页标题: '{}'", taskId, pageTitle);
             } catch (Exception e) {
                 log.warn("任务 {}: 获取网页标题失败", taskId, e);
             }
@@ -322,6 +473,43 @@ public class CrawlEngineServiceImpl implements CrawlEngineService {
             } catch (Exception e) {
                 log.warn("任务 {}: 遍历 Data URI 图片异常", taskId, e);
             }
+            
+            // 处理背景图片 - 新增功能
+            try {
+                List<ElementHandle> elementsWithBg = page.querySelectorAll("[style*='background-image']");
+                for (ElementHandle element : elementsWithBg) {
+                    try {
+                        String style = element.getAttribute("style");
+                        if (style != null && style.contains("background-image")) {
+                            // 提取背景图片URL
+                            String bgUrl = null;
+                            java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("background-image:\\s*url\\(['\"]?([^'\"]+)['\"]?\\)");
+                            java.util.regex.Matcher matcher = pattern.matcher(style);
+                            if (matcher.find()) {
+                                bgUrl = matcher.group(1);
+                            }
+                            
+                            if (bgUrl != null && !bgUrl.isEmpty() && !bgUrl.startsWith("data:")) {
+                                log.debug("任务 {}: 发现背景图片: {}", taskId, bgUrl);
+                                // 尝试通过 Playwright 加载这个 URL
+                                try {
+                                    // 创建一个新的页面来加载背景图片
+                                    Page newPage = context.newPage();
+                                    newPage.navigate(bgUrl, new Page.NavigateOptions().setTimeout(10000));
+                                    newPage.waitForTimeout(1000);
+                                    newPage.close();
+                                } catch (Exception e) {
+                                    log.debug("任务 {}: 加载背景图片失败: {}", taskId, bgUrl);
+                                }
+                            }
+                        }
+                    } catch (Exception e) {
+                        log.warn("任务 {}: 处理背景图片失败", taskId, e);
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("任务 {}: 遍历背景图片异常", taskId, e);
+            }
 
             // 处理懒加载属性（data-src, data-original 等）
             try {
@@ -342,7 +530,7 @@ public class CrawlEngineServiceImpl implements CrawlEngineService {
                             // 使用 JavaScript 设置 src 属性来触发加载
                             try {
                                 img.evaluate("(element, newSrc) => { element.src = newSrc; }", dataSrc);
-                                page.waitForTimeout(500); // 等待图片加载
+                                page.waitForTimeout(1000); // 增加等待时间到1秒
                             } catch (Exception e) {
                                 log.debug("任务 {}: 设置懒加载图片 src 失败: {}", taskId, dataSrc);
                             }
