@@ -675,7 +675,7 @@ public class CrawlEngineServiceImpl implements CrawlEngineService {
         if (name == null || name.isEmpty()) {
             return "unknown";
         }
-        return name.replaceAll("[\\\\/:*?\"<>|%]", "_")
+        return name.replaceAll("[\\\\/:*?\"<>|\\[\\]%]", "_")
                    .replaceAll("\\s+", "_")
                    .trim();
     }
@@ -692,7 +692,7 @@ public class CrawlEngineServiceImpl implements CrawlEngineService {
         String baseName = dotIndex > 0 ? name.substring(0, dotIndex) : name;
         String ext = dotIndex > 0 ? name.substring(dotIndex) : "";
 
-        baseName = baseName.replaceAll("[\\\\/:*?\"<>|]", "_")
+        baseName = baseName.replaceAll("[\\\\/:*?\"<>|\\[\\]%]", "_")
                            .replaceAll("\\s+", "_")
                            .trim();
         if (baseName.length() > 100) {

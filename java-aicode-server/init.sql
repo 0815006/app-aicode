@@ -174,8 +174,6 @@ CREATE TABLE `parking_record` (
 
 /*Table structure for table `performance_resource_info` */
 
-DROP TABLE IF EXISTS `performance_resource_info`;
-
 CREATE TABLE `performance_resource_info` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `serial_number` int(11) DEFAULT NULL COMMENT '序号',
