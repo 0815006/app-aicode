@@ -71,3 +71,10 @@ app:
   crawl:
     image-base-path: "D:/data/aicode-v1/crawl/images/"
     video-base-path: "D:/data/aicode-v1/crawl/videos/"
+
+# 造数引擎
+meta:
+  storage:
+    preview: "D:/data/aicode-v1/meta/preview/"
+    formal: "D:/data/aicode-v1/meta/normal/"
+  template-path: "D:/data/aicode-v1/meta/templates/"

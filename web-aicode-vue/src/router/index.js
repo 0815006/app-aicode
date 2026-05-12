@@ -11,6 +11,7 @@ import XmindConverter from '@/views/XmindConverter.vue'
 import PerformanceTest from '@/views/PerformanceTest.vue'
 import TextComparison from '@/views/TextComparison.vue'
 import MediaCrawl from '@/views/MediaCrawl.vue'
+import MetaGen from '@/views/MetaGen.vue'
 
 Vue.use(Router)
 
@@ -74,6 +75,12 @@ export default new Router({
           name: 'MediaCrawl',
           component: MediaCrawl,
           meta: { title: '媒体抓取' }
+        },
+        {
+          path: 'meta-gen',
+          name: 'MetaGen',
+          component: MetaGen,
+          meta: { title: '造数引擎' }
         }
       ]
     }

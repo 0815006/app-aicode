@@ -1,0 +1,33 @@
+package com.bocfintech.allstar.service.impl;
+
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.bocfintech.allstar.entity.MetaEnumLibrary;
+import com.bocfintech.allstar.mapper.MetaEnumLibraryMapper;
+import com.bocfintech.allstar.service.MetaEnumLibraryService;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Service
+@Slf4j
+public class MetaEnumLibraryServiceImpl
+        extends ServiceImpl<MetaEnumLibraryMapper, MetaEnumLibrary>
+        implements MetaEnumLibraryService {
+
+    @Override
+    public List<MetaEnumLibrary> listAll() {
+        return lambdaQuery().orderByAsc(MetaEnumLibrary::getEnumKey).list();
+    }
+
+    @Override
+    public List<String> getAllKeys() {
+        List<MetaEnumLibrary> list = listAll();
+        List<String> keys = new ArrayList<>();
+        for (MetaEnumLibrary e : list) {
+            keys.add(e.getEnumKey());
+        }
+        return keys;
+    }
+}

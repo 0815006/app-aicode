@@ -6,7 +6,7 @@
     </div>
 
     <div class="header-container">
-      <div class="title">晚上一起打王者</div>
+      <div class="title">>>>>>>>点击右侧工号切换到自己工号>>>>>>></div>
       <div class="user-info">
         <span class="label">当前员工号：</span>
         <template v-if="!editing">

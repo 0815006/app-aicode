@@ -1,0 +1,13 @@
+package com.bocfintech.allstar.service;
+
+import com.baomidou.mybatisplus.extension.service.IService;
+import com.bocfintech.allstar.entity.MetaRefFile;
+
+import java.util.List;
+
+public interface MetaRefFileService extends IService<MetaRefFile> {
+
+    List<MetaRefFile> listAll();
+
+    MetaRefFile uploadAndSave(String refName, String filePath, String parseType, String delimiter, String columnMapping);
+}
