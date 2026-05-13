@@ -257,33 +257,61 @@ public class MetaManagerController {
             response.setHeader("Content-Disposition",
                     "attachment; filename=\"" + URLEncoder.encode("通用字段模板.xlsx", "UTF-8") + "\"");
 
-            // 表头：与上传解析格式一致
+            // 表头：与上传解析格式一致（rule_config_json 作为第6列）
             List<List<String>> head = new ArrayList<>();
             head.add(Collections.singletonList("字段英文名"));
             head.add(Collections.singletonList("字段描述"));
             head.add(Collections.singletonList("长度(字节)"));
             head.add(Collections.singletonList("是否必填"));
             head.add(Collections.singletonList("规则类型"));
-            head.add(Collections.singletonList("配置内容"));
+            head.add(Collections.singletonList("规则配置JSON"));
             head.add(Collections.singletonList("说明"));
 
-            // 数据行：涵盖所有规则类型（14种），配满示例配置
+            // 数据行：14种规则类型，第6列直接写完整的 rule_config_json
             List<List<String>> data = new ArrayList<>();
 
-            data.add(Arrays.asList("fixField", "固定值示例", "10", "是", "固定值", "HELLO", "直接填写固定文本内容，生成恒定不变的值"));
-            data.add(Arrays.asList("dateField", "日期示例", "8", "是", "日期", "yyyyMMdd", "按指定格式生成当前日期；格式支持：yyyyMMdd/yyyyMMddHHmmss/yyMMdd/MMdd/HHmmss，offset=0表示当天"));
-            data.add(Arrays.asList("enumField", "枚举示例", "2", "否", "枚举", "gender", "填写枚举库中已定义的枚举Key，每次从枚举值列表中随机选取一个"));
-            data.add(Arrays.asList("bodySeqNo", "序列号示例", "12", "是", "序列号", "前缀=S,位数=11,起始=1,步长=1,策略=PER_LINE", "带前缀S的12位定长序列号，每行+1，支持循环；前缀+数字位总长需≤字段长度"));
-            data.add(Arrays.asList("randCnField", "随机汉字示例", "6", "否", "随机汉字", "count=3", "随机生成指定个数的汉字，count控制汉字数量"));
-            data.add(Arrays.asList("randNumField", "随机数字示例", "10", "否", "随机数字", "count=5", "随机生成指定个数的数字，count控制数字位数"));
-            data.add(Arrays.asList("randUuidField", "随机UUID示例", "36", "否", "随机UUID", "upperCase=true", "随机生成UUID字符串，可通过upperCase控制是否大写"));
-            data.add(Arrays.asList("refFileField", "引用文件示例", "20", "否", "引用文件", "refFileId=10,columnKey=userName", "从素材文件中按行引用指定列的数据，updateStrategy=PER_LINE每行取下一行，atEnd=LOOP到头循环"));
-            data.add(Arrays.asList("refFieldField", "引用字段示例", "10", "否", "引用字段", "fixField", "引用同一报文前面已定义的字段值，targetFieldKey填目标字段的英文名"));
-            data.add(Arrays.asList("headTotalSum", "汇总金额示例", "18", "否", "汇总金额", "targetFieldKey=tran_amt,format=9(14)V99", "仅文件头/文件尾使用；引擎先处理Body累加金额，最后回写Header/Footer缓冲区；format指定格式"));
-            data.add(Arrays.asList("headTotalCount", "统计行数示例", "6", "否", "统计行数", "targetFieldKey=body_row", "仅文件头/文件尾使用；自动统计Body数据总行数，值为最终生成行数"));
-            data.add(Arrays.asList("batchNoField", "批次号示例", "8", "是", "批次号", "前缀=B,起始=1,策略=PER_FILE", "全局批次号，每个文件只递增一次（PER_FILE）；与序列号不同，序列号每行递增（PER_LINE）"));
-            data.add(Arrays.asList("tranAmt", "金额示例", "17", "是", "金额", "1234567890123.45", "按金融金额格式生成；自动解析整数位和小数位数，支持format如9(14)V99控制格式"));
-            data.add(Arrays.asList("exprField", "表达式示例", "35", "否", "表达式", "PROJ_${dateField}_${batchNo}", "使用${变量名}语法拼接已有字段生成复合值；常用于动态文件名、报文ID等场景"));
+            data.add(Arrays.asList("fixField", "固定值示例", "10", "是", "固定值",
+                    "{\"value\": \"HELLO\"}",
+                    "固定输出不变的字符串；value=固定文本内容，长度不得超过字段定义的length"));
+            data.add(Arrays.asList("dateField", "日期示例", "8", "是", "日期",
+                    "{\"format\": \"yyyyMMdd\", \"offset\": 0}",
+                    "按指定格式生成当前日期；format支持yyyyMMdd/yyyyMMddHHmmss/HHmmss等；offset=天数偏移(0=今天,-1=昨天)"));
+            data.add(Arrays.asList("enumField", "枚举示例", "2", "否", "枚举",
+                    "{\"enumKey\": \"gender\", \"useDefault\": \"0\"}",
+                    "从枚举库中随机取一个值；enumKey=枚举库已定义的Key；useDefault=枚举库为空时的默认值"));
+            data.add(Arrays.asList("bodySeqNo", "序列号示例", "12", "是", "序列号",
+                    "{\"prefix\": \"S\", \"start\": 1, \"max\": 99999999999, \"cycle\": true, \"step\": 1, \"updateStrategy\": \"PER_LINE\", \"digitLength\": 11}",
+                    "带前缀S的12位定长序列号(前缀1位+数字11位)；prefix=前缀；digitLength=数字位数(左补零)；前缀长度+digitLength须等于length"));
+            data.add(Arrays.asList("randCnField", "随机汉字示例", "9", "否", "随机汉字",
+                    "{\"count\": 3}",
+                    "随机生成指定个数的汉字；count=汉字数量(每个汉字占3字节UTF-8)"));
+            data.add(Arrays.asList("randNumField", "随机数字示例", "10", "否", "随机数字",
+                    "{\"count\": 5}",
+                    "随机生成指定位数的数字字符串；count=数字位数"));
+            data.add(Arrays.asList("randUuidField", "随机UUID示例", "32", "否", "随机UUID",
+                    "{\"upperCase\": true}",
+                    "随机生成32位UUID(不含横杠)；upperCase=true大写/false小写"));
+            data.add(Arrays.asList("refFileField", "引用文件示例", "20", "否", "引用文件",
+                    "{\"refFileId\": 10, \"columnKey\": \"userName\", \"updateStrategy\": \"PER_LINE\", \"atEnd\": \"LOOP\"}",
+                    "从素材文件按行引用数据；refFileId=素材文件ID；columnKey=引用的列名；atEnd=LOOP循环/STOP耗尽停止"));
+            data.add(Arrays.asList("refFieldField", "引用字段示例", "10", "否", "引用字段",
+                    "{\"targetFieldKey\": \"fixField\"}",
+                    "引用同报文前面已定义的字段值；targetFieldKey=目标字段英文名(只能引用当前字段前面的字段)"));
+            data.add(Arrays.asList("headTotalSum", "汇总金额示例", "16", "否", "汇总金额",
+                    "{\"targetFieldKey\": \"tran_amt\", \"format\": \"9(14)V99\"}",
+                    "仅文件头/文件尾可用；引擎先处理Body累加后回写；format=9(N)V99表示N位整数+2位隐式小数"));
+            data.add(Arrays.asList("headTotalCount", "统计行数示例", "8", "否", "统计行数",
+                    "{\"targetFieldKey\": \"body_row\"}",
+                    "仅文件头/文件尾可用；自动累计Body数据总行数；targetFieldKey=Body中任意字段名(用于定位Body段)"));
+            data.add(Arrays.asList("batchNoField", "批次号示例", "10", "是", "批次号",
+                    "{\"prefix\": \"B\", \"start\": 1, \"updateStrategy\": \"PER_FILE\"}",
+                    "全局批次号，每生成一个文件递增一次(PER_FILE)；与序列号不同，序列号每行递增(PER_LINE)"));
+            data.add(Arrays.asList("tranAmt", "金额示例", "16", "是", "金额",
+                    "{\"value\": 123.45, \"format\": \"9(14)V99\"}",
+                    "按金融报文标准格式生成金额；format=9(N)V99隐式小数/9(N).99显式小数；value仅为示例参考值"));
+            data.add(Arrays.asList("exprField", "表达式示例", "35", "否", "表达式",
+                    "{\"pattern\": \"PROJ_${dateField}_${batchNo}\", \"desc\": \"动态文件名\"}",
+                    "使用${变量名}拼接已有字段；pattern=拼接模板；变量名须与前面字段的fieldKey一致"));
 
             EasyExcel.write(response.getOutputStream())
                     .head(head)
@@ -380,45 +408,56 @@ public class MetaManagerController {
         String empNo = getEmpNo(token);
         try {
             List<Map<String, Object>> result = new ArrayList<>();
-            // 使用 EasyExcel 读取
+            // 使用 EasyExcel 读取原始行（不指定 Model，返回 List<LinkedHashMap<Integer,String>>）
+            // headRowNumber(0) 表示不跳过任何行，所有行均作为数据行读取
             File tempFile = File.createTempFile("field_template_", ".xlsx");
             file.transferTo(tempFile);
-            List<List<String>> rows = EasyExcel.read(tempFile).sheet(0).doReadSync();
-            if (rows.size() > 1) {
-                // 第一行是表头，从第二行开始
-                for (int i = 1; i < rows.size(); i++) {
-                    List<String> row = rows.get(i);
+            @SuppressWarnings("unchecked")
+            List<java.util.LinkedHashMap<Integer, String>> rawRows =
+                (List<java.util.LinkedHashMap<Integer, String>>) (List<?>)
+                EasyExcel.read(tempFile).sheet(0).headRowNumber(0).doReadSync();
+
+            if (rawRows.size() > 1) {
+                // 第一行（index=0）是表头，从第二行（index=1）开始读取数据
+                for (int i = 1; i < rawRows.size(); i++) {
+                    java.util.LinkedHashMap<Integer, String> row = rawRows.get(i);
                     if (row == null || row.isEmpty()) continue;
+
+                    // 辅助方法：按列索引取值，不存在或为 null 则返回 ""
                     Map<String, Object> field = new LinkedHashMap<>();
                     field.put("sortIndex", (i - 1) * 10);
                     field.put("level", 1);
                     // 列0: 字段英文名
-                    field.put("fieldKey", row.size() > 0 ? nvl(row.get(0), "") : "");
+                    field.put("fieldKey", nvl(row.get(0), ""));
                     // 列1: 字段描述
-                    field.put("fieldName", row.size() > 1 ? nvl(row.get(1), "") : "");
+                    field.put("fieldName", nvl(row.get(1), ""));
                     // 列2: 长度(字节)
                     Integer length = null;
-                    if (row.size() > 2 && !isEmpty(row.get(2))) {
-                        try { length = Integer.parseInt(row.get(2).trim()); } catch (NumberFormatException ignored) {}
+                    String lenStr = row.get(2);
+                    if (!isEmpty(lenStr)) {
+                        try { length = Integer.parseInt(lenStr.trim()); } catch (NumberFormatException ignored) {}
                     }
                     field.put("length", length);
                     // 列3: 是否必填
                     Integer isRequired = 0;
-                    if (row.size() > 3 && !isEmpty(row.get(3))) {
-                        String val = row.get(3).trim();
+                    String reqStr = row.get(3);
+                    if (!isEmpty(reqStr)) {
+                        String val = reqStr.trim();
                         if ("1".equals(val) || "是".equals(val) || "必填".equals(val) || "true".equalsIgnoreCase(val)) {
                             isRequired = 1;
                         }
                     }
                     field.put("isRequired", isRequired);
                     // 列4: 规则类型 - 支持中文映射
-                    String rawRuleType = row.size() > 4 ? nvl(row.get(4), "").trim() : "";
+                    String rawRuleType = nvl(row.get(4), "").trim();
                     String ruleType = mapRuleType(rawRuleType);
                     field.put("ruleType", ruleType);
-                    // 列5: 配置内容
-                    field.put("configValue", row.size() > 5 ? nvl(row.get(5), "") : "");
+                    // 列5: 规则配置JSON（直接读取，兼容旧格式自动转换为标准JSON）
+                    String rawConfigCol = nvl(row.get(5), "");
+                    String ruleConfigJson = tryBuildRuleConfigJson(ruleType, rawConfigCol);
+                    field.put("ruleConfigJson", ruleConfigJson);
                     // 列6: 说明
-                    field.put("remark", row.size() > 6 ? nvl(row.get(6), "") : "");
+                    field.put("remark", nvl(row.get(6), ""));
 
                     result.add(field);
                 }
@@ -456,14 +495,14 @@ public class MetaManagerController {
             response.setHeader("Content-Disposition",
                     "attachment; filename=\"" + URLEncoder.encode(fileName, "UTF-8") + "\"");
 
-            // 表头
+            // 表头：第6列直接输出 rule_config_json 完整 JSON 串
             List<List<String>> head = new ArrayList<>();
             head.add(Collections.singletonList("字段英文名"));
             head.add(Collections.singletonList("字段描述"));
             head.add(Collections.singletonList("长度(字节)"));
             head.add(Collections.singletonList("是否必填"));
             head.add(Collections.singletonList("规则类型"));
-            head.add(Collections.singletonList("配置内容"));
+            head.add(Collections.singletonList("规则配置JSON"));
             head.add(Collections.singletonList("说明"));
 
             List<List<String>> data = new ArrayList<>();
@@ -480,14 +519,12 @@ public class MetaManagerController {
                     // 是否必填
                     Object isRequired = f.get("isRequired");
                     row.add(isRequired != null && (Integer.valueOf(String.valueOf(isRequired)) == 1) ? "是" : "否");
-                    // 规则类型 → 中文
+                    // 规则类型 → 中文（保持可读性）
                     String ruleType = nvl((String) f.get("ruleType"), "");
                     row.add(ruleTypeToChinese(ruleType));
-                    // 配置内容 → 提取用户可读的配置
+                    // 规则配置JSON → 直接写入 ruleConfigJson 原始 JSON 串
                     String configJson = nvl((String) f.get("ruleConfigJson"), "");
-                    Object configValue = f.get("configValue");
-                    String configDisplay = configValue != null ? String.valueOf(configValue) : extractConfigDisplay(ruleType, configJson);
-                    row.add(configDisplay);
+                    row.add(configJson);
                     // 说明
                     row.add(nvl((String) f.get("remark"), ""));
 
@@ -609,6 +646,156 @@ public class MetaManagerController {
             case "随机值": return "RANDOM_NUM";
             default: return chineseType.toUpperCase();
         }
+    }
+
+    /**
+     * 尝试将 Excel 第6列解析为标准 rule_config_json 字符串。
+     * 优先按新格式（合法 JSON 串）处理；若不是 JSON，则按旧格式（key=value 逗号分隔）兼容转换；
+     * 若两者均无法匹配，则填入对应规则类型的默认模板 JSON。
+     */
+    private String tryBuildRuleConfigJson(String ruleType, String rawValue) {
+        if (rawValue == null || rawValue.trim().isEmpty()) {
+            return buildDefaultRuleConfigJson(ruleType);
+        }
+        String trimmed = rawValue.trim();
+        // 先尝试作为合法 JSON 解析
+        if (trimmed.startsWith("{")) {
+            try {
+                com.alibaba.fastjson.JSONObject.parseObject(trimmed);
+                return trimmed; // 合法 JSON，直接返回
+            } catch (Exception ignored) { /* 解析失败，继续兼容转换 */ }
+        }
+        // 旧格式兼容转换
+        com.alibaba.fastjson.JSONObject obj = new com.alibaba.fastjson.JSONObject();
+        try {
+            switch (ruleType) {
+                case "FIXED":
+                    obj.put("value", trimmed);
+                    break;
+                case "DATE":
+                    obj.put("format", trimmed);
+                    obj.put("offset", 0);
+                    break;
+                case "ENUM":
+                    obj.put("enumKey", trimmed);
+                    obj.put("useDefault", "0");
+                    break;
+                case "SEQUENCE": {
+                    // 旧格式：前缀=S,位数=11,起始=1,步长=1,策略=PER_LINE
+                    String prefix = ""; int start = 1; int step = 1; int digitLen = 9; String strategy = "PER_LINE";
+                    for (String part : trimmed.split(",")) {
+                        String[] kv = part.trim().split("=", 2);
+                        if (kv.length == 2) {
+                            switch (kv[0].trim()) {
+                                case "前缀": prefix = kv[1].trim(); break;
+                                case "位数": digitLen = parseInt(kv[1].trim(), 9); break;
+                                case "起始": start = parseInt(kv[1].trim(), 1); break;
+                                case "步长": step = parseInt(kv[1].trim(), 1); break;
+                                case "策略": strategy = kv[1].trim(); break;
+                            }
+                        }
+                    }
+                    obj.put("prefix", prefix); obj.put("start", start); obj.put("step", step);
+                    obj.put("max", 9999999999L); obj.put("cycle", true);
+                    obj.put("digitLength", digitLen); obj.put("updateStrategy", strategy);
+                    break;
+                }
+                case "RANDOM_CN":
+                case "RANDOM_NUM": {
+                    int count = 3;
+                    if (trimmed.contains("count=")) count = parseInt(trimmed.replaceAll(".*count=(\\d+).*", "$1"), 3);
+                    else count = parseInt(trimmed, 3);
+                    obj.put("count", count);
+                    break;
+                }
+                case "RANDOM_UUID":
+                    obj.put("upperCase", trimmed.toLowerCase().contains("true"));
+                    break;
+                case "REF_FILE": {
+                    String refFileId = ""; String columnKey = "";
+                    for (String part : trimmed.split(",")) {
+                        String[] kv = part.trim().split("=", 2);
+                        if (kv.length == 2) {
+                            if ("refFileId".equals(kv[0].trim())) refFileId = kv[1].trim();
+                            else if ("columnKey".equals(kv[0].trim())) columnKey = kv[1].trim();
+                        }
+                    }
+                    obj.put("refFileId", refFileId.isEmpty() ? null : parseInt(refFileId, 0));
+                    obj.put("columnKey", columnKey); obj.put("updateStrategy", "PER_LINE"); obj.put("atEnd", "LOOP");
+                    break;
+                }
+                case "REF_FIELD":
+                    obj.put("targetFieldKey", trimmed);
+                    break;
+                case "SUM": {
+                    String targetKey = ""; String format = "9(14)V99";
+                    for (String part : trimmed.split(",")) {
+                        String[] kv = part.trim().split("=", 2);
+                        if (kv.length == 2) {
+                            if ("targetFieldKey".equals(kv[0].trim())) targetKey = kv[1].trim();
+                            else if ("format".equals(kv[0].trim())) format = kv[1].trim();
+                        }
+                    }
+                    obj.put("targetFieldKey", targetKey); obj.put("format", format);
+                    break;
+                }
+                case "COUNT": {
+                    String targetKey2 = trimmed.contains("targetFieldKey=") ?
+                            trimmed.replaceAll(".*targetFieldKey=([^,]+).*", "$1").trim() : trimmed;
+                    obj.put("targetFieldKey", targetKey2);
+                    break;
+                }
+                case "BATCH_NO": {
+                    String prefix2 = "B"; int start2 = 1;
+                    for (String part : trimmed.split(",")) {
+                        String[] kv = part.trim().split("=", 2);
+                        if (kv.length == 2) {
+                            if ("前缀".equals(kv[0].trim())) prefix2 = kv[1].trim();
+                            else if ("起始".equals(kv[0].trim())) start2 = parseInt(kv[1].trim(), 1);
+                        }
+                    }
+                    obj.put("prefix", prefix2); obj.put("start", start2); obj.put("updateStrategy", "PER_FILE");
+                    break;
+                }
+                case "AMOUNT":
+                    obj.put("value", 123.45);
+                    obj.put("format", trimmed.contains("(") ? trimmed : "9(14)V99");
+                    break;
+                case "EXPR":
+                    obj.put("pattern", trimmed);
+                    break;
+                default:
+                    return buildDefaultRuleConfigJson(ruleType);
+            }
+        } catch (Exception e) {
+            return buildDefaultRuleConfigJson(ruleType);
+        }
+        return obj.toJSONString();
+    }
+
+    private String buildDefaultRuleConfigJson(String ruleType) {
+        if (ruleType == null) return "{}";
+        switch (ruleType) {
+            case "FIXED":    return "{\"value\": \"\"}";
+            case "DATE":     return "{\"format\": \"yyyyMMdd\", \"offset\": 0}";
+            case "ENUM":     return "{\"enumKey\": \"\", \"useDefault\": \"0\"}";
+            case "SEQUENCE": return "{\"prefix\": \"\", \"start\": 1, \"max\": 9999999999, \"cycle\": true, \"step\": 1, \"updateStrategy\": \"PER_LINE\", \"digitLength\": 9}";
+            case "RANDOM_CN":
+            case "RANDOM_NUM": return "{\"count\": 3}";
+            case "RANDOM_UUID": return "{\"upperCase\": true}";
+            case "REF_FILE": return "{\"refFileId\": null, \"columnKey\": \"\", \"updateStrategy\": \"PER_LINE\", \"atEnd\": \"LOOP\"}";
+            case "REF_FIELD": return "{\"targetFieldKey\": \"\"}";
+            case "SUM":      return "{\"targetFieldKey\": \"\", \"format\": \"9(14)V99\"}";
+            case "COUNT":    return "{\"targetFieldKey\": \"\"}";
+            case "BATCH_NO": return "{\"prefix\": \"B\", \"start\": 1, \"updateStrategy\": \"PER_FILE\"}";
+            case "AMOUNT":   return "{\"value\": 123.45, \"format\": \"9(14)V99\"}";
+            case "EXPR":     return "{\"pattern\": \"\"}";
+            default:         return "{}";
+        }
+    }
+
+    private int parseInt(String s, int defaultVal) {
+        try { return Integer.parseInt(s.trim()); } catch (Exception e) { return defaultVal; }
     }
 
     private String nvl(String val, String defaultVal) {
