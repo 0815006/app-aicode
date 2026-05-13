@@ -868,7 +868,7 @@ export default {
       }
       this.loading = true
       try {
-        await saveFields(this.modelId, this.list)
+        await saveFields(this.modelId, this.list, this.section)
         this.$message.success('字段保存成功')
         this.visible = false
         this.$emit('refresh')

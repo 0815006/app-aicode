@@ -1,6 +1,6 @@
 <template>
   <el-dialog title="枚举库管理" :visible.sync="visible" width="700px" append-to-body @close="handleClose">
-    <div style="margin-bottom: 12px">
+    <div style="margin-bottom: 12px; text-align: right">
       <el-button type="primary" size="small" icon="el-icon-plus" @click="handleAdd">新增枚举</el-button>
     </div>
     <el-table :data="enumList" border size="small" v-loading="loading">
@@ -83,7 +83,11 @@ export default {
     },
     handleAdd() {
       this.editForm = {}
-      this.editItems = [{ val: '', desc: '' }]
+      // 默认枚举项示例
+      this.editItems = [
+        { val: '0', desc: '男' },
+        { val: '1', desc: '女' }
+      ]
       this.innerVisible = true
     },
     handleEdit(row) {

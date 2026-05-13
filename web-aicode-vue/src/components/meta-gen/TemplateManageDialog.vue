@@ -1,5 +1,5 @@
 <template>
-  <el-dialog title="模板文件维护" :visible.sync="visible" width="600px" append-to-body>
+  <el-dialog title="模板文件维护" :visible.sync="visible" width="700px" append-to-body>
     <div class="template-manage-container">
       <div class="upload-section">
         <el-upload

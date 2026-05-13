@@ -25,15 +25,23 @@ public class MetaFieldDefinitionServiceImpl
 
     @Override
     public void batchSave(Long modelId, List<MetaFieldDefinition> fields) {
-        // 删除旧字段
+        // 空列表直接返回，不做任何操作
+        if (fields == null || fields.isEmpty()) return;
+        
+        // 获取要保存的 section（从第一个字段获取）
+        String section = fields.get(0).getSection();
+        if (section == null || section.isEmpty()) return;
+        
+        // 只删除指定 modelId 和 section 的旧字段
         lambdaUpdate()
                 .eq(MetaFieldDefinition::getModelId, modelId)
+                .eq(MetaFieldDefinition::getSection, section)
                 .remove();
-        if (fields == null || fields.isEmpty()) return;
+        
         // 重新设置 modelId 和 sort_index（按前端传入的顺序重排 sortIndex）
         for (int i = 0; i < fields.size(); i++) {
             fields.get(i).setModelId(modelId);
-            fields.get(i).setSortIndex(i);
+            fields.get(i).setSortIndex((i + 1) * 10);
         }
         saveBatch(fields);
     }

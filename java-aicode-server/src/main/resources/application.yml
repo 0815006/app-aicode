@@ -78,3 +78,4 @@ meta:
     preview: "D:/data/aicode-v1/meta/preview/"
     formal: "D:/data/aicode-v1/meta/normal/"
   template-path: "D:/data/aicode-v1/meta/templates/"
+  ref-file-path: "D:/data/aicode-v1/meta/ref-files/"

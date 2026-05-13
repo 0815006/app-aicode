@@ -45,6 +45,9 @@ public class MetaManagerController {
     @Value("${meta.template-path}")
     private String templatePath;
 
+    @Value("${meta.ref-file-path}")
+    private String refFilePath;
+
     // ===================== 模型管理 =====================
 
     @GetMapping("/models")
@@ -134,13 +137,21 @@ public class MetaManagerController {
 
     @PostMapping("/models/{modelId}/fields")
     public ResultBean<String> saveFields(@PathVariable Long modelId, @RequestBody List<MetaFieldDefinition> fields,
-                                          @RequestHeader(value = "token", required = false) String token) {
+                                           @RequestParam(value = "section", required = false) String section,
+                                           @RequestHeader(value = "token", required = false) String token) {
         String empNo = getEmpNo(token);
         // 校验模型归属
         MetaFileModel model = modelService.getById(modelId);
         if (model == null) return ResultBean.error("模型不存在");
         if ("PUBLISHED".equals(model.getStatus())) return ResultBean.error("已发布模型请先退回草稿");
 
+        // 如果前端传递了 section 参数，确保每个字段都有正确的 section 值
+        if (section != null && !section.isEmpty() && fields != null) {
+            for (MetaFieldDefinition field : fields) {
+                field.setSection(section);
+            }
+        }
+        
         fieldService.batchSave(modelId, fields);
         return ResultBean.success("保存成功");
     }
@@ -200,11 +211,11 @@ public class MetaManagerController {
 
     @PostMapping("/resources/upload")
     public ResultBean<MetaRefFile> uploadRefFile(@RequestParam("file") MultipartFile file,
-                                                   @RequestParam("refName") String refName,
-                                                   @RequestHeader(value = "token", required = false) String token) {
+                                                    @RequestParam("refName") String refName,
+                                                    @RequestHeader(value = "token", required = false) String token) {
         String empNo = getEmpNo(token);
         try {
-            File dir = new File(templatePath);
+            File dir = new File(refFilePath);
             dir.mkdirs();
             String fileName = UUID.randomUUID().toString().substring(0, 8) + "_" + file.getOriginalFilename();
             File dest = new File(dir, fileName);
@@ -223,6 +234,27 @@ public class MetaManagerController {
         String empNo = getEmpNo(token);
         refFileService.saveOrUpdate(refFile);
         return ResultBean.success("保存成功");
+    }
+
+    @DeleteMapping("/resources/{id}")
+    public ResultBean<String> deleteRefFile(@PathVariable Long id,
+                                             @RequestHeader(value = "token", required = false) String token) {
+        String empNo = getEmpNo(token);
+        boolean success = refFileService.deleteRefFile(id);
+        if (success) {
+            return ResultBean.success("删除成功");
+        } else {
+            return ResultBean.error("删除失败，文件不存在");
+        }
+    }
+
+    @GetMapping("/resources/{id}/preview")
+    public ResultBean<List<String>> previewRefFile(@PathVariable Long id,
+                                                    @RequestParam(defaultValue = "5") int lineCount,
+                                                    @RequestHeader(value = "token", required = false) String token) {
+        String empNo = getEmpNo(token);
+        List<String> lines = refFileService.previewRefFile(id, lineCount);
+        return ResultBean.success(lines);
     }
 
     // ===================== 模板管理 =====================

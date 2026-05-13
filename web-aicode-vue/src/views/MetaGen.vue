@@ -8,21 +8,23 @@
             <h3>📋 造数模型</h3>
             <div class="sidebar-header-btns">
               <el-button
-                type="text"
+                type="primary"
                 size="mini"
                 icon="el-icon-collection-tag"
+                circle
                 title="枚举库管理"
                 @click="showEnumDialog = true"
               ></el-button>
               <el-button
-                type="text"
+                type="primary"
                 size="mini"
                 icon="el-icon-folder-opened"
+                circle
                 title="引用文件管理"
                 @click="showRefFileDialog = true"
               ></el-button>
               <el-button
-                type="info"
+                type="primary"
                 size="mini"
                 icon="el-icon-setting"
                 circle
@@ -98,35 +100,6 @@
             </el-descriptions>
           </el-card>
 
-          <!-- 区块字段定义卡片：文件名 / 文件头 / 文件体 / 文件尾 -->
-          <el-card v-for="sec in visibleSections" :key="sec.key" class="info-block" shadow="hover">
-            <div slot="header" class="card-header">
-              <span class="block-title"><i :class="sec.icon"></i> {{ sec.label }}</span>
-              <el-button type="primary" size="mini" icon="el-icon-edit" @click="openFieldEdit(sec.key)">编辑</el-button>
-            </div>
-            <el-table :data="getSectionFields(sec.key)" border stripe size="small" v-if="getSectionFields(sec.key).length > 0">
-              <el-table-column label="序号" width="70">
-                <template slot-scope="scope">
-                  <span style="font-family:monospace;color:#909399">{{ computeSortOrder(scope.$index, sec.key) }}</span>
-                </template>
-              </el-table-column>
-              <el-table-column prop="fieldKey" label="变量名 (Key)" min-width="120" show-overflow-tooltip></el-table-column>
-              <el-table-column prop="fieldName" label="字段描述" min-width="100" show-overflow-tooltip></el-table-column>
-              <el-table-column prop="ruleType" label="规则类型" width="110">
-                <template slot-scope="scope">
-                  <el-tag size="mini" type="info">{{ scope.row.ruleType }}</el-tag>
-                </template>
-              </el-table-column>
-              <el-table-column label="长度(B)" width="80">
-                <template slot-scope="scope">{{ scope.row.length || '-' }}</template>
-              </el-table-column>
-              <el-table-column label="补齐" width="60">
-                <template slot-scope="scope">{{ scope.row.paddingDirection !== 'NONE' ? scope.row.paddingDirection : '-' }}</template>
-              </el-table-column>
-            </el-table>
-            <div v-else style="color:#909399;font-size:12px;text-align:center;padding:16px">暂无字段定义，点击"编辑"添加</div>
-          </el-card>
-
           <!-- 实时预览区块 -->
           <el-card class="info-block preview-block" shadow="hover">
             <div slot="header" class="card-header">
@@ -137,6 +110,40 @@
               <span v-for="i in rulerMarks" :key="i" class="ruler-mark" :style="{ left: i * 8 + 'px' }">{{ i * 10 }}</span>
             </div>
             <pre class="preview-box" :class="{ empty: !previewText }">{{ previewText || '点击"刷新预览"查看生成效果（3行Body）' }}</pre>
+          </el-card>
+
+          <!-- 区块字段定义卡片：文件名 / 文件头 / 文件体 / 文件尾 -->
+          <el-card v-for="sec in visibleSections" :key="sec.key" class="info-block" shadow="hover">
+            <div slot="header" class="card-header">
+              <span class="block-title"><i :class="sec.icon"></i> {{ sec.label }}</span>
+              <el-button type="primary" size="mini" icon="el-icon-edit" @click="openFieldEdit(sec.key)">编辑</el-button>
+            </div>
+            <el-table :data="getSectionFields(sec.key)" border stripe size="small" v-if="getSectionFields(sec.key).length > 0">
+              <el-table-column label="序号" width="60" align="center">
+                <template slot-scope="scope">
+                  <span style="font-family:monospace;color:#909399">{{ computeSortOrder(scope.$index, sec.key) }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column prop="fieldKey" label="变量名" min-width="110" show-overflow-tooltip></el-table-column>
+              <el-table-column prop="fieldName" label="字段描述" min-width="100" show-overflow-tooltip></el-table-column>
+              <el-table-column prop="ruleType" label="规则类型" width="100">
+                <template slot-scope="scope">
+                  <el-tag size="mini" type="info">{{ ruleTypeToChinese(scope.row.ruleType) }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="规则配置JSON" min-width="200" show-overflow-tooltip>
+                <template slot-scope="scope">
+                  <span style="font-family:monospace;font-size:11px;color:#606266">{{ scope.row.ruleConfigJson || '-' }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="长度(B)" width="70" align="center">
+                <template slot-scope="scope">{{ scope.row.length || '-' }}</template>
+              </el-table-column>
+              <el-table-column label="补齐" width="60" align="center">
+                <template slot-scope="scope">{{ scope.row.paddingDirection !== 'NONE' ? scope.row.paddingDirection : '-' }}</template>
+              </el-table-column>
+            </el-table>
+            <div v-else style="color:#909399;font-size:12px;text-align:center;padding:16px">暂无字段定义，点击"编辑"添加</div>
           </el-card>
 
           <!-- 生成历史 -->
@@ -435,6 +442,28 @@ export default {
     loadResources() {
       getEnumKeys().then(res => { this.enumKeys = res.data || [] })
       listRefFiles().then(res => { this.refFiles = res.data || [] })
+    },
+
+    // ========== 工具方法 ==========
+    ruleTypeToChinese(ruleType) {
+      if (!ruleType) return '-'
+      const map = {
+        'FIXED': '固定值',
+        'DATE': '日期',
+        'ENUM': '枚举',
+        'SEQUENCE': '序列号',
+        'RANDOM_CN': '随机汉字',
+        'RANDOM_NUM': '随机数字',
+        'RANDOM_UUID': '随机UUID',
+        'REF_FILE': '引用文件',
+        'REF_FIELD': '引用字段',
+        'SUM': '汇总金额',
+        'COUNT': '统计行数',
+        'BATCH_NO': '批次号',
+        'AMOUNT': '金额',
+        'EXPR': '表达式'
+      }
+      return map[ruleType] || ruleType
     }
   }
 }

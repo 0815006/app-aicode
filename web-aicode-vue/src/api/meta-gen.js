@@ -35,8 +35,13 @@ export function shareModel(id, data) {
 
 // ===================== 字段管理 =====================
 
-export function saveFields(modelId, data) {
-  return request({ url: `${BASE}/models/${modelId}/fields`, method: 'post', data })
+export function saveFields(modelId, data, section) {
+  return request({
+    url: `${BASE}/models/${modelId}/fields`,
+    method: 'post',
+    data,
+    params: section ? { section } : undefined
+  })
 }
 
 export function validateFields(data) {
@@ -82,6 +87,14 @@ export function uploadRefFile(formData) {
 
 export function defineRefFile(data) {
   return request({ url: `${BASE}/resources/define`, method: 'post', data })
+}
+
+export function deleteRefFile(id) {
+  return request({ url: `${BASE}/resources/${id}`, method: 'delete' })
+}
+
+export function previewRefFile(id, lineCount = 5) {
+  return request({ url: `${BASE}/resources/${id}/preview`, method: 'get', params: { lineCount } })
 }
 
 // ===================== 模板与导入 =====================
