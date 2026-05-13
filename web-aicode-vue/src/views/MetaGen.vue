@@ -364,6 +364,8 @@ export default {
           this.$message.success('已退回草稿')
           this.refreshDetail()
           this.loadModels()
+        }).catch(err => {
+          this.$message.error('退回草稿失败: ' + (err.message || '未知错误'))
         })
       }).catch(() => {})
     },
@@ -386,7 +388,15 @@ export default {
     handlePreview() {
       this.previewLoading = true
       preview(this.activeModelId).then(res => {
-        this.previewText = res.data || ''
+        if (res.code === 200) {
+          this.previewText = res.data || ''
+        } else {
+          this.$alert(res.message || '预览失败', '错误', { type: 'error' })
+          this.previewText = '预览失败: ' + (res.message || '未知错误')
+        }
+      }).catch(err => {
+        this.$alert(err.message || '预览请求失败', '错误', { type: 'error' })
+        this.previewText = '预览请求失败: ' + (err.message || '未知错误')
       }).finally(() => { this.previewLoading = false })
     },
 
@@ -398,23 +408,29 @@ export default {
       }
       this.genLoading = true
       generate({ modelId: this.activeModelId, rowCount: this.genRowCount, batchName: this.genBatchName }).then(res => {
-        this.$message.success('生成任务已提交')
-        this.showGenDialog = false
-        this.loadHistory()
-        const taskId = res.data && res.data.id
-        if (taskId) {
-          const timer = setInterval(() => {
-            getTaskStatus(taskId).then(r => {
-              const record = r.data
-              if (record && record.status !== 'RUNNING') {
-                clearInterval(timer)
-                this.loadHistory()
-                if (record.status === 'SUCCESS') this.$message.success('文件生成完成')
-                else this.$message.error('文件生成失败: ' + (record.errorMsg || ''))
-              }
-            }).catch(() => { clearInterval(timer) })
-          }, 2000)
+        if (res.code === 200) {
+          this.$message.success('生成任务已提交')
+          this.showGenDialog = false
+          this.loadHistory()
+          const taskId = res.data && res.data.id
+          if (taskId) {
+            const timer = setInterval(() => {
+              getTaskStatus(taskId).then(r => {
+                const record = r.data
+                if (record && record.status !== 'RUNNING') {
+                  clearInterval(timer)
+                  this.loadHistory()
+                  if (record.status === 'SUCCESS') this.$message.success('文件生成完成')
+                  else this.$message.error('文件生成失败: ' + (record.errorMsg || ''))
+                }
+              }).catch(() => { clearInterval(timer) })
+            }, 2000)
+          }
+        } else {
+          this.$alert(res.message || '提交生成任务失败', '错误', { type: 'error' })
         }
+      }).catch(err => {
+        this.$alert(err.message || '请求生成失败', '错误', { type: 'error' })
       }).finally(() => { this.genLoading = false })
     },
 
@@ -427,7 +443,7 @@ export default {
       }).finally(() => { this.historyLoading = false })
     },
     handleDownload(row) {
-      window.open('/api/v1/meta/execute/download/' + row.id, '_blank')
+      window.open('/api/meta/execute/download/' + row.id, '_blank')
     },
     handleDeleteFile(row) {
       this.$confirm('确定删除该文件记录？', '提示', { type: 'warning' }).then(() => {

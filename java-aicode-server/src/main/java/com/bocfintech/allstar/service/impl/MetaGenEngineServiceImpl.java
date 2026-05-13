@@ -57,31 +57,67 @@ public class MetaGenEngineServiceImpl implements MetaGenEngineService {
         List<MetaFieldDefinition> fields = fieldService.listByModelId(modelId);
         if (fields.isEmpty()) throw new IllegalArgumentException("模型无字段定义");
 
+        // 预览时只生成3行Body
         GenerationContext ctx = new GenerationContext(model, fields, 3, true, operator);
         ctx.init();
 
-        StringBuilder sb = new StringBuilder();
-        // 生成3行Body (Header/Footer暂略于预览，仅Body校验格式)
-        List<MetaFieldDefinition> bodyFields = ctx.getSectionFields("BODY");
-        for (int row = 0; row < 3; row++) {
-            StringBuilder line = new StringBuilder();
-            for (MetaFieldDefinition f : bodyFields) {
-                if (f.getLevel() != null && f.getLevel() == 1) {
-                    line.append(generateFieldValue(ctx, f, row));
-                }
-            }
-            // 处理子字段 (level 2)
-            for (MetaFieldDefinition f : bodyFields) {
-                if (f.getLevel() != null && f.getLevel() == 2) {
-                    // 子字段值替换到父字段中
-                    String val = generateFieldValue(ctx, f, row);
-                    // 子字段值不做单独行拼接，在父字段占位时处理
-                }
-            }
-            sb.append(line.toString());
-            if (row < 2) sb.append("\n");
+        StringBuilder fullPreviewContent = new StringBuilder();
+
+        // 1. 生成文件名
+        String fileName = buildFileName(model, "PREVIEW", operator); // 预览文件使用特殊批次名
+        fullPreviewContent.append("文件名: ").append(fileName).append(ctx.lineEnding).append(ctx.lineEnding);
+
+        // 2. 生成文件头
+        List<MetaFieldDefinition> headerFields = ctx.getSectionFields("HEADER");
+        if (model.getHasHeader() != null && model.getHasHeader() == 1 && !headerFields.isEmpty()) {
+            fullPreviewContent.append("--- 文件头 (HEADER) ！！最终文件是没有这行的！！---").append(ctx.lineEnding);
+            fullPreviewContent.append(generateSectionContent(ctx, headerFields)).append(ctx.lineEnding).append(ctx.lineEnding);
         }
-        return sb.toString();
+
+        // 3. 生成文件体 (3行)
+        List<MetaFieldDefinition> bodyFields = ctx.getSectionFields("BODY");
+        if (!bodyFields.isEmpty()) {
+            fullPreviewContent.append("--- 文件体 (BODY) ！！最终文件是没有这行的！！---").append(ctx.lineEnding);
+            for (int row = 0; row < 3; row++) {
+                StringBuilder line = new StringBuilder();
+                Map<String, String> rowValues = new LinkedHashMap<>(); // 用于存储当前行字段值，供子字段替换
+                for (MetaFieldDefinition f : bodyFields) {
+                    String val = generateFieldValue(ctx, f, row);
+                    rowValues.put(f.getFieldKey(), val);
+                    if (f.getLevel() != null && f.getLevel() == 1) {
+                        line.append(val);
+                    }
+                }
+                // 处理子字段 (level 2)
+                String lineStr = substituteLevel2(bodyFields, rowValues, line.toString());
+                fullPreviewContent.append(lineStr);
+                if (row < 2) fullPreviewContent.append(ctx.lineEnding); // 最后一行不加换行
+            }
+            fullPreviewContent.append(ctx.lineEnding).append(ctx.lineEnding);
+        }
+
+
+        // 4. 生成文件尾
+        List<MetaFieldDefinition> footerFields = ctx.getSectionFields("FOOTER");
+        if (model.getHasFooter() != null && model.getHasFooter() == 1 && !footerFields.isEmpty()) {
+            fullPreviewContent.append("--- 文件尾 (FOOTER) ！！最终文件是没有这行的！！---").append(ctx.lineEnding);
+            fullPreviewContent.append(generateSectionContent(ctx, footerFields)).append(ctx.lineEnding);
+        }
+
+        return fullPreviewContent.toString();
+    }
+
+    private String generateSectionContent(GenerationContext ctx, List<MetaFieldDefinition> fields) {
+        StringBuilder line = new StringBuilder();
+        Map<String, String> rowValues = new LinkedHashMap<>();
+        for (MetaFieldDefinition f : fields) {
+            String val = generateFieldValue(ctx, f, 0);
+            rowValues.put(f.getFieldKey(), val);
+            if (f.getLevel() != null && f.getLevel() == 1) {
+                line.append(val);
+            }
+        }
+        return substituteLevel2(fields, rowValues, line.toString());
     }
 
     @Override
@@ -276,7 +312,7 @@ public class MetaGenEngineServiceImpl implements MetaGenEngineService {
 
         switch (ruleType) {
             case "FIXED":
-                rawVal = field.getFieldKey(); // 固定值即key本身
+                rawVal = ruleCfg != null ? ruleCfg.getString("value") : "";
                 break;
             case "DATE":
                 rawVal = generateDate(ruleCfg);
@@ -303,7 +339,7 @@ public class MetaGenEngineServiceImpl implements MetaGenEngineService {
                 rawVal = generateRandom(ruleCfg);
                 break;
             case "AMOUNT":
-                rawVal = generateAmount(ruleCfg);
+                rawVal = generateAmount(ctx, ruleCfg);
                 break;
             case "EXPRESSION":
                 rawVal = generateExpression(ctx, ruleCfg);
@@ -318,8 +354,28 @@ public class MetaGenEngineServiceImpl implements MetaGenEngineService {
 
     private String generateDate(JSONObject cfg) {
         String fmt = cfg != null && cfg.getString("format") != null ? cfg.getString("format") : "yyyyMMdd";
+        int offset = cfg != null && cfg.getInteger("offset") != null ? cfg.getInteger("offset") : 0;
+        
+        LocalDateTime date = LocalDateTime.now().plusDays(offset);
+        
+        // 处理 D 模式（年中天数）宽度不足问题
+        // Java 的 DateTimeFormatter 中 D 表示年中天数（1-366），但只支持 1-2 位
+        // 当年中天数超过 99 时（如 5 月 13 日是第 133 天），需要手动处理
+        if (fmt.contains("D")) {
+            // 手动格式化年中天数为 3 位（补零），因为最大天数是 366
+            int dayOfYear = date.getDayOfYear();
+            String dayStr = String.format("%03d", dayOfYear);
+            // 使用占位符替换 D，格式化后再替换回来
+            // 使用一个不会出现的字符序列作为占位符
+            String placeholder = "\u0001DAY\u0002"; // 使用控制字符包围的 DAY
+            String fmtWithPlaceholder = fmt.replaceAll("D+", placeholder);
+            DateTimeFormatter dtf = DateTimeFormatter.ofPattern(fmtWithPlaceholder);
+            String result = date.format(dtf);
+            return result.replace(placeholder, dayStr);
+        }
+        
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern(fmt);
-        return LocalDateTime.now().format(dtf);
+        return date.format(dtf);
     }
 
     private String generateEnum(String enumKey, JSONObject cfg) {
@@ -413,28 +469,45 @@ public class MetaGenEngineServiceImpl implements MetaGenEngineService {
         return sb.toString();
     }
 
-    private String generateAmount(JSONObject cfg) {
+    private String generateAmount(GenerationContext ctx, JSONObject cfg) {
         // DSL: { "type": "AMOUNT", "config": { "precision": 2, "scale": 14, "decimalMode": "IMPLICIT", "signed": false, "padding": "ZERO_LEFT" } }
-        JSONObject config = cfg != null ? cfg.getJSONObject("config") : null;
-        if (config == null) config = cfg; // 兼容直接传config
-        int precision = config != null && config.getInteger("precision") != null ? config.getInteger("precision") : 2;
-        int scale = config != null && config.getInteger("scale") != null ? config.getInteger("scale") : 14;
-        String decimalMode = config != null ? config.getString("decimalMode") : "IMPLICIT";
-        boolean signed = config != null && Boolean.TRUE.equals(config.getBoolean("signed"));
+        JSONObject config = cfg; // 兼容直接传config
+        if (config == null) config = new JSONObject(); // 避免空指针
+
+        int precision = config.getInteger("precision") != null ? config.getInteger("precision") : 2;
+        int totalLength = config.getInteger("scale") != null ? config.getInteger("scale") : 16; // 这里的scale现在是总位数
+        String decimalMode = config.getString("decimalMode") != null ? config.getString("decimalMode") : "IMPLICIT";
+        // boolean signed = config.getBoolean("signed") != null ? config.getBoolean("signed") : false; // 暂时不用
 
         // 生成随机金额
         Random rnd = new Random();
-        long maxInt = (long) Math.pow(10, scale) - 1;
-        long intPart = (long)(rnd.nextDouble() * maxInt);
+        // 计算整数部分的最大值，确保生成的随机数不会超过总长度
+        long maxIntPart = (long) Math.pow(10, totalLength - precision) - 1;
+        long intPart = (long)(rnd.nextDouble() * maxIntPart);
         long fracPart = rnd.nextInt((int) Math.pow(10, precision));
-        long totalInSmallestUnit = intPart * (long) Math.pow(10, precision) + fracPart;
 
         if ("IMPLICIT".equals(decimalMode)) {
             // 隐式小数点: 1234567 表示 12345.67
-            return String.format("%0" + scale + "d", totalInSmallestUnit);
+            // totalInSmallestUnit = intPart * (long) Math.pow(10, precision) + fracPart;
+            // 直接拼接整数和小数部分，然后格式化为总长度
+            String combined = String.format("%d%0" + precision + "d", intPart, fracPart);
+            // 手动左补零，因为 %0 标志不适用于 %s 转换符
+            int currentLength = combined.getBytes(Charset.forName(ctx.encoding)).length;
+            if (currentLength < totalLength) {
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < totalLength - currentLength; i++) {
+                    sb.append('0');
+                }
+                sb.append(combined);
+                return sb.toString();
+            } else {
+                return combined;
+            }
         } else {
             // 显式小数点
-            String intStr = String.format("%0" + (scale - precision) + "d", intPart);
+            // 整数部分长度 = 总长度 - 小数位数 - 1 (小数点)
+            int intPartLength = totalLength - precision - 1;
+            String intStr = String.format("%0" + intPartLength + "d", intPart);
             String fracStr = String.format("%0" + precision + "d", fracPart);
             return intStr + "." + fracStr;
         }

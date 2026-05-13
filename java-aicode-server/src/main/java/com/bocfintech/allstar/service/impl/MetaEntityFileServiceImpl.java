@@ -34,6 +34,7 @@ public class MetaEntityFileServiceImpl
         entityFile.setCreateUser(createUser);
         entityFile.setCreateTime(LocalDateTime.now());
         entityFile.setRowCount(0);
+        entityFile.setStoragePath(""); // 初始设置为空字符串，避免数据库非空约束报错
         save(entityFile);
         return entityFile;
     }

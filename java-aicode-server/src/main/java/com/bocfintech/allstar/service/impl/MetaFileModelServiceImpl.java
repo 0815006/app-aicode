@@ -47,7 +47,8 @@ public class MetaFileModelServiceImpl
         if (existing == null) {
             throw new IllegalArgumentException("模型不存在");
         }
-        if ("PUBLISHED".equals(existing.getStatus())) {
+        // 允许退回草稿：PUBLISHED -> DRAFT 是允许的
+        if ("PUBLISHED".equals(existing.getStatus()) && !"DRAFT".equals(model.getStatus())) {
             throw new IllegalStateException("已发布的模型请先退回草稿后再修改");
         }
         if (!existing.getOwnerId().equals(operator)) {

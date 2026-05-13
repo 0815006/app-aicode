@@ -728,7 +728,12 @@ export default {
       if (t === 'BATCH_NO') return { prefix: f.prefix || '', start: f.start || 1, updateStrategy: f.updateStrategy || 'PER_FILE' }
       if (t === 'AMOUNT') {
         const fmt = this.buildAmtFormat()
-        return { value: f.value || 0, format: fmt }
+        return {
+          value: f.value || 0,
+          format: fmt,
+          scale: (f._amtScale || 14) + (f._amtPrecision || 2), // 总位数
+          precision: f._amtPrecision || 2 // 小数位数
+        }
       }
       if (t === 'EXPR') return { pattern: f.pattern || '', desc: f.desc || '' }
       return f
