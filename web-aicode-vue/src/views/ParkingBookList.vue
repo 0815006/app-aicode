@@ -12,6 +12,9 @@
       <el-button type="success" icon="el-icon-refresh" @click="fetchData" :loading="loading">
         刷新
       </el-button>
+      <el-link type="primary" href="http://22.189.55.96:81/" target="_blank" title="http://22.189.55.96:81/">
+        车位管理系统
+      </el-link>
     </div>
 
     <!-- 数据表格 -->
