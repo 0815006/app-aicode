@@ -64,7 +64,7 @@ public class MetaGenEngineServiceImpl implements MetaGenEngineService {
         StringBuilder fullPreviewContent = new StringBuilder();
 
         // 1. 生成文件名
-        String fileName = buildFileName(model, "PREVIEW", operator); // 预览文件使用特殊批次名
+        String fileName = buildFileName(ctx, "PREVIEW", operator); // 预览文件使用特殊批次名
         fullPreviewContent.append("文件名: ").append(fileName).append(ctx.lineEnding).append(ctx.lineEnding);
 
         // 2. 生成文件头
@@ -128,7 +128,11 @@ public class MetaGenEngineServiceImpl implements MetaGenEngineService {
         if (rowCount == null || rowCount <= 0) rowCount = 1;
         if (rowCount > model.getMaxRowsLimit()) throw new IllegalArgumentException("超过最大行数限制: " + model.getMaxRowsLimit());
 
-        String fileName = buildFileName(model, batchName, operator);
+        List<MetaFieldDefinition> fields = fieldService.listByModelId(modelId); // 获取 fields 列表
+        GenerationContext tempCtx = new GenerationContext(model, fields, rowCount, false, operator); // 构建临时 ctx
+        tempCtx.init(); // 初始化 ctx，生成 FILENAME 字段值
+
+        String fileName = buildFileName(tempCtx, batchName, operator); // 使用新的调用方式
         MetaEntityFile record = entityFileService.createRecord(modelId, fileName, "FORMAL", operator);
         // 异步执行
         doGenerate(record.getId(), modelId, rowCount, fileName, operator);
@@ -255,11 +259,17 @@ public class MetaGenEngineServiceImpl implements MetaGenEngineService {
         }
         try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), encoding))) {
             StringBuilder line = new StringBuilder();
+            Map<String, String> rowValues = new LinkedHashMap<>(); // 添加 rowValues
             for (MetaFieldDefinition f : fields) {
                 String val = generateFieldValue(ctx, f, 0);
-                line.append(val);
+                rowValues.put(f.getFieldKey(), val); // 存储字段值
+                if (f.getLevel() != null && f.getLevel() == 1) {
+                    line.append(val);
+                }
             }
-            writer.write(line.toString());
+            // 处理 level 2 子字段替换
+            String lineStr = substituteLevel2(fields, rowValues, line.toString()); // 调用 substituteLevel2
+            writer.write(lineStr);
             writer.flush();
         }
     }
@@ -272,11 +282,17 @@ public class MetaGenEngineServiceImpl implements MetaGenEngineService {
         }
         try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), encoding))) {
             StringBuilder line = new StringBuilder();
+            Map<String, String> rowValues = new LinkedHashMap<>(); // 添加 rowValues
             for (MetaFieldDefinition f : fields) {
                 String val = generateFieldValue(ctx, f, 0);
-                line.append(val);
+                rowValues.put(f.getFieldKey(), val); // 存储字段值
+                if (f.getLevel() != null && f.getLevel() == 1) {
+                    line.append(val);
+                }
             }
-            writer.write(line.toString());
+            // 处理 level 2 子字段替换
+            String lineStr = substituteLevel2(fields, rowValues, line.toString()); // 调用 substituteLevel2
+            writer.write(lineStr);
             writer.flush();
         }
     }
@@ -327,6 +343,7 @@ public class MetaGenEngineServiceImpl implements MetaGenEngineService {
                 rawVal = ctx.getFieldValue(field.getRefFieldKey());
                 break;
             case "SEQ":
+            case "SEQUENCE": // 兼容前端 SEQUENCE 类型
                 rawVal = generateSeq(ctx, field, rowIndex);
                 break;
             case "SUM":
@@ -338,15 +355,38 @@ public class MetaGenEngineServiceImpl implements MetaGenEngineService {
             case "RANDOM":
                 rawVal = generateRandom(ruleCfg);
                 break;
+            case "RANDOM_NUM": { // 随机数字
+                JSONObject numCfg = ruleCfg != null ? ruleCfg : new JSONObject();
+                if (numCfg.getString("mode") == null) numCfg.put("mode", "DIGIT");
+                rawVal = generateRandom(numCfg);
+                break;
+            }
+            case "RANDOM_CN": { // 随机汉字
+                JSONObject cnCfg = ruleCfg != null ? ruleCfg : new JSONObject();
+                if (cnCfg.getString("mode") == null) cnCfg.put("mode", "CHINESE");
+                rawVal = generateRandom(cnCfg);
+                break;
+            }
+            case "RANDOM_UUID": { // 随机UUID
+                JSONObject uuidCfg = ruleCfg != null ? ruleCfg : new JSONObject();
+                if (uuidCfg.getString("mode") == null) uuidCfg.put("mode", "UUID");
+                rawVal = generateRandom(uuidCfg);
+                break;
+            }
             case "AMOUNT":
                 rawVal = generateAmount(ctx, ruleCfg);
                 break;
             case "EXPRESSION":
+            case "EXPR": // 兼容前端 EXPR 类型
                 rawVal = generateExpression(ctx, ruleCfg);
                 break;
             default:
+                log.warn("未知规则类型: {} (字段: {}), 将生成空值", ruleType, field.getFieldKey());
                 rawVal = "";
         }
+
+        // 存储生成的字段值，供后续 REF_FIELD 等引用
+        ctx.setFieldValue(field.getFieldKey(), rawVal);
 
         // 定长/补齐处理
         return applyPadding(field, rawVal, ctx.encoding);
@@ -390,61 +430,129 @@ public class MetaGenEngineServiceImpl implements MetaGenEngineService {
     }
 
     private String generateRefFile(GenerationContext ctx, MetaFieldDefinition field, int rowIndex) {
-        if (ctx.refFileCache == null) ctx.refFileCache = new HashMap<>();
-        Long refFileId = field.getRefFileId();
-        if (refFileId == null) return "";
+        // 从 ruleConfigJson 中读取 columnKey 和 refFileId
+        JSONObject ruleCfg = parseRuleConfig(field.getRuleConfigJson());
+        String columnKey = ruleCfg != null ? ruleCfg.getString("columnKey") : null;
+        // refFileId 优先从 ruleCfg 取，兼容从 field 属性取
+        Long refFileId = (ruleCfg != null && ruleCfg.getLong("refFileId") != null)
+                ? ruleCfg.getLong("refFileId") : field.getRefFileId();
+        if (refFileId == null) {
+            log.warn("REF_FILE 字段 [{}] 未配置 refFileId，跳过", field.getFieldKey());
+            return "";
+        }
+        if (columnKey == null || columnKey.isEmpty()) {
+            log.warn("REF_FILE 字段 [{}] 未配置 columnKey，跳过", field.getFieldKey());
+            return "";
+        }
 
-        List<String> columnData = ctx.refFileCache.get(refFileId);
+        // 缓存 key = refFileId + ":" + columnKey，区分同一文件不同列
+        String cacheKey = refFileId + ":" + columnKey;
+        List<String> columnData = ctx.refFileColumnCache.get(cacheKey);
         if (columnData == null) {
-            // 加载引用文件
             MetaRefFile refFile = refFileService.getById(refFileId);
-            if (refFile == null) return "";
-            columnData = loadRefFileColumn(refFile, field);
-            ctx.refFileCache.put(refFileId, columnData);
+            if (refFile == null) {
+                log.warn("REF_FILE 字段 [{}] 引用文件 id={} 不存在", field.getFieldKey(), refFileId);
+                return "";
+            }
+            columnData = loadRefFileColumn(refFile, columnKey, ctx);
+            ctx.refFileColumnCache.put(cacheKey, columnData);
         }
         if (columnData.isEmpty()) return "";
         int idx = rowIndex % columnData.size();
         return columnData.get(idx);
     }
 
-    private List<String> loadRefFileColumn(MetaRefFile refFile, MetaFieldDefinition field) {
+    /**
+     * 从引用文件加载指定列的所有行数据。
+     * <ul>
+     *   <li>DELIMITER 模式 column_mapping: {"fieldName": columnIndex, ...}（1-based）</li>
+     *   <li>FIXED 模式 column_mapping: {"fieldName": {"start": startByte, "length": byteLen}, ...}（1-based byte offset）</li>
+     * </ul>
+     */
+    private List<String> loadRefFileColumn(MetaRefFile refFile, String columnKey, GenerationContext ctx) {
         List<String> data = new ArrayList<>();
-        JSONObject mapping = JSON.parseObject(refFile.getColumnMapping());
-        if (mapping == null) return data;
-        // 查找当前fieldKey对应的列索引
-        Integer colIdx = null;
-        for (String key : mapping.keySet()) {
-            if (key.equals(field.getRefFieldKey()) || key.equals(field.getFieldKey())) {
-                colIdx = mapping.getInteger(key);
-                break;
-            }
-        }
-        if (colIdx == null) colIdx = 1;
+        JSONObject mapping = refFile.getColumnMapping() != null
+                ? JSON.parseObject(refFile.getColumnMapping()) : null;
 
-        try (BufferedReader reader = new BufferedReader(new FileReader(refFile.getFilePath()))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                String[] cols;
-                if ("DELIMITER".equals(refFile.getParseType())) {
-                    String delim = refFile.getDelimiter() != null ? refFile.getDelimiter() : ",";
-                    cols = line.split(delim, -1);
-                } else {
-                    // FIXED: 简单按位置取
-                    cols = new String[]{line};
+        boolean isDelimiter = "DELIMITER".equals(refFile.getParseType());
+
+        if (isDelimiter) {
+            // DELIMITER 模式：column_mapping = {"fieldName": columnIndex, ...}
+            int colIdx = 1; // 默认第1列
+            if (mapping != null && mapping.containsKey(columnKey)) {
+                Integer v = mapping.getInteger(columnKey);
+                if (v != null) colIdx = v;
+            }
+            String delim = refFile.getDelimiter() != null ? refFile.getDelimiter() : ",";
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(new FileInputStream(refFile.getFilePath()), ctx.encoding))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    if (line.trim().isEmpty()) continue;
+                    String[] cols = line.split(delim, -1);
+                    if (colIdx <= cols.length) {
+                        data.add(cols[colIdx - 1].trim());
+                    }
                 }
-                if (colIdx <= cols.length) {
-                    data.add(cols[colIdx - 1].trim());
+            } catch (IOException e) {
+                log.error("加载引用文件失败 (DELIMITER): {}", refFile.getFilePath(), e);
+            }
+        } else {
+            // FIXED 模式：column_mapping = {"fieldName": {"start": N, "length": M}, ...}（字节位置，1-based）
+            int start = 0;
+            int length = -1;
+            if (mapping != null && mapping.containsKey(columnKey)) {
+                JSONObject posObj = mapping.getJSONObject(columnKey);
+                if (posObj != null) {
+                    start = posObj.getInteger("start") != null ? posObj.getInteger("start") - 1 : 0; // 转为0-based
+                    length = posObj.getInteger("length") != null ? posObj.getInteger("length") : -1;
                 }
             }
-        } catch (IOException e) {
-            log.error("加载引用文件失败: {}", refFile.getFilePath(), e);
+            Charset charset;
+            try { charset = Charset.forName(ctx.encoding); } catch (Exception e) { charset = Charset.forName("UTF-8"); }
+            final int finalStart = start;
+            final int finalLength = length;
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(new FileInputStream(refFile.getFilePath()), ctx.encoding))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    if (line.trim().isEmpty()) continue;
+                    byte[] lineBytes = line.getBytes(charset);
+                    if (finalStart >= lineBytes.length) {
+                        data.add("");
+                        continue;
+                    }
+                    int end = (finalLength > 0)
+                            ? Math.min(finalStart + finalLength, lineBytes.length)
+                            : lineBytes.length;
+                    String val = new String(lineBytes, finalStart, end - finalStart, charset).trim();
+                    data.add(val);
+                }
+            } catch (IOException e) {
+                log.error("加载引用文件失败 (FIXED): {}", refFile.getFilePath(), e);
+            }
         }
         return data;
     }
 
     private String generateSeq(GenerationContext ctx, MetaFieldDefinition field, int rowIndex) {
         String targetId = field.getModelId() + ":" + field.getFieldKey();
-        return String.valueOf(seqService.nextValue("SEQ", targetId, ctx.isPreview));
+        long sequenceValue = seqService.nextValue("SEQ", targetId, ctx.isPreview);
+
+        JSONObject ruleCfg = parseRuleConfig(field.getRuleConfigJson());
+        String prefix = "";
+        int digitLength = 0;
+
+        if (ruleCfg != null) {
+            prefix = ruleCfg.getString("prefix") != null ? ruleCfg.getString("prefix") : "";
+            digitLength = ruleCfg.getInteger("digitLength") != null ? ruleCfg.getInteger("digitLength") : 0;
+        }
+
+        if (digitLength > 0) {
+            return String.format("%s%0" + digitLength + "d", prefix, sequenceValue);
+        } else {
+            return prefix + sequenceValue;
+        }
     }
 
     private String generateRandom(JSONObject cfg) {
@@ -539,9 +647,14 @@ public class MetaGenEngineServiceImpl implements MetaGenEngineService {
 
     private String applyPadding(MetaFieldDefinition field, String rawVal, String encoding) {
         if (rawVal == null) rawVal = "";
-        int byteLen = field.getLength() != null ? field.getLength() : rawVal.length();
+        int byteLen = field.getLength() != null ? field.getLength() : -1;
         String paddingDir = field.getPaddingDirection() != null ? field.getPaddingDirection() : "NONE";
         String paddingChar = field.getPaddingChar() != null ? field.getPaddingChar() : " ";
+
+        // 未配置长度或不需要补齐，直接返回原值
+        if (byteLen <= 0 || "NONE".equals(paddingDir)) {
+            return rawVal;
+        }
 
         Charset charset;
         try {
@@ -552,16 +665,16 @@ public class MetaGenEngineServiceImpl implements MetaGenEngineService {
 
         byte[] rawBytes = rawVal.getBytes(charset);
         if (rawBytes.length > byteLen) {
-            // 溢出：报错，不截断
             throw new RuntimeException("字段 [" + field.getFieldKey() + "] 生成内容字节长度 " + rawBytes.length + " 超过定义长度 " + byteLen);
         }
-
-        if (rawBytes.length == byteLen || "NONE".equals(paddingDir)) {
-            return rawVal;
+        if (rawBytes.length == byteLen) {
+            return rawVal; // 已满，无需补位
         }
 
+        // 补位字符取第一个字节（要求 paddingChar 为单字节 ASCII 字符，如空格/零）
+        byte padByte = (byte) paddingChar.charAt(0);
+
         int padCount = byteLen - rawBytes.length;
-        byte padByte = paddingChar.getBytes(charset)[0];
         byte[] padded = new byte[byteLen];
 
         if ("LEFT".equals(paddingDir)) {
@@ -572,6 +685,7 @@ public class MetaGenEngineServiceImpl implements MetaGenEngineService {
             System.arraycopy(rawBytes, 0, padded, 0, rawBytes.length);
             Arrays.fill(padded, rawBytes.length, byteLen, padByte);
         }
+        // 将补位后的字节数组重新解码为 String（确保写出时不会二次乱码）
         return new String(padded, charset);
     }
 
@@ -590,12 +704,31 @@ public class MetaGenEngineServiceImpl implements MetaGenEngineService {
         }
     }
 
-    private String buildFileName(MetaFileModel model, String batchName, String operator) {
-        String ts = LocalDateTime.now().format(DF_DATETIME);
-        String name = model.getModelName() + "_" + ts;
-        if (batchName != null && !batchName.isEmpty()) name += "_" + batchName;
-        name += ".txt";
-        return name;
+    private String buildFileName(GenerationContext ctx, String batchName, String operator) {
+        // 从 ctx 中获取 FILENAME 区块的字段值来构建文件名
+        List<MetaFieldDefinition> fileNameFields = ctx.getSectionFields("FILENAME");
+        if (!fileNameFields.isEmpty()) {
+            StringBuilder nameBuilder = new StringBuilder();
+            for (MetaFieldDefinition f : fileNameFields) {
+                // generateFieldValue 已经在 GenerationContext.init() 中调用并存储了结果
+                String val = ctx.getFieldValue(f.getFieldKey());
+                if (val != null) {
+                    nameBuilder.append(val);
+                }
+            }
+            // 检查生成的文件名是否已经包含扩展名
+            String generatedName = nameBuilder.toString();
+            if (!generatedName.contains(".")) { // 如果没有显式扩展名，则自动添加 .txt
+                generatedName += ".txt";
+            }
+            return generatedName;
+        } else {
+            // 如果没有配置 FILENAME 区块，则回退到原来的逻辑
+            String ts = LocalDateTime.now().format(DF_DATETIME);
+            String name = ctx.model.getModelName() + "_" + ts;
+            if (batchName != null && !batchName.isEmpty()) name += "_" + batchName;
+            return name + ".txt"; // 默认加 .txt 后缀
+        }
     }
 
     // ===================== 内部类: 生成上下文 =====================
@@ -611,7 +744,8 @@ public class MetaGenEngineServiceImpl implements MetaGenEngineService {
 
         // 运行时值存储
         Map<String, String> fieldValues = new LinkedHashMap<>();
-        Map<Long, List<String>> refFileCache;
+        Map<Long, List<String>> refFileCache; // 保留旧字段以防止编译错误（已不再使用）
+        Map<String, List<String>> refFileColumnCache = new HashMap<>(); // 新缓存: refFileId:fieldKey -> 列数据
         long bodySumAmount = 0;
         long bodyCount = 0;
 
