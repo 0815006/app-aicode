@@ -106,10 +106,10 @@
               <span class="block-title"><i class="el-icon-view"></i> 实时预览</span>
               <el-button type="text" size="mini" icon="el-icon-refresh" @click="handlePreview" :loading="previewLoading">刷新预览</el-button>
             </div>
-            <div class="byte-ruler" v-if="previewText">
-              <span class="ruler-text">{{ rulerContent }}</span>
+            <div class="byte-ruler" v-if="previewText" ref="rulerRef">
+              <span class="ruler-text" ref="rulerTextRef">{{ rulerContent }}</span>
             </div>
-            <pre class="preview-box" :class="{ empty: !previewText }">{{ previewText || '点击"刷新预览"查看生成效果（3行Body）' }}</pre>
+            <pre class="preview-box" :class="{ empty: !previewText }" ref="previewBoxRef" @scroll="syncRulerScroll">{{ previewText || '点击"刷新预览"查看生成效果（3行Body）' }}</pre>
           </el-card>
 
           <!-- 区块字段定义卡片：文件名 / 文件头 / 文件体 / 文件尾 -->
@@ -260,12 +260,25 @@ export default {
       return secs
     },
     rulerContent() {
-      // 生成足够长的标尺文本，每个字符宽度与预览内容一致
-      // 使用1234567890循环，确保覆盖最长文件行
       const base = '1234567890'
-      // 生成1000个字符，足够覆盖大多数文件行
+      if (!this.previewText) {
+        let result = ''
+        for (let i = 0; i < 10; i++) result += base
+        return result
+      }
+      // 按显示宽度（中文=2，ASCII=1）计算最长行的宽度
+      let maxWidth = 0
+      const lines = this.previewText.split('\n')
+      for (const line of lines) {
+        let width = 0
+        for (const ch of line) {
+          width += this.isFullWidthChar(ch) ? 2 : 1
+        }
+        if (width > maxWidth) maxWidth = width
+      }
+      const total = Math.max(maxWidth + 10, 100) // 留一些余量
       let result = ''
-      for (let i = 0; i < 100; i++) {
+      for (let i = 0; i < Math.ceil(total / 10); i++) {
         result += base
       }
       return result
@@ -398,6 +411,7 @@ export default {
       preview(this.activeModelId).then(res => {
         if (res.code === 200) {
           this.previewText = res.data || ''
+          this.$nextTick(() => this.syncRulerWidth())
         } else {
           this.$alert(res.message || '预览失败', '错误', { type: 'error' })
           this.previewText = '预览失败: ' + (res.message || '未知错误')
@@ -406,6 +420,39 @@ export default {
         this.$alert(err.message || '预览请求失败', '错误', { type: 'error' })
         this.previewText = '预览请求失败: ' + (err.message || '未知错误')
       }).finally(() => { this.previewLoading = false })
+    },
+
+    /** 预览区横向滚动时，标尺同步跟随 */
+    syncRulerScroll() {
+      if (this.$refs.rulerRef && this.$refs.previewBoxRef) {
+        this.$refs.rulerRef.scrollLeft = this.$refs.previewBoxRef.scrollLeft
+      }
+    },
+
+    /** 让标尺内容宽度匹配预览区滚动宽度 */
+    syncRulerWidth() {
+      const preview = this.$refs.previewBoxRef
+      const rulerText = this.$refs.rulerTextRef
+      if (preview && rulerText) {
+        rulerText.style.display = 'inline-block'
+        rulerText.style.minWidth = (preview.scrollWidth || preview.offsetWidth || 0) + 'px'
+      }
+    },
+
+    /** 判断字符是否为全角（中文/日韩文等，显示宽度计 2） */
+    isFullWidthChar(ch) {
+      const cp = ch.codePointAt(0)
+      if (cp >= 0x4E00 && cp <= 0x9FFF) return true
+      if (cp >= 0x3400 && cp <= 0x4DBF) return true
+      if (cp >= 0xF900 && cp <= 0xFAFF) return true
+      if (cp >= 0x20000 && cp <= 0x2FFFF) return true
+      if (cp >= 0xFF01 && cp <= 0xFF60) return true
+      if (cp >= 0xFFE0 && cp <= 0xFFE6) return true
+      if (cp >= 0x3000 && cp <= 0x303F) return true
+      if (cp >= 0x3040 && cp <= 0x30FF) return true
+      if (cp >= 0xAC00 && cp <= 0xD7AF) return true
+      if (cp >= 0x1100 && cp <= 0x11FF) return true
+      return false
     },
 
     // ========== 批量生成 ==========
@@ -662,7 +709,7 @@ export default {
   border-bottom: 1px solid #444;
   overflow: hidden;
   margin: 0 -16px;
-  padding: 0 16px;
+  padding: 0 10px 0 26px;
 }
 .ruler-text {
   font-family: 'Consolas', 'Courier New', monospace;
