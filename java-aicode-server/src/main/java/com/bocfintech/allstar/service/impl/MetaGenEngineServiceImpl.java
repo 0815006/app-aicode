@@ -664,8 +664,12 @@ public class MetaGenEngineServiceImpl implements MetaGenEngineService {
         }
 
         byte[] rawBytes = rawVal.getBytes(charset);
+        // 不再限制码值长度，超过部分将被截断
         if (rawBytes.length > byteLen) {
-            throw new RuntimeException("字段 [" + field.getFieldKey() + "] 生成内容字节长度 " + rawBytes.length + " 超过定义长度 " + byteLen);
+            // 截断到指定字节长度
+            byte[] truncated = new byte[byteLen];
+            System.arraycopy(rawBytes, 0, truncated, 0, byteLen);
+            return new String(truncated, charset);
         }
         if (rawBytes.length == byteLen) {
             return rawVal; // 已满，无需补位

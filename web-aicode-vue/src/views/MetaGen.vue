@@ -107,7 +107,7 @@
               <el-button type="text" size="mini" icon="el-icon-refresh" @click="handlePreview" :loading="previewLoading">刷新预览</el-button>
             </div>
             <div class="byte-ruler" v-if="previewText">
-              <span v-for="i in rulerMarks" :key="i" class="ruler-mark" :style="{ left: i * 8 + 'px' }">{{ i * 10 }}</span>
+              <span class="ruler-text">{{ rulerContent }}</span>
             </div>
             <pre class="preview-box" :class="{ empty: !previewText }">{{ previewText || '点击"刷新预览"查看生成效果（3行Body）' }}</pre>
           </el-card>
@@ -259,8 +259,16 @@ export default {
       }
       return secs
     },
-    rulerMarks() {
-      return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    rulerContent() {
+      // 生成足够长的标尺文本，每个字符宽度与预览内容一致
+      // 使用1234567890循环，确保覆盖最长文件行
+      const base = '1234567890'
+      // 生成1000个字符，足够覆盖大多数文件行
+      let result = ''
+      for (let i = 0; i < 100; i++) {
+        result += base
+      }
+      return result
     }
   },
   mounted() {
@@ -656,11 +664,11 @@ export default {
   margin: 0 -16px;
   padding: 0 16px;
 }
-.ruler-mark {
-  position: absolute;
-  font-size: 9px;
+.ruler-text {
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 13px;
   color: #888;
-  top: 2px;
+  white-space: pre;
 }
 .preview-box {
   background: #1e1e1e;

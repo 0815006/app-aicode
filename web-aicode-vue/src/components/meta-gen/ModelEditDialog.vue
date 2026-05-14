@@ -5,12 +5,12 @@
         <el-input v-model="form.modelName" placeholder="如：代发工资批量文件" />
       </el-form-item>
       <el-form-item label="编码" required>
-        <el-select v-model="form.encoding" :disabled="form.splitType === 'FIXED'">
+        <el-select v-model="form.encoding">
           <el-option label="UTF-8" value="UTF-8" />
           <el-option label="GBK" value="GBK" />
           <el-option label="ASCII" value="ASCII" />
         </el-select>
-        <span v-if="form.splitType === 'FIXED'" style="color:#e6a23c;font-size:11px">定长模式不支持UTF-8，自动切换为GBK</span>
+        <span v-if="form.splitType === 'FIXED'" style="color:#e6a23c;font-size:11px">定长模式推荐使用GBK</span>
       </el-form-item>
       <el-form-item label="格式" required>
         <el-select v-model="form.splitType" @change="onSplitTypeChange">
@@ -93,9 +93,7 @@ export default {
       this.visible = true
     },
     onSplitTypeChange(val) {
-      if (val === 'FIXED') {
-        this.form.encoding = 'GBK'
-      }
+      // UTF-8 现在支持定长和分隔符模式，无需强制切换编码
     },
     async handleSave() {
       if (!this.form.modelName || !this.form.modelName.trim()) {
