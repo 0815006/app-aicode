@@ -89,6 +89,9 @@
           <el-option v-for="k in enumKeys" :key="k" :label="k" :value="k" />
         </el-select>
       </el-form-item>
+      <el-form-item v-if="form.ruleType === 'ENUM'" label="默认值">
+        <el-input v-model="enumDefault" placeholder="如不填则随机取值" />
+      </el-form-item>
 
       <!-- REF_FIELD -->
       <el-form-item v-if="form.ruleType === 'REF_FIELD'" label="引用字段">
@@ -172,7 +175,8 @@ export default {
       dateFormat: 'YYYYMMDD',
       amountConfig: { precision: 2, scale: 14, decimalMode: 'IMPLICIT', signed: false },
       randomConfig: { mode: 'DIGIT' },
-      exprConfig: { func: 'CONCAT', params: [] }
+      exprConfig: { func: 'CONCAT', params: [] },
+      enumDefault: ''
     }
   },
   computed: {
@@ -213,6 +217,9 @@ export default {
           if (val.ruleType === 'EXPRESSION' && val.ruleConfigJson) {
             try { this.exprConfig = JSON.parse(val.ruleConfigJson) || this.exprConfig } catch (e) {}
           }
+          if (val.ruleType === 'ENUM' && val.ruleConfigJson) {
+            try { this.enumDefault = JSON.parse(val.ruleConfigJson).useDefault || '' } catch (e) {}
+          }
         } else {
           this.form = this.getDefaultForm()
           this.fixedValue = ''
@@ -220,6 +227,7 @@ export default {
           this.amountConfig = { precision: 2, scale: 14, decimalMode: 'IMPLICIT', signed: false }
           this.randomConfig = { mode: 'DIGIT' }
           this.exprConfig = { func: 'CONCAT', params: [] }
+          this.enumDefault = ''
         }
       }
     }
@@ -262,7 +270,15 @@ export default {
         data.ruleConfigJson = JSON.stringify({ ...this.randomConfig })
       } else if (data.ruleType === 'EXPRESSION') {
         data.ruleConfigJson = JSON.stringify({ ...this.exprConfig })
-      }
+      } else if (data.ruleType === 'ENUM') {
+         if (this.form.refEnumKey) {
+           data.ruleConfigJson = JSON.stringify({ enumKey: this.form.refEnumKey, useDefault: this.enumDefault || '0' })
+         } else if (this.enumDefault && this.enumDefault.trim()) {
+           data.ruleConfigJson = JSON.stringify({ useDefault: this.enumDefault })
+         } else {
+           data.ruleConfigJson = null
+         }
+       }
       this.$emit('confirm', data)
     },
     handleClose() {

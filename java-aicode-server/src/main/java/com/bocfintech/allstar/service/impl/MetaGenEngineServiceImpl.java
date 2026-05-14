@@ -419,11 +419,29 @@ public class MetaGenEngineServiceImpl implements MetaGenEngineService {
     }
 
     private String generateEnum(String enumKey, JSONObject cfg) {
+        // 优先从 ruleConfigJson 中读取 enumKey（兼容前端只存 ruleConfigJson 的情况）
+        if (enumKey == null && cfg != null) {
+            enumKey = cfg.getString("enumKey");
+        }
         if (enumKey == null) return "";
         MetaEnumLibrary enumLib = enumService.lambdaQuery().eq(MetaEnumLibrary::getEnumKey, enumKey).one();
         if (enumLib == null) return "";
         JSONArray items = JSON.parseArray(enumLib.getItems());
         if (items == null || items.isEmpty()) return "";
+        
+        // 如果配置中指定了 useDefault 且不为空，检查该值是否存在于枚举项中
+        if (cfg != null) {
+            String defaultVal = cfg.getString("useDefault");
+            if (defaultVal != null && !defaultVal.isEmpty()) {
+                for (int i = 0; i < items.size(); i++) {
+                    JSONObject item = items.getJSONObject(i);
+                    if (defaultVal.equals(item.getString("val"))) {
+                        return defaultVal;
+                    }
+                }
+            }
+        }
+        
         // 随机选一个
         int idx = new Random().nextInt(items.size());
         return items.getJSONObject(idx).getString("val");
@@ -647,50 +665,102 @@ public class MetaGenEngineServiceImpl implements MetaGenEngineService {
 
     private String applyPadding(MetaFieldDefinition field, String rawVal, String encoding) {
         if (rawVal == null) rawVal = "";
-        int byteLen = field.getLength() != null ? field.getLength() : -1;
+        int targetLen = field.getLength() != null ? field.getLength() : -1;
         String paddingDir = field.getPaddingDirection() != null ? field.getPaddingDirection() : "NONE";
         String paddingChar = field.getPaddingChar() != null ? field.getPaddingChar() : " ";
 
-        // 未配置长度或不需要补齐，直接返回原值
-        if (byteLen <= 0 || "NONE".equals(paddingDir)) {
+        if (targetLen <= 0 || "NONE".equals(paddingDir)) {
             return rawVal;
         }
 
-        Charset charset;
-        try {
-            charset = Charset.forName(encoding);
-        } catch (Exception e) {
-            charset = Charset.forName("UTF-8");
+        // 截断：按显示宽度（中文=2，ASCII=1）截断，确保不在字符中间切断
+        if (getDisplayWidth(rawVal) > targetLen) {
+            rawVal = truncateByDisplayWidth(rawVal, targetLen);
         }
 
-        byte[] rawBytes = rawVal.getBytes(charset);
-        // 不再限制码值长度，超过部分将被截断
-        if (rawBytes.length > byteLen) {
-            // 截断到指定字节长度
-            byte[] truncated = new byte[byteLen];
-            System.arraycopy(rawBytes, 0, truncated, 0, byteLen);
-            return new String(truncated, charset);
-        }
-        if (rawBytes.length == byteLen) {
-            return rawVal; // 已满，无需补位
+        int displayWidth = getDisplayWidth(rawVal);
+        if (displayWidth >= targetLen) {
+            return rawVal;
         }
 
-        // 补位字符取第一个字节（要求 paddingChar 为单字节 ASCII 字符，如空格/零）
-        byte padByte = (byte) paddingChar.charAt(0);
+        // 补齐：按补齐字符的显示宽度逐个填充
+        int padNeeded = targetLen - displayWidth;
+        int padCharWidth = getCharDisplayWidth(paddingChar.codePointAt(0));
+        int padCount = padNeeded / padCharWidth;
 
-        int padCount = byteLen - rawBytes.length;
-        byte[] padded = new byte[byteLen];
-
+        StringBuilder sb = new StringBuilder();
         if ("LEFT".equals(paddingDir)) {
-            Arrays.fill(padded, 0, padCount, padByte);
-            System.arraycopy(rawBytes, 0, padded, padCount, rawBytes.length);
+            for (int i = 0; i < padCount; i++) {
+                sb.append(paddingChar);
+            }
+            sb.append(rawVal);
         } else {
-            // RIGHT
-            System.arraycopy(rawBytes, 0, padded, 0, rawBytes.length);
-            Arrays.fill(padded, rawBytes.length, byteLen, padByte);
+            sb.append(rawVal);
+            for (int i = 0; i < padCount; i++) {
+                sb.append(paddingChar);
+            }
         }
-        // 将补位后的字节数组重新解码为 String（确保写出时不会二次乱码）
-        return new String(padded, charset);
+        return sb.toString();
+    }
+
+    /** 计算字符串的显示宽度：中文字符（含全角）计 2，ASCII 计 1 */
+    private int getDisplayWidth(String str) {
+        int width = 0;
+        for (int i = 0; i < str.length(); i++) {
+            int cp = str.codePointAt(i);
+            width += getCharDisplayWidth(cp);
+            if (Character.isSupplementaryCodePoint(cp)) {
+                i++;
+            }
+        }
+        return width;
+    }
+
+    /** 按显示宽度截断字符串，确保不切断多字节字符 */
+    private String truncateByDisplayWidth(String str, int maxWidth) {
+        StringBuilder sb = new StringBuilder();
+        int currentWidth = 0;
+        for (int i = 0; i < str.length(); i++) {
+            int cp = str.codePointAt(i);
+            int cw = getCharDisplayWidth(cp);
+            if (currentWidth + cw > maxWidth) {
+                break;
+            }
+            sb.appendCodePoint(cp);
+            currentWidth += cw;
+            if (Character.isSupplementaryCodePoint(cp)) {
+                i++;
+            }
+        }
+        return sb.toString();
+    }
+
+    /** 单个字符的显示宽度：全角/中文 = 2，其余 = 1 */
+    private int getCharDisplayWidth(int codePoint) {
+        return isFullWidth(codePoint) ? 2 : 1;
+    }
+
+    /** 判断是否全角字符（中文、日韩文、全角标点等） */
+    private boolean isFullWidth(int cp) {
+        // CJK 统一表意文字
+        if (cp >= 0x4E00 && cp <= 0x9FFF) return true;
+        // CJK 扩展 A
+        if (cp >= 0x3400 && cp <= 0x4DBF) return true;
+        // CJK 兼容表意文字
+        if (cp >= 0xF900 && cp <= 0xFAFF) return true;
+        // CJK 扩展 B-F (补充平面)
+        if (cp >= 0x20000 && cp <= 0x2FFFF) return true;
+        // 全角 ASCII/标点
+        if (cp >= 0xFF01 && cp <= 0xFF60) return true;
+        if (cp >= 0xFFE0 && cp <= 0xFFE6) return true;
+        // CJK 符号和标点
+        if (cp >= 0x3000 && cp <= 0x303F) return true;
+        // 日文平假名/片假名
+        if (cp >= 0x3040 && cp <= 0x30FF) return true;
+        // 韩文
+        if (cp >= 0xAC00 && cp <= 0xD7AF) return true;
+        if (cp >= 0x1100 && cp <= 0x11FF) return true;
+        return false;
     }
 
     private String substituteLevel2(List<MetaFieldDefinition> fields, Map<String, String> rowValues, String parentLine) {

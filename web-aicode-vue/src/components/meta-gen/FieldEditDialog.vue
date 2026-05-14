@@ -599,6 +599,17 @@ export default {
         f.ruleConfigJson = JSON.stringify(RULE_TEMPLATES[f.ruleType])
       }
 
+      // 兼容：refEnumKey 存在但 ruleConfigJson 中无 enumKey 时自动补上
+      if (f.ruleType === 'ENUM' && f.refEnumKey) {
+        try {
+          const cfg = JSON.parse(f.ruleConfigJson || '{}')
+          if (!cfg.enumKey) {
+            cfg.enumKey = f.refEnumKey
+            f.ruleConfigJson = JSON.stringify(cfg)
+          }
+        } catch (e) {}
+      }
+
       // 基础默认值
       if (!f.paddingDirection) f.paddingDirection = 'NONE'
       if (!f.paddingChar) f.paddingChar = ' '
@@ -661,6 +672,8 @@ export default {
       } else {
         row.ruleConfigJson = null
       }
+      // 切换规则类型时清除 refEnumKey，避免残留
+      row.refEnumKey = null
     },
 
     // ─── 可视化编辑弹窗 ───────────────────────────────────────

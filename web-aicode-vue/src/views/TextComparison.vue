@@ -113,7 +113,7 @@
           <el-tag v-if="isModified" size="mini" type="warning" effect="dark">已修改</el-tag>
         </div>
         <div class="file-header-minimap"></div>
-        <div class="file-header-summary"></div>
+        <!-- <div class="file-header-summary"></div> -->
       </div>
 
       <!-- 比对视图区域 -->
