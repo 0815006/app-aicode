@@ -64,6 +64,11 @@
         <span slot="title">造数引擎</span>
       </el-menu-item>
 
+      <el-menu-item index="/format-json">
+        <i class="el-icon-document"></i>
+        <span slot="title">格式化JSON</span>
+      </el-menu-item>
+
     </el-menu>
   </div>
 </template>

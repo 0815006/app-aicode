@@ -12,6 +12,7 @@ import PerformanceTest from '@/views/PerformanceTest.vue'
 import TextComparison from '@/views/TextComparison.vue'
 import MediaCrawl from '@/views/MediaCrawl.vue'
 import MetaGen from '@/views/MetaGen.vue'
+import FormatJson from '@/views/FormatJson.vue'
 
 Vue.use(Router)
 
@@ -81,6 +82,12 @@ export default new Router({
           name: 'MetaGen',
           component: MetaGen,
           meta: { title: '造数引擎' }
+        },
+        {
+          path: 'format-json',
+          name: 'FormatJson',
+          component: FormatJson,
+          meta: { title: '格式化JSON' }
         }
       ]
     }
