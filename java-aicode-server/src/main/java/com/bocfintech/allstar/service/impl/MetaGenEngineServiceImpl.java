@@ -596,28 +596,42 @@ public class MetaGenEngineServiceImpl implements MetaGenEngineService {
     }
 
     private String generateAmount(GenerationContext ctx, JSONObject cfg) {
-        // DSL: { "type": "AMOUNT", "config": { "precision": 2, "scale": 14, "decimalMode": "IMPLICIT", "signed": false, "padding": "ZERO_LEFT" } }
-        JSONObject config = cfg; // 兼容直接传config
-        if (config == null) config = new JSONObject(); // 避免空指针
+        // 兼容两种格式:
+        // 1. 扁平: {"value": 0.01, "format": "9(14)V99", "scale": 16, "precision": 2}
+        // 2. 嵌套: {"type": "AMOUNT", "config": {"precision": 2, "scale": 14, "decimalMode": "IMPLICIT"}}
+        JSONObject config = cfg;
+        if (config == null) config = new JSONObject();
+
+        // 兼容嵌套格式：如果 cfg 里有 "config" 子对象，解包
+        if (cfg != null && cfg.containsKey("config")) {
+            config = cfg.getJSONObject("config");
+            if (config == null) config = new JSONObject();
+        }
 
         int precision = config.getInteger("precision") != null ? config.getInteger("precision") : 2;
-        int totalLength = config.getInteger("scale") != null ? config.getInteger("scale") : 16; // 这里的scale现在是总位数
+        int totalLength = config.getInteger("scale") != null ? config.getInteger("scale") : 16;
         String decimalMode = config.getString("decimalMode") != null ? config.getString("decimalMode") : "IMPLICIT";
-        // boolean signed = config.getBoolean("signed") != null ? config.getBoolean("signed") : false; // 暂时不用
 
-        // 生成随机金额
-        Random rnd = new Random();
-        // 计算整数部分的最大值，确保生成的随机数不会超过总长度
-        long maxIntPart = (long) Math.pow(10, totalLength - precision) - 1;
-        long intPart = (long)(rnd.nextDouble() * maxIntPart);
-        long fracPart = rnd.nextInt((int) Math.pow(10, precision));
+        long intPart;
+        long fracPart;
+
+        // 检查是否有指定金额值
+        Object valueObj = config.get("value");
+        if (valueObj != null) {
+            double amount = config.getDoubleValue("value");
+            long totalInSmallestUnit = Math.round(amount * Math.pow(10, precision));
+            intPart = totalInSmallestUnit / (long) Math.pow(10, precision);
+            fracPart = totalInSmallestUnit % (long) Math.pow(10, precision);
+        } else {
+            // 生成随机金额
+            Random rnd = new Random();
+            long maxIntPart = (long) Math.pow(10, totalLength - precision) - 1;
+            intPart = (long)(rnd.nextDouble() * maxIntPart);
+            fracPart = rnd.nextInt((int) Math.pow(10, precision));
+        }
 
         if ("IMPLICIT".equals(decimalMode)) {
-            // 隐式小数点: 1234567 表示 12345.67
-            // totalInSmallestUnit = intPart * (long) Math.pow(10, precision) + fracPart;
-            // 直接拼接整数和小数部分，然后格式化为总长度
             String combined = String.format("%d%0" + precision + "d", intPart, fracPart);
-            // 手动左补零，因为 %0 标志不适用于 %s 转换符
             int currentLength = combined.getBytes(Charset.forName(ctx.encoding)).length;
             if (currentLength < totalLength) {
                 StringBuilder sb = new StringBuilder();
@@ -630,8 +644,6 @@ public class MetaGenEngineServiceImpl implements MetaGenEngineService {
                 return combined;
             }
         } else {
-            // 显式小数点
-            // 整数部分长度 = 总长度 - 小数位数 - 1 (小数点)
             int intPartLength = totalLength - precision - 1;
             String intStr = String.format("%0" + intPartLength + "d", intPart);
             String fracStr = String.format("%0" + precision + "d", fracPart);
