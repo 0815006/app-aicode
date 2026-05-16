@@ -74,6 +74,7 @@ app:
 
 # 造数引擎
 meta:
+  max-file-lines: 200000
   storage:
     preview: "D:/data/aicode-v1/meta/preview/"
     formal: "D:/data/aicode-v1/meta/normal/"

@@ -29,7 +29,7 @@ CREATE TABLE `chat_message` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=31 DEFAULT CHARSET=utf8mb4 COMMENT='聊天消息表';
 
-CREATE TABLE chat_file (
+CREATE TABLE `chat_file` (
     id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键ID',
     file_name VARCHAR(255) NOT NULL COMMENT '用户看到的原始文件名',
     storage_name VARCHAR(255) NOT NULL COMMENT '磁盘上真实的文件名(UUID)',

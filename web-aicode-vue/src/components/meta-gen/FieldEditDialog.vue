@@ -78,7 +78,7 @@
           </el-table-column>
 
           <!-- 补齐方向 -->
-          <el-table-column label="补齐" width="85">
+          <el-table-column label="补齐" width="90">
             <template slot-scope="scope">
               <el-select v-model="scope.row.paddingDirection" size="mini" style="width:100%">
                 <el-option label="不补" value="NONE" />
@@ -89,7 +89,7 @@
           </el-table-column>
 
           <!-- 补齐字符 -->
-          <el-table-column label="补齐字符" width="75">
+          <el-table-column label="补齐字符" width="95">
             <template slot-scope="scope">
               <el-select v-model="scope.row.paddingChar" size="mini" style="width:100%" :disabled="scope.row.paddingDirection === 'NONE'">
                 <el-option label="空格" value=" " />
@@ -123,11 +123,11 @@
           <!-- 规则配置JSON -->
           <el-table-column label="规则配置JSON" min-width="260">
             <template slot-scope="scope">
-              <div style="display:flex;align-items:flex-start;gap:4px">
+              <div style="display:flex;align-items:center;gap:4px">
                 <el-input
                   v-model="scope.row.ruleConfigJson"
                   type="textarea"
-                  :rows="2"
+                  :rows="1"
                   size="mini"
                   placeholder="选择规则类型后自动填充，可直接修改此JSON串"
                   style="font-family:monospace;font-size:11px;flex:1"
@@ -137,7 +137,7 @@
                   size="mini"
                   plain
                   title="可视化编辑JSON字段"
-                  style="padding:3px 6px;flex-shrink:0;margin-top:1px"
+                  style="padding:3px 6px;flex-shrink:0"
                   @click="openVisualEdit(scope.row, scope.$index)"
                 ><i class="el-icon-setting"></i></el-button>
               </div>

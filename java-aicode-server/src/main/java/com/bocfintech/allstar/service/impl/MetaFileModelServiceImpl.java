@@ -5,6 +5,7 @@ import com.bocfintech.allstar.entity.MetaFileModel;
 import com.bocfintech.allstar.mapper.MetaFileModelMapper;
 import com.bocfintech.allstar.service.MetaFileModelService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -16,6 +17,9 @@ import java.util.List;
 public class MetaFileModelServiceImpl
         extends ServiceImpl<MetaFileModelMapper, MetaFileModel>
         implements MetaFileModelService {
+
+    @Value("${meta.max-file-lines:200000}")
+    private int maxFileLines;
 
     @Override
     public List<MetaFileModel> listByUser(String ownerId) {
@@ -38,6 +42,9 @@ public class MetaFileModelServiceImpl
         if (model.getHasFooter() == null) model.setHasFooter(1);
         if (model.getEncoding() == null) model.setEncoding("UTF-8");
         if (model.getMaxRowsLimit() == null) model.setMaxRowsLimit(100000);
+        if (model.getMaxRowsLimit() > maxFileLines) {
+            throw new IllegalArgumentException("最大行数超过全局限制: " + maxFileLines);
+        }
         return save(model);
     }
 
@@ -56,6 +63,9 @@ public class MetaFileModelServiceImpl
             if (!isSharedWith(existing, operator)) {
                 throw new SecurityException("无权修改该模型");
             }
+        }
+        if (model.getMaxRowsLimit() != null && model.getMaxRowsLimit() > maxFileLines) {
+            throw new IllegalArgumentException("最大行数超过全局限制: " + maxFileLines);
         }
         model.setUpdateTime(LocalDateTime.now());
         model.setOwnerId(existing.getOwnerId()); // 防止篡改owner

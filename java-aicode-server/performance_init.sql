@@ -1,3 +1,13 @@
+-- 清理旧表（按依赖顺序先删子表再删父表）
+DROP TABLE IF EXISTS `perf_task_scene_result_detail`;
+DROP TABLE IF EXISTS `perf_task_scene_result`;
+DROP TABLE IF EXISTS `perf_task_scene_detail`;
+DROP TABLE IF EXISTS `perf_task_scene`;
+DROP TABLE IF EXISTS `perf_task_batch`;
+DROP TABLE IF EXISTS `perf_task_tran`;
+DROP TABLE IF EXISTS `perf_data_detail`;
+DROP TABLE IF EXISTS `perf_data_plan`;
+DROP TABLE IF EXISTS `perf_task`;
 
 -- 性能测试任务主表
 CREATE TABLE IF NOT EXISTS `perf_task` (

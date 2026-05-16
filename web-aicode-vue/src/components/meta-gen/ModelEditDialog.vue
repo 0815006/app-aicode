@@ -71,7 +71,7 @@ export default {
         this.form = { ...modelData }
         if (this.form.hasHeader === undefined) this.form.hasHeader = 1
         if (this.form.hasFooter === undefined) this.form.hasFooter = 1
-        if (!this.form.maxRowsLimit) this.form.maxRowsLimit = 100000
+        if (!this.form.maxRowsLimit) this.form.maxRowsLimit = 100
         if (!this.form.encoding) this.form.encoding = 'UTF-8'
         if (!this.form.splitType) this.form.splitType = 'DELIMITER'
       } else {
@@ -83,7 +83,7 @@ export default {
           splitType: 'DELIMITER',
           delimiter: ',',
           encoding: 'UTF-8',
-          maxRowsLimit: 100000,
+          maxRowsLimit: 100,
           hasHeader: 1,
           hasFooter: 1,
           lineEndingChar: '',

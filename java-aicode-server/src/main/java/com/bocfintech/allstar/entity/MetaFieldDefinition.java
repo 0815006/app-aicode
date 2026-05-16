@@ -32,7 +32,7 @@ public class MetaFieldDefinition {
 
     private String paddingChar;
 
-    private String ruleType;    // FIXED, DATE, ENUM, REF_FILE, REF_FIELD, SEQ, SUM, COUNT, RANDOM, AMOUNT, EXPRESSION
+    private String ruleType;    // FIXED, DATE, ENUM, REF_FILE, REF_FIELD, SEQ, SEQUENCE, SUM, COUNT, RANDOM, RANDOM_NUM, RANDOM_CN, RANDOM_UUID, AMOUNT, BATCH_NO, EXPR, EXPRESSION
 
     private String refFieldKey;
 

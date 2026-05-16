@@ -28,6 +28,9 @@ public class MetaGenEngineServiceImpl implements MetaGenEngineService {
     @Value("${meta.storage.formal:./storage/formal}")
     private String formalDir;
 
+    @Value("${meta.max-file-lines:200000}")
+    private int maxFileLines;
+
     @Autowired
     private MetaFileModelService modelService;
 
@@ -126,7 +129,8 @@ public class MetaGenEngineServiceImpl implements MetaGenEngineService {
         if (model == null) throw new IllegalArgumentException("模型不存在");
         if (!"PUBLISHED".equals(model.getStatus())) throw new IllegalStateException("模型未发布，无法生成");
         if (rowCount == null || rowCount <= 0) rowCount = 1;
-        if (rowCount > model.getMaxRowsLimit()) throw new IllegalArgumentException("超过最大行数限制: " + model.getMaxRowsLimit());
+        if (rowCount > maxFileLines) throw new IllegalArgumentException("超过全局最大行数限制: " + maxFileLines);
+        if (rowCount > model.getMaxRowsLimit()) throw new IllegalArgumentException("超过模型最大行数限制: " + model.getMaxRowsLimit());
 
         List<MetaFieldDefinition> fields = fieldService.listByModelId(modelId); // 获取 fields 列表
         GenerationContext tempCtx = new GenerationContext(model, fields, rowCount, false, operator); // 构建临时 ctx
@@ -344,6 +348,7 @@ public class MetaGenEngineServiceImpl implements MetaGenEngineService {
                 break;
             case "SEQ":
             case "SEQUENCE": // 兼容前端 SEQUENCE 类型
+            case "BATCH_NO": // 批次号，与序列号共用生成逻辑
                 rawVal = generateSeq(ctx, field, rowIndex);
                 break;
             case "SUM":
@@ -842,7 +847,7 @@ public class MetaGenEngineServiceImpl implements MetaGenEngineService {
             this.isPreview = isPreview;
             this.operator = operator;
             this.encoding = model.getEncoding() != null ? model.getEncoding() : "UTF-8";
-            this.lineEnding = model.getLineEndingChar() != null ? model.getLineEndingChar() : "\r\n";
+            this.lineEnding = model.getLineEndingChar() != null && !model.getLineEndingChar().isEmpty() ? model.getLineEndingChar() : "\r\n";
         }
 
         void init() {

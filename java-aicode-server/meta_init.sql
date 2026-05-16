@@ -1,3 +1,11 @@
+-- 清理旧表
+DROP TABLE IF EXISTS `meta_entity_file`;
+DROP TABLE IF EXISTS `meta_field_definition`;
+DROP TABLE IF EXISTS `meta_sequence_tracker`;
+DROP TABLE IF EXISTS `meta_ref_file`;
+DROP TABLE IF EXISTS `meta_enum_library`;
+DROP TABLE IF EXISTS `meta_file_model`;
+
 CREATE TABLE `meta_file_model` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     `model_name` VARCHAR(100) NOT NULL COMMENT '模型名称',
