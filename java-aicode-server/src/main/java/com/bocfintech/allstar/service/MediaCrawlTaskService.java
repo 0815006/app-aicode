@@ -14,12 +14,12 @@ public interface MediaCrawlTaskService extends BaseService<MediaCrawlTask> {
     /**
      * 添加抓取任务
      */
-    MediaCrawlTask addTask(String url, String crawlType, Integer minSizeLimit);
+    MediaCrawlTask addTask(String url, String crawlType, Integer minSizeLimit, String createdBy);
 
     /**
-     * 分页查询任务列表
+     * 分页查询任务列表（仅查询当前用户的记录）
      */
-    MyPage<MediaCrawlTask> pageTasks(int page, int size);
+    MyPage<MediaCrawlTask> pageTasks(int page, int size, String createdBy);
 
     /**
      * 获取任务详情
@@ -52,4 +52,10 @@ public interface MediaCrawlTaskService extends BaseService<MediaCrawlTask> {
      * 删除任务（连带删除本地文件）
      */
     boolean deleteTask(Long id);
+
+    /**
+     * 删除指定的媒体文件（物理删除）
+     * @return 实际删除的文件数量
+     */
+    int deleteMediaFiles(String folderName, String type, List<String> fileNames);
 }

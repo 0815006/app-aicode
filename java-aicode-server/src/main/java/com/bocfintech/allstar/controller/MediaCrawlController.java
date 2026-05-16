@@ -10,6 +10,8 @@ import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -30,18 +32,20 @@ public class MediaCrawlController {
     @PostMapping("/task/add")
     public ResultBean<MediaCrawlTask> addTask(@RequestParam String url,
                                                @RequestParam(defaultValue = "IMAGE") String crawlType,
-                                               @RequestParam(defaultValue = "0") Integer minSizeLimit) {
-        MediaCrawlTask task = taskService.addTask(url, crawlType, minSizeLimit);
+                                               @RequestParam(defaultValue = "0") Integer minSizeLimit,
+                                               @RequestParam String createdBy) {
+        MediaCrawlTask task = taskService.addTask(url, crawlType, minSizeLimit, createdBy);
         // 启动抓取引擎
         crawlEngineService.startEngine();
         return ResultBean.success(task);
     }
 
-    @ApiOperation("分页查询任务列表")
+    @ApiOperation("分页查询任务列表（仅当前用户）")
     @GetMapping("/task/list")
     public ResultBean<MyPage<MediaCrawlTask>> listTasks(@RequestParam(defaultValue = "1") int page,
-                                                         @RequestParam(defaultValue = "20") int size) {
-        MyPage<MediaCrawlTask> result = taskService.pageTasks(page, size);
+                                                         @RequestParam(defaultValue = "20") int size,
+                                                         @RequestParam String createdBy) {
+        MyPage<MediaCrawlTask> result = taskService.pageTasks(page, size, createdBy);
         return ResultBean.success(result);
     }
 
@@ -70,6 +74,16 @@ public class MediaCrawlController {
     public ResultBean<String> startEngine() {
         crawlEngineService.startEngine();
         return ResultBean.success("抓取引擎已启动");
+    }
+
+    @ApiOperation("删除指定媒体文件（物理删除）")
+    @DeleteMapping("/media-files")
+    public ResultBean<String> deleteMediaFiles(@RequestParam String folderName,
+                                                @RequestParam String type,
+                                                @RequestParam String fileNames) {
+        List<String> fileNameList = Arrays.asList(fileNames.split(","));
+        int deleted = taskService.deleteMediaFiles(folderName, type, fileNameList);
+        return ResultBean.success("已删除 " + deleted + " 个文件");
     }
 
     @ApiOperation("删除任务（连带删除本地文件）")

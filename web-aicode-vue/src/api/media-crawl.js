@@ -4,22 +4,22 @@ import request from '@/utils/request'
 /**
  * 添加抓取任务
  */
-export function addCrawlTask(url, crawlType, minSizeLimit) {
+export function addCrawlTask(url, crawlType, minSizeLimit, createdBy) {
   return request({
     url: '/media-crawl/task/add',
     method: 'post',
-    params: { url, crawlType, minSizeLimit }
+    params: { url, crawlType, minSizeLimit, createdBy }
   })
 }
 
 /**
- * 分页查询任务列表
+ * 分页查询任务列表（仅当前用户）
  */
-export function listCrawlTasks(page, size) {
+export function listCrawlTasks(page, size, createdBy) {
   return request({
     url: '/media-crawl/task/list',
     method: 'get',
-    params: { page, size }
+    params: { page, size, createdBy }
   })
 }
 
@@ -60,5 +60,16 @@ export function deleteCrawlTask(id) {
   return request({
     url: `/media-crawl/task/${id}`,
     method: 'delete'
+  })
+}
+
+/**
+ * 删除指定媒体文件（物理删除）
+ */
+export function deleteMediaFiles(folderName, type, fileNames) {
+  return request({
+    url: '/media-crawl/media-files',
+    method: 'delete',
+    params: { folderName, type, fileNames: fileNames.join(',') }
   })
 }

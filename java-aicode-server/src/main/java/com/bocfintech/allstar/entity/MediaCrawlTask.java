@@ -45,6 +45,9 @@ public class MediaCrawlTask {
     /** 生成的目录名(标题前20位+时间戳) */
     private String folderName;
 
+    /** 创建人工号 */
+    private String createdBy;
+
     /** 任务添加日期 */
     private Date createTime;
 
@@ -145,6 +148,14 @@ public class MediaCrawlTask {
 
     public void setCreateTime(Date createTime) {
         this.createTime = createTime;
+    }
+
+    public String getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
     }
 
     public Date getUpdateTime() {

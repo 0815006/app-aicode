@@ -33,11 +33,12 @@ public class MediaCrawlTaskServiceImpl extends BaseServiceImpl<MediaCrawlTaskMap
     private String videoBasePath;
 
     @Override
-    public MediaCrawlTask addTask(String url, String crawlType, Integer minSizeLimit) {
+    public MediaCrawlTask addTask(String url, String crawlType, Integer minSizeLimit, String createdBy) {
         MediaCrawlTask task = new MediaCrawlTask();
         task.setUrl(url);
         task.setCrawlType(crawlType != null ? crawlType : "IMAGE");
         task.setMinSizeLimit(minSizeLimit != null ? minSizeLimit : 0);
+        task.setCreatedBy(createdBy);
         task.setStatus("PENDING");
         task.setImgCount(0);
         task.setImgTotalSize(0L);
@@ -50,10 +51,12 @@ public class MediaCrawlTaskServiceImpl extends BaseServiceImpl<MediaCrawlTaskMap
     }
 
     @Override
-    public MyPage<MediaCrawlTask> pageTasks(int page, int size) {
+    public MyPage<MediaCrawlTask> pageTasks(int page, int size, String createdBy) {
         Page<MediaCrawlTask> paget = new Page<>(page, size);
         paget.addOrder(com.baomidou.mybatisplus.core.metadata.OrderItem.desc("create_time"));
-        IPage<MediaCrawlTask> ipage = mapper.selectPage(paget, null);
+        LambdaQueryWrapper<MediaCrawlTask> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(MediaCrawlTask::getCreatedBy, createdBy);
+        IPage<MediaCrawlTask> ipage = mapper.selectPage(paget, wrapper);
         return MyPageUtil.getMypage(ipage);
     }
 
@@ -189,6 +192,62 @@ public class MediaCrawlTaskServiceImpl extends BaseServiceImpl<MediaCrawlTaskMap
         int rows = mapper.deleteById(id);
         log.info("已删除任务记录: id={}, 影响行数={}", id, rows);
         return rows > 0;
+    }
+
+    @Override
+    public int deleteMediaFiles(String folderName, String type, List<String> fileNames) {
+        if (folderName == null || fileNames == null || fileNames.isEmpty()) {
+            return 0;
+        }
+
+        String basePath = "VIDEO".equalsIgnoreCase(type) ? videoBasePath : imageBasePath;
+        String dirPath = basePath + File.separator + folderName;
+        File dir = new File(dirPath);
+        if (!dir.exists() || !dir.isDirectory()) {
+            return 0;
+        }
+
+        int deleted = 0;
+        for (String fileName : fileNames) {
+            File file = new File(dir, fileName);
+            if (file.exists() && file.isFile() && file.delete()) {
+                deleted++;
+                log.info("已删除媒体文件: {}", file.getAbsolutePath());
+            }
+        }
+
+        // 更新任务中的文件计数和大小
+        if (deleted > 0) {
+            LambdaQueryWrapper<MediaCrawlTask> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(MediaCrawlTask::getFolderName, folderName);
+            MediaCrawlTask task = mapper.selectOne(wrapper);
+            if (task != null) {
+                // 重新统计目录下的文件
+                File[] remaining = dir.listFiles((d, name) -> {
+                    String lower = name.toLowerCase();
+                    return lower.endsWith(".jpg") || lower.endsWith(".jpeg") ||
+                           lower.endsWith(".png") || lower.endsWith(".gif") ||
+                           lower.endsWith(".bmp") || lower.endsWith(".webp") ||
+                           lower.endsWith(".svg") ||
+                           lower.endsWith(".mp4") || lower.endsWith(".webm") ||
+                           lower.endsWith(".avi") || lower.endsWith(".mov") ||
+                           lower.endsWith(".flv") || lower.endsWith(".mkv");
+                });
+                if (remaining != null) {
+                    if ("VIDEO".equalsIgnoreCase(type)) {
+                        task.setVideoCount(remaining.length);
+                        task.setVideoTotalSize(Arrays.stream(remaining).mapToLong(File::length).sum());
+                    } else {
+                        task.setImgCount(remaining.length);
+                        task.setImgTotalSize(Arrays.stream(remaining).mapToLong(File::length).sum());
+                    }
+                }
+                task.setUpdateTime(new Date());
+                mapper.updateById(task);
+            }
+        }
+
+        return deleted;
     }
 
     /**

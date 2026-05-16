@@ -22,15 +22,25 @@ USE `stack_db`;
 DROP TABLE IF EXISTS `chat_message`;
 
 CREATE TABLE `chat_message` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `username` varchar(255) NOT NULL,
-  `message` text NOT NULL,
-  `timestamp` datetime NOT NULL,
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `username` varchar(255) NOT NULL COMMENT '用户名',
+  `message` text NOT NULL COMMENT '消息内容',
+  `timestamp` datetime NOT NULL COMMENT '消息时间',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=31 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=31 DEFAULT CHARSET=utf8mb4 COMMENT='聊天消息表';
+
+CREATE TABLE chat_file (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键ID',
+    file_name VARCHAR(255) NOT NULL COMMENT '用户看到的原始文件名',
+    storage_name VARCHAR(255) NOT NULL COMMENT '磁盘上真实的文件名(UUID)',
+    file_size BIGINT DEFAULT 0 COMMENT '文件大小(字节)',
+    uploader_id varchar(32) NOT NULL COMMENT '上传者ID-取7位员工工号',
+    uploader_name VARCHAR(50) COMMENT '上传者昵称（聊天窗口的用户名）',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    INDEX (create_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='聊天文件表';
 
 /*Table structure for table `com_workholiday` */
-
 DROP TABLE IF EXISTS `com_workholiday`;
 
 CREATE TABLE `com_workholiday` (
@@ -38,7 +48,7 @@ CREATE TABLE `com_workholiday` (
   `status` varchar(255) DEFAULT NULL COMMENT '状态，0 放假 1 上班',
   `msg` varchar(255) DEFAULT NULL COMMENT '节日信息',
   PRIMARY KEY (`date`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ROW_FORMAT=DYNAMIC;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ROW_FORMAT=DYNAMIC COMMENT='假日信息表';
 
 /*Table structure for table `data_compare_result` */
 
@@ -175,7 +185,7 @@ CREATE TABLE `parking_record` (
 /*Table structure for table `performance_resource_info` */
 
 CREATE TABLE `performance_resource_info` (
-  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键ID',
   `serial_number` int(11) DEFAULT NULL COMMENT '序号',
   `task_name` varchar(255) DEFAULT NULL COMMENT '任务名称',
   `task_num` varchar(32) DEFAULT NULL COMMENT '任务编号',
@@ -284,17 +294,6 @@ CREATE TABLE `vote_records` (
     INDEX `idx_option_id` (`option_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='投票流水记录表';
 
-CREATE TABLE chat_file (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    file_name VARCHAR(255) NOT NULL,       -- 用户看到的原始文件名
-    storage_name VARCHAR(255) NOT NULL,    -- 磁盘上真实的文件名 (UUID)
-    file_size BIGINT DEFAULT 0,            -- 文件大小 (字节)
-    uploader_id varchar(32) NOT NULL,              -- 上传者ID-取7位员工工号
-    uploader_name VARCHAR(50),             -- 上传者昵称（聊天窗口的用户名）
-    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-    INDEX (create_time)                    -- 方便按时间排序
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='聊天文件表表';
-
 CREATE TABLE `media_crawl_task` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
   `url` varchar(1000) NOT NULL COMMENT '目标网页网址',
@@ -311,6 +310,7 @@ CREATE TABLE `media_crawl_task` (
   -- 存储关键信息
   `folder_name` varchar(150) DEFAULT NULL COMMENT '生成的目录名(标题前20位+时间戳)',
   -- 时间记录
+  `created_by` varchar(7) NOT NULL COMMENT '创建人工号（7位字符串）',
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '任务添加日期',
   `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后状态更新时间',
   PRIMARY KEY (`id`),

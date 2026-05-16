@@ -1,13 +1,10 @@
 <!-- src/views/MediaCrawl.vue -->
 <template>
   <div class="media-crawl-container">
-    <!-- 顶部：标题区 -->
+    <!-- 顶部：标题 + 网址输入 -->
     <div class="header-section">
-      <h1 class="page-title">🌐 网页媒体采集系统</h1>
-      <p class="page-subtitle">Web Media Collector — 自动抓取网页中的图片与视频资源</p>
+      <h1 class="page-title">网页媒体采集小工具</h1>
     </div>
-
-    <!-- 顶部：添加网址输入区 -->
     <div class="input-section">
       <div class="crawl-form">
         <div class="form-item-url">
@@ -163,13 +160,37 @@
             <!-- 图片展示区 -->
             <template v-if="mediaInfo.imgFiles && mediaInfo.imgFiles.length > 0">
               <div class="media-section">
-                <h4 class="media-type-title">📷 图片 ({{ mediaInfo.imgFiles.length }} 张)</h4>
+                <div class="media-type-title-row">
+                  <h4 class="media-type-title">📷 图片 ({{ mediaInfo.imgFiles.length }} 张)</h4>
+                  <template v-if="displayMode === 'thumbnail'">
+                    <el-button
+                      size="mini"
+                      :type="selectingImages ? 'warning' : 'default'"
+                      @click="toggleImageSelect"
+                    >
+                      {{ selectingImages ? '取消' : '选择' }}
+                    </el-button>
+                    <el-button
+                      v-if="selectingImages && selectedImages.length > 0"
+                      size="mini"
+                      type="danger"
+                      icon="el-icon-delete"
+                      @click="handleDeleteSelectedImages"
+                    >
+                      删除 ({{ selectedImages.length }})
+                    </el-button>
+                  </template>
+                </div>
                 <div :class="['media-grid', displayMode === 'full' ? 'full-mode' : 'thumbnail-mode']">
                   <div
                     v-for="(file, index) in mediaInfo.imgFiles"
                     :key="'img-' + index"
-                    class="media-item"
+                    :class="['media-item', { 'selected-item': selectingImages && selectedImages.includes(file) }]"
+                    @click="selectingImages ? toggleImageSelection(file) : null"
                   >
+                    <div v-if="selectingImages" class="image-checkbox">
+                      <el-checkbox :value="selectedImages.includes(file)" @click.native.stop @change="toggleImageSelection(file)" />
+                    </div>
                     <el-image
                       :src="getImgUrl(file)"
                       :preview-src-list="getImgPreviewList()"
@@ -226,8 +247,10 @@ import {
   listCrawlTasks,
   getTaskMediaFiles,
   startCrawlEngine,
-  deleteCrawlTask
+  deleteCrawlTask,
+  deleteMediaFiles
 } from '@/api/media-crawl'
+import { getCurrentEmpNo } from '@/utils/currentUser'
 
 export default {
   name: 'MediaCrawl',
@@ -253,7 +276,11 @@ export default {
       selectedTask: null,
       mediaInfo: {},
       mediaLoading: false,
-      displayMode: 'thumbnail'
+      displayMode: 'thumbnail',
+
+      // 图片选择模式
+      selectingImages: false,
+      selectedImages: []
     }
   },
   mounted() {
@@ -264,7 +291,7 @@ export default {
     async fetchTaskList() {
       this.loading = true
       try {
-        const res = await listCrawlTasks(this.currentPage, this.pageSize)
+        const res = await listCrawlTasks(this.currentPage, this.pageSize, getCurrentEmpNo())
         if (res.code === 200) {
           // MyPage 继承 ArrayList，data 本身是数组，同时包含 totalElements 等分页字段
           this.taskList = res.data.content || []
@@ -294,7 +321,8 @@ export default {
         const res = await addCrawlTask(
           this.form.url,
           this.form.crawlType,
-          this.form.minSizeLimit
+          this.form.minSizeLimit,
+          getCurrentEmpNo()
         )
         if (res.code === 200) {
           this.$message.success('任务添加成功，系统将自动开始抓取')
@@ -434,6 +462,51 @@ export default {
       return map[status] || status
     },
 
+    // 切换图片选择模式
+    toggleImageSelect() {
+      this.selectingImages = !this.selectingImages
+      if (!this.selectingImages) {
+        this.selectedImages = []
+      }
+    },
+
+    // 切换单张图片的选中状态
+    toggleImageSelection(file) {
+      const idx = this.selectedImages.indexOf(file)
+      if (idx >= 0) {
+        this.selectedImages.splice(idx, 1)
+      } else {
+        this.selectedImages.push(file)
+      }
+    },
+
+    // 删除选中的图片
+    async handleDeleteSelectedImages() {
+      if (this.selectedImages.length === 0) return
+      try {
+        await this.$confirm(
+          `确定要删除选中的 ${this.selectedImages.length} 张图片吗？此操作不可恢复。`,
+          '确认删除',
+          { confirmButtonText: '确定删除', cancelButtonText: '取消', type: 'warning' }
+        )
+      } catch (e) {
+        return
+      }
+      try {
+        const res = await deleteMediaFiles(this.mediaInfo.folderName, 'IMAGE', this.selectedImages)
+        if (res.code === 200) {
+          this.$message.success(res.data || '删除成功')
+          this.selectedImages = []
+          this.selectingImages = false
+          // 刷新媒体文件列表
+          await this.handleRowClick(this.selectedTask)
+        }
+      } catch (e) {
+        console.error('删除媒体文件失败', e)
+        this.$message.error('删除媒体文件失败')
+      }
+    },
+
     // 状态类型
     statusType(status) {
       const map = {
@@ -461,23 +534,15 @@ export default {
 
 /* 顶部标题区 */
 .header-section {
-  text-align: center;
-  padding: 8px 0 12px;
+  padding: 4px 0 8px;
   flex-shrink: 0;
 }
 
 .page-title {
   margin: 0;
-  font-size: 24px;
-  font-weight: 700;
+  font-size: 18px;
+  font-weight: 600;
   color: #1f3555;
-  letter-spacing: 2px;
-}
-
-.page-subtitle {
-  margin: 4px 0 0;
-  font-size: 13px;
-  color: #7a8ba8;
 }
 
 /* 输入区 */
@@ -625,11 +690,18 @@ export default {
   margin-bottom: 20px;
 }
 
+.media-type-title-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
 .media-type-title {
-  margin: 0 0 10px;
+  margin: 0;
   font-size: 14px;
   color: #303133;
   font-weight: 600;
+  flex: 1;
 }
 
 /* 媒体网格 */
@@ -651,7 +723,24 @@ export default {
   border-radius: 6px;
   overflow: hidden;
   background: #fafafa;
-  transition: box-shadow 0.2s;
+  transition: box-shadow 0.2s, border-color 0.2s;
+  cursor: default;
+  position: relative;
+}
+
+.media-item.selected-item {
+  border-color: #409eff;
+  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.3);
+}
+
+.image-checkbox {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 4px;
+  padding: 2px;
 }
 
 .media-item:hover {
