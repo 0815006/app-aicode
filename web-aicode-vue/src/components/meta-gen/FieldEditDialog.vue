@@ -611,7 +611,7 @@ export default {
       }
 
       // 基础默认值
-      if (!f.paddingDirection) f.paddingDirection = 'NONE'
+      if (!f.paddingDirection) f.paddingDirection = 'RIGHT'
       if (!f.paddingChar) f.paddingChar = ' '
       if (!f.level) f.level = 1
       if (!f.ruleType) f.ruleType = 'FIXED'
@@ -803,7 +803,7 @@ export default {
         fieldName: '',
         length: null,
         isRequired: 0,
-        paddingDirection: 'NONE',
+        paddingDirection: 'RIGHT',
         paddingChar: ' ',
         ruleType: 'FIXED',
         ruleConfigJson: JSON.stringify(RULE_TEMPLATES['FIXED']),
@@ -960,7 +960,7 @@ export default {
             fieldName: item.fieldName || '',
             length: item.length || null,
             isRequired: item.isRequired || 0,
-            paddingDirection: item.paddingDirection || 'NONE',
+            paddingDirection: item.paddingDirection || 'RIGHT',
             paddingChar: item.paddingChar || ' ',
             ruleType: this.mapRuleType(item.ruleType),
             ruleConfigJson: item.ruleConfigJson || null,

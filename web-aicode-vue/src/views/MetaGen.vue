@@ -124,8 +124,26 @@
                   <span style="font-family:monospace;color:#909399">{{ computeSortOrder(scope.$index, sec.key) }}</span>
                 </template>
               </el-table-column>
-              <el-table-column prop="fieldKey" label="变量名" min-width="110" show-overflow-tooltip></el-table-column>
+              <el-table-column prop="fieldKey" label="变量名" min-width="50" show-overflow-tooltip></el-table-column>
               <el-table-column prop="fieldName" label="字段描述" min-width="100" show-overflow-tooltip></el-table-column>
+              <el-table-column label="长度(B)" width="70" align="center">
+                <template slot-scope="scope">{{ scope.row.length || '-' }}</template>
+              </el-table-column>
+              <el-table-column label="必填" width="55" align="center">
+                <template slot-scope="scope">
+                  <span :style="{ color: scope.row.isRequired ? '#F56C6C' : '#C0C4CC' }">{{ scope.row.isRequired ? '是' : '否' }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="补齐" width="60" align="center">
+                <template slot-scope="scope">
+                  <span>{{ scope.row.paddingDirection !== 'NONE' ? (scope.row.paddingDirection === 'LEFT' ? '左补' : '右补') : '-' }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="补齐字符" width="75" align="center">
+                <template slot-scope="scope">
+                  <span>{{ scope.row.paddingDirection !== 'NONE' ? (scope.row.paddingChar === ' ' ? '空格' : scope.row.paddingChar) : '-' }}</span>
+                </template>
+              </el-table-column>
               <el-table-column prop="ruleType" label="规则类型" width="100">
                 <template slot-scope="scope">
                   <el-tag size="mini" type="info">{{ ruleTypeToChinese(scope.row.ruleType) }}</el-tag>
@@ -135,12 +153,6 @@
                 <template slot-scope="scope">
                   <span style="font-family:monospace;font-size:11px;color:#606266">{{ scope.row.ruleConfigJson || '-' }}</span>
                 </template>
-              </el-table-column>
-              <el-table-column label="长度(B)" width="70" align="center">
-                <template slot-scope="scope">{{ scope.row.length || '-' }}</template>
-              </el-table-column>
-              <el-table-column label="补齐" width="60" align="center">
-                <template slot-scope="scope">{{ scope.row.paddingDirection !== 'NONE' ? scope.row.paddingDirection : '-' }}</template>
               </el-table-column>
             </el-table>
             <div v-else style="color:#909399;font-size:12px;text-align:center;padding:16px">暂无字段定义，点击"编辑"添加</div>
