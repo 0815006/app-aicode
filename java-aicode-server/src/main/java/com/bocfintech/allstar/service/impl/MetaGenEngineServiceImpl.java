@@ -17,6 +17,7 @@ import java.nio.file.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 @Slf4j
@@ -136,10 +137,15 @@ public class MetaGenEngineServiceImpl implements MetaGenEngineService {
         GenerationContext tempCtx = new GenerationContext(model, fields, rowCount, false, operator); // 构建临时 ctx
         tempCtx.init(); // 初始化 ctx，生成 FILENAME 字段值
 
-        String fileName = buildFileName(tempCtx, batchName, operator); // 使用新的调用方式
-        MetaEntityFile record = entityFileService.createRecord(modelId, fileName, "FORMAL", operator);
-        // 异步执行
-        doGenerate(record.getId(), modelId, rowCount, fileName, operator);
+        String displayName = buildFileName(tempCtx, batchName, operator);
+        // 注入随机数字串到磁盘文件名，防止同名文件覆盖
+        String uniqueSuffix = String.format("%04x%08x",
+                ThreadLocalRandom.current().nextInt(0x1000, 0xFFFF),
+                ThreadLocalRandom.current().nextInt(0x10000000, 0x7FFFFFFF));
+        String diskFileName = injectSuffix(displayName, "_" + uniqueSuffix);
+        MetaEntityFile record = entityFileService.createRecord(modelId, displayName, "FORMAL", operator);
+        // 异步执行，磁盘文件使用唯一文件名
+        doGenerate(record.getId(), modelId, rowCount, diskFileName, operator);
         return record;
     }
 
@@ -578,14 +584,43 @@ public class MetaGenEngineServiceImpl implements MetaGenEngineService {
         }
     }
 
+    /** 常用汉字表（3500 个一级常用字），避免生成生僻字乱码 */
+    private static final String COMMON_CHINESE =
+        "的一是在不了有和人这中大为上个国我以要他时来用们生到作地于出就分对成会可主发年动同工也能下过子说产种面而方后多定行学法所民得经十三之进着等部度" +
+        "家电力里如水化高自二理起小物现实加量都两体制机当使点从业本去把性好应开它合还因由其些然前外天政四日那社义事平形相全表间样与关各重新线内数正心" +
+        "反你明看原又么利比或但质气第向道命此变条只没结解问意建月公无系军很情者最立代想已通并提直题党程展五果料象员革位入常文总次品式活设及管特件长" +
+        "求老头基资边流路级少图山统接知较将组见计别她手角期根论运农指几九区强放决西被干做必战先回则任取据处队南给色光门即保治北造百规热领七海口东导" +
+        "器压志世金增争济阶油思术极交受联什认六共权收证改清己美再采转更单风切打白教速花带安场身车例真务具万每目至达走积示议声报斗完类八离华名确才" +
+        "科张信马节话米整空元况今集温传土许步群广石记需段研界拉林律叫且究观越织装影算低持音众书布复容儿须际商非验连断深难近矿千周委素技备半办青省" +
+        "列习响约支般史感劳便团往酸历市克何除消构府称太准精值号率族维划选标写存候毛亲快效斯院查江型眼王按格养易置派层片始却专状育厂京识适属圆包火" +
+        "住调满县局照参红细引听该铁价严首底液官德随病苏失尔死讲配女黄推显谈罪神艺呢席含企望密批营项防举球英氧势告李台落木帮轮破亚师围注远字材排供" +
+        "河态封另施减树溶怎止案言士均武固叶鱼波视仅费紧爱左章早朝害续轻服试食充兵源判护司足某练差致板田降黑犯负击范继兴似余坚曲输修故城夫够送笔船" +
+        "占右财吃富春职觉汉画功巴跟虽杂飞检吸助升阳互初创抗考投坏策古径换未跑留钢曾端责站简述钱副尽帝射草冲承独令限阿宣环双请超微让控州良轴找否纪" +
+        "益依优顶础载倒房突坐粉敌略客袁冷胜绝块测丝协诉念陈仍罗盐友洋错苦夜刑移频逐靠混母短皮终聚汽村云哪既距卫停烈央察烧迅境若印洲刻括激孔搞甚室" +
+        "待核校散侵吧甲游久菜味旧模湖货损预阻毫普稳乙妈植息扩银语挥酒守拿序纸医缺雨吗针刘啊急唱误训愿审附获茶鲜粮斤孩脱硫肥善龙演父渐血欢械掌歌沙" +
+        "著刚攻谓盾讨晚粒乱燃矛乎杀药宁鲁贵钟煤读班伯香介迫句丰培握兰担弦蛋沉假穿执答乐谁顺烟缩征脸喜松脚困异免背星福买染井概慢怕磁倍祖皇促静补评" +
+        "翻肉践尼衣宽扬棉希伤操垂秋宜氢套督振架亮末宪庆编牛触映雷销诗座居抓裂胞呼娘景威绿晶厚盟衡鸡孙延危胶屋乡临陆顾掉呀灯岁措束耐剧玉赵跳哥季" +
+        "课凯胡额款绍卷齐伟蒸殖勇苗川炉岩弱零杨奏沿露杆滑镇饭浓航怀赶库夺伊灵税途灭赛归召鼓播盘裁险康唯录菌纯借糖盖横符私努堂域枪润幅哈竟熟虫泽脑" +
+        "壤碳欧遍侧寨敢彻虑斜薄庭纳弹饲伸折麦湿暗荷瓦塞床筑恶户访塔奇透梁刀旋迹卡氯遇份毒泥退洗摆灰彩卖耗夏择忙铜献硬予繁圈雪函亦抽篇阵阴丁尺追堆" +
+        "雄迎泛爸楼避谋吨野猪旗累偏典馆索秦脂潮爷豆忽托惊塑遗愈朱替纤粗倾尚痛楚谢奋购磨君池旁碎骨监捕弟暴割贯殊释词亡壁顿宝午尘闻揭炮残冬桥妇警综" +
+        "招吴付浮遭徐您摇谷赞箱隔订男吹园纷唐败宋玻巨耕坦荣湾沿拿供坐怨逼销豫爆丽殊漂亮浮摸拒晨宽扶梯焦冠折胸碰殖抄拥徒掌宁祖陷钻猛射脑毕顶湾悠" +
+        "瑞络诸迷纷逼移频姻俗脉宜欧彼暴忽鲜丙唯湿寿宜幽愤怒幻惠悲徐怒抵撑摸折扎撤摸撞择毅浑皆扩叙弃堆搜闲染洁奉闭奈悠";
+
     private String generateRandom(JSONObject cfg) {
         String mode = cfg != null ? cfg.getString("mode") : "DIGIT";
-        int len = cfg != null && cfg.getInteger("length") != null ? cfg.getInteger("length") : 10;
+        int len;
+        if (cfg != null && cfg.getInteger("count") != null) {
+            len = cfg.getInteger("count");
+        } else if (cfg != null && cfg.getInteger("length") != null) {
+            len = cfg.getInteger("length");
+        } else {
+            len = 10;
+        }
         Random rnd = new Random();
         if ("CHINESE".equals(mode)) {
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i < len; i++) {
-                sb.append((char)(0x4e00 + rnd.nextInt(0x9fa5 - 0x4e00)));
+                sb.append(COMMON_CHINESE.charAt(rnd.nextInt(COMMON_CHINESE.length())));
             }
             return sb.toString();
         }
@@ -820,6 +855,15 @@ public class MetaGenEngineServiceImpl implements MetaGenEngineService {
             if (batchName != null && !batchName.isEmpty()) name += "_" + batchName;
             return name + ".txt"; // 默认加 .txt 后缀
         }
+    }
+
+    /** 在文件名扩展名前注入后缀，如 MyFile.txt → MyFile_a1b2c3d4.txt */
+    private String injectSuffix(String fileName, String suffix) {
+        int dotIdx = fileName.lastIndexOf('.');
+        if (dotIdx > 0) {
+            return fileName.substring(0, dotIdx) + suffix + fileName.substring(dotIdx);
+        }
+        return fileName + suffix;
     }
 
     // ===================== 内部类: 生成上下文 =====================

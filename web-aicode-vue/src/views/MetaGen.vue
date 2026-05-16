@@ -554,11 +554,11 @@ export default {
 
 <style scoped>
 .meta-gen-page {
-  height: calc(100vh - 60px);
-  overflow: hidden;
-  background: linear-gradient(180deg, #f5f8ff 0%, #eef3fb 100%);
   padding: 20px;
+  height: 100%;
+  background: linear-gradient(180deg, #f5f8ff 0%, #eef3fb 100%);
   box-sizing: border-box;
+  overflow: hidden;
 }
 .meta-main-content {
   display: flex;
@@ -677,7 +677,7 @@ export default {
 .detail-scroll-container {
   flex: 1;
   overflow-y: auto;
-  padding-right: 5px;
+  padding: 0 5px 12px 0;
 }
 .detail-scroll-container::-webkit-scrollbar { width: 6px; }
 .detail-scroll-container::-webkit-scrollbar-thumb {
@@ -689,6 +689,7 @@ export default {
   margin-bottom: 20px;
   border-radius: 12px;
   border: 1px solid #ebeef5;
+  overflow: hidden;
 }
 .card-header {
   display: flex;

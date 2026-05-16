@@ -97,18 +97,21 @@ public class MetaGenController {
     public ResponseEntity<Resource> download(@PathVariable Long fileId,
                                               @RequestHeader(value = "token", required = false) String token) {
         String empNo = getEmpNo(token);
-        String filePath = engineService.getFilePath(fileId);
-        if (filePath == null) return ResponseEntity.notFound().build();
+        MetaEntityFile record = entityFileService.getById(fileId);
+        if (record == null) return ResponseEntity.notFound().build();
+        String filePath = record.getStoragePath();
+        if (filePath == null || filePath.isEmpty()) return ResponseEntity.notFound().build();
 
         File file = new File(filePath);
         if (!file.exists()) return ResponseEntity.notFound().build();
 
         Resource resource = new FileSystemResource(file);
+        String downloadName = record.getFileName() != null ? record.getFileName() : file.getName();
         String encodedName;
         try {
-            encodedName = URLEncoder.encode(file.getName(), "UTF-8").replace("+", "%20");
+            encodedName = URLEncoder.encode(downloadName, "UTF-8").replace("+", "%20");
         } catch (Exception e) {
-            encodedName = file.getName();
+            encodedName = downloadName;
         }
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
