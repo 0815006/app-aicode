@@ -158,6 +158,24 @@ export function deleteEntityFile(fileId) {
   return request({ url: `${BASE}/execute/file/${fileId}`, method: 'delete' })
 }
 
+export function uploadToFtp(data) {
+  return request({ url: `${BASE}/execute/upload-ftp`, method: 'post', data })
+}
+
+// ===================== FTP配置管理 =====================
+
+export function listFtpConfigs() {
+  return request({ url: `${BASE}/ftp-configs`, method: 'get' })
+}
+
+export function saveFtpConfig(data) {
+  return request({ url: `${BASE}/ftp-configs`, method: 'post', data })
+}
+
+export function deleteFtpConfig(id) {
+  return request({ url: `${BASE}/ftp-configs/${id}`, method: 'delete' })
+}
+
 // ===================== 系统辅助 =====================
 
 export function resetSequence(data) {

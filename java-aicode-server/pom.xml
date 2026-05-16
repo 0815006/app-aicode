@@ -216,6 +216,13 @@
             <version>1.68</version>
         </dependency>
 
+        <!-- FTP -->
+        <dependency>
+            <groupId>commons-net</groupId>
+            <artifactId>commons-net</artifactId>
+            <version>3.9.0</version>
+        </dependency>
+
         <!-- Playwright for Java -->
         <dependency>
             <groupId>com.microsoft.playwright</groupId>

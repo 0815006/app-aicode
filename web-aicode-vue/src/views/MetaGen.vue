@@ -162,6 +162,7 @@
           <el-card class="info-block" shadow="hover">
             <div slot="header" class="card-header">
               <span class="block-title"><i class="el-icon-time"></i> 生成历史</span>
+              <el-button type="primary" size="mini" icon="el-icon-upload2" @click="showFtpDialog = true; loadFtpConfigs()">FTP配置</el-button>
             </div>
             <el-table :data="historyList" border stripe size="small" v-loading="historyLoading">
               <el-table-column prop="fileName" label="文件名" min-width="180" show-overflow-tooltip></el-table-column>
@@ -178,8 +179,9 @@
               </el-table-column>
               <el-table-column prop="durationMs" label="耗时(ms)" width="90"></el-table-column>
               <el-table-column prop="createTime" label="创建时间" width="160"></el-table-column>
-              <el-table-column label="操作" width="120">
+              <el-table-column label="操作" width="160">
                 <template slot-scope="scope">
+                  <el-button v-if="scope.row.status === 'SUCCESS'" type="text" size="small" @click="openUploadDialog(scope.row)">上传</el-button>
                   <el-button v-if="scope.row.status === 'SUCCESS'" type="text" size="small" @click="handleDownload(scope.row)">下载</el-button>
                   <el-button type="text" size="small" style="color:#f56c6c" @click="handleDeleteFile(scope.row)">删除</el-button>
                 </template>
@@ -196,6 +198,93 @@
     <EnumManageDialog :dialog-visible.sync="showEnumDialog" @changed="loadResources" />
     <RefFileDialog :dialog-visible.sync="showRefFileDialog" @changed="loadResources" />
     <TemplateManageDialog ref="templateManageDialog" />
+
+    <!-- FTP配置弹窗 -->
+    <el-dialog title="FTP配置管理" :visible.sync="showFtpDialog" width="700px" append-to-body @closed="resetFtpForm">
+      <!-- 已存在的配置列表 -->
+      <el-table :data="ftpConfigs" border stripe size="small" v-loading="ftpLoading" style="margin-bottom:16px">
+        <el-table-column prop="name" label="名称" min-width="100"></el-table-column>
+        <el-table-column prop="ftpIp" label="FTP IP" width="130"></el-table-column>
+        <el-table-column prop="ftpPort" label="端口" width="60"></el-table-column>
+        <el-table-column prop="username" label="用户名" width="100"></el-table-column>
+        <el-table-column prop="remotePath" label="远程路径" min-width="140" show-overflow-tooltip></el-table-column>
+        <el-table-column prop="updateTime" label="最后修改" width="160"></el-table-column>
+        <el-table-column label="操作" width="120">
+          <template slot-scope="scope">
+            <el-button type="text" size="small" @click="editFtpConfig(scope.row)">编辑</el-button>
+            <el-button type="text" size="small" style="color:#f56c6c" @click="handleDeleteFtp(scope.row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <!-- 新增/编辑表单 -->
+      <el-divider content-position="left">{{ ftpFormMode === 'create' ? '新增配置' : '编辑配置' }}</el-divider>
+      <el-form :model="ftpForm" :rules="ftpRules" ref="ftpFormRef" label-width="80px" size="small">
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="名称" prop="name">
+              <el-input v-model="ftpForm.name" placeholder="如：生产服务器"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="FTP IP" prop="ftpIp">
+              <el-input v-model="ftpForm.ftpIp" placeholder="如：192.168.1.100"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="端口" prop="ftpPort">
+              <el-input-number v-model="ftpForm.ftpPort" :min="1" :max="65535" style="width:100%"></el-input-number>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="用户名" prop="username">
+              <el-input v-model="ftpForm.username" placeholder="FTP用户名"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="密码" prop="password">
+              <el-input v-model="ftpForm.password" type="password" show-password placeholder="FTP密码"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="远程路径" prop="remotePath">
+              <el-input v-model="ftpForm.remotePath" placeholder="如：/data/files/"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-form-item>
+          <el-button type="primary" size="small" @click="submitFtpForm" :loading="ftpSubmitting">{{ ftpFormMode === 'create' ? '新增' : '保存修改' }}</el-button>
+          <el-button v-if="ftpFormMode === 'edit'" size="small" @click="resetFtpForm">取消编辑</el-button>
+        </el-form-item>
+      </el-form>
+    </el-dialog>
+
+    <!-- FTP上传弹窗 -->
+    <el-dialog title="上传文件到FTP" :visible.sync="showUploadDialog" width="480px" append-to-body @closed="uploadFileRow = null; selectedFtpId = null">
+      <div v-if="uploadFileRow" style="margin-bottom:12px;color:#606266;font-size:13px">
+        文件：<b>{{ uploadFileRow.fileName }}</b>
+      </div>
+      <el-form label-width="80px" size="small">
+        <el-form-item label="目标FTP">
+          <el-select v-model="selectedFtpId" placeholder="请选择FTP配置" style="width:100%">
+            <el-option
+              v-for="item in ftpConfigs"
+              :key="item.id"
+              :label="item.name + ' (' + item.ftpIp + ':' + item.remotePath + ')'"
+              :value="item.id"
+            ></el-option>
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <div slot="footer">
+        <el-button size="small" @click="showUploadDialog = false">关闭</el-button>
+        <el-button size="small" type="primary" @click="doUploadToFtp" :loading="uploadLoading" :disabled="!selectedFtpId">上传</el-button>
+      </div>
+    </el-dialog>
 
     <!-- 批量生成弹窗 -->
     <el-dialog title="批量生成" :visible.sync="showGenDialog" width="420px" append-to-body>
@@ -221,7 +310,8 @@
 <script>
 import {
   listModels, getModelDetail, deleteModel, publishModel, updateModel,
-  preview, generate, getHistory, getTaskStatus, deleteEntityFile
+  preview, generate, getHistory, getTaskStatus, deleteEntityFile,
+  listFtpConfigs, saveFtpConfig, deleteFtpConfig, uploadToFtp
 } from '@/api/meta-gen'
 import { getEnumKeys, listRefFiles } from '@/api/meta-gen'
 import ModelEditDialog from '@/components/meta-gen/ModelEditDialog.vue'
@@ -256,7 +346,34 @@ export default {
       enumKeys: [],
       refFiles: [],
       showEnumDialog: false,
-      showRefFileDialog: false
+      showRefFileDialog: false,
+      // FTP上传
+      showUploadDialog: false,
+      uploadFileRow: null,
+      selectedFtpId: null,
+      uploadLoading: false,
+      // FTP配置
+      showFtpDialog: false,
+      ftpConfigs: [],
+      ftpLoading: false,
+      ftpSubmitting: false,
+      ftpFormMode: 'create', // create | edit
+      ftpForm: {
+        id: null,
+        name: '',
+        ftpIp: '',
+        ftpPort: 21,
+        username: '',
+        password: '',
+        remotePath: ''
+      },
+      ftpRules: {
+        name: [{ required: true, message: '请输入名称', trigger: 'blur' }],
+        ftpIp: [{ required: true, message: '请输入FTP IP', trigger: 'blur' }],
+        username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
+        password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
+        remotePath: [{ required: true, message: '请输入远程路径', trigger: 'blur' }]
+      }
     }
   },
   computed: {
@@ -517,6 +634,73 @@ export default {
         deleteEntityFile(row.id).then(() => {
           this.$message.success('删除成功')
           this.loadHistory()
+        })
+      }).catch(() => {})
+    },
+
+    // ========== FTP上传 ==========
+    openUploadDialog(row) {
+      this.uploadFileRow = row
+      this.selectedFtpId = null
+      this.showUploadDialog = true
+      this.loadFtpConfigs()
+    },
+    doUploadToFtp() {
+      if (!this.selectedFtpId || !this.uploadFileRow) return
+      this.uploadLoading = true
+      uploadToFtp({ fileId: this.uploadFileRow.id, ftpConfigId: this.selectedFtpId }).then(res => {
+        if (res.code === 200) {
+          this.$message.success('上传成功')
+        } else {
+          this.$message.error(res.message || '上传失败')
+        }
+      }).catch(err => {
+        this.$message.error('上传失败: ' + (err.message || '未知错误'))
+      }).finally(() => { this.uploadLoading = false })
+    },
+
+    // ========== FTP配置 ==========
+    loadFtpConfigs() {
+      this.ftpLoading = true
+      listFtpConfigs().then(res => {
+        this.ftpConfigs = res.data || []
+      }).finally(() => { this.ftpLoading = false })
+    },
+    editFtpConfig(row) {
+      this.ftpFormMode = 'edit'
+      this.ftpForm = {
+        id: row.id,
+        name: row.name,
+        ftpIp: row.ftpIp,
+        ftpPort: row.ftpPort || 21,
+        username: row.username,
+        password: row.password,
+        remotePath: row.remotePath
+      }
+    },
+    resetFtpForm() {
+      this.ftpFormMode = 'create'
+      this.ftpForm = { id: null, name: '', ftpIp: '', ftpPort: 21, username: '', password: '', remotePath: '' }
+      if (this.$refs.ftpFormRef) {
+        this.$refs.ftpFormRef.resetFields()
+      }
+    },
+    submitFtpForm() {
+      this.$refs.ftpFormRef.validate(valid => {
+        if (!valid) return
+        this.ftpSubmitting = true
+        saveFtpConfig(this.ftpForm).then(() => {
+          this.$message.success(this.ftpFormMode === 'create' ? '新增成功' : '修改成功')
+          this.resetFtpForm()
+          this.loadFtpConfigs()
+        }).finally(() => { this.ftpSubmitting = false })
+      })
+    },
+    handleDeleteFtp(row) {
+      this.$confirm(`确定删除FTP配置"${row.name}"？`, '提示', { type: 'warning' }).then(() => {
+        deleteFtpConfig(row.id).then(() => {
+          this.$message.success('删除成功')
+          this.loadFtpConfigs()
         })
       }).catch(() => {})
     },

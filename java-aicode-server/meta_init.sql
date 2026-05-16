@@ -76,6 +76,20 @@ CREATE TABLE `meta_sequence_tracker` (
     UNIQUE KEY `uk_target` (`target_type`, `target_id`)
 ) ENGINE=InnoDB COMMENT='并发锁控与游标表';
 
+-- FTP配置
+CREATE TABLE `meta_ftp_config` (
+    `id` BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    `name` VARCHAR(100) NOT NULL COMMENT '配置名称',
+    `ftp_ip` VARCHAR(100) NOT NULL COMMENT 'FTP服务器IP',
+    `ftp_port` INT DEFAULT 21 COMMENT 'FTP端口',
+    `username` VARCHAR(100) NOT NULL COMMENT 'FTP用户名',
+    `password` VARCHAR(200) NOT NULL COMMENT 'FTP密码',
+    `remote_path` VARCHAR(500) NOT NULL COMMENT '远程目录路径',
+    `create_user` VARCHAR(50) COMMENT '创建人',
+    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后修改时间'
+) ENGINE=InnoDB COMMENT='FTP配置表';
+
 -- 生成记录
 CREATE TABLE `meta_entity_file` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',

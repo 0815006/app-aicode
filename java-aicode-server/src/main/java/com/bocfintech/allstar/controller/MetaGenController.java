@@ -2,10 +2,14 @@ package com.bocfintech.allstar.controller;
 
 import com.bocfintech.allstar.bean.ResultBean;
 import com.bocfintech.allstar.entity.MetaEntityFile;
+import com.bocfintech.allstar.entity.MetaFtpConfig;
 import com.bocfintech.allstar.service.MetaEntityFileService;
+import com.bocfintech.allstar.service.MetaFtpConfigService;
 import com.bocfintech.allstar.service.MetaGenEngineService;
 import com.bocfintech.allstar.service.MetaSequenceTrackerService;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.net.ftp.FTP;
+import org.apache.commons.net.ftp.FTPClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
@@ -16,6 +20,8 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.net.URLEncoder;
 import java.util.List;
 
@@ -32,6 +38,9 @@ public class MetaGenController {
 
     @Autowired
     private MetaSequenceTrackerService seqService;
+
+    @Autowired
+    private MetaFtpConfigService ftpConfigService;
 
     // ===================== 执行与生成 =====================
 
@@ -130,6 +139,71 @@ public class MetaGenController {
         return ResultBean.success("删除成功");
     }
 
+    /**
+     * 上传文件到 FTP 服务器
+     */
+    @PostMapping("/execute/upload-ftp")
+    public ResultBean<String> uploadToFtp(@RequestBody UploadFtpRequest req,
+                                          @RequestHeader(value = "token", required = false) String token) {
+        String empNo = getEmpNo(token);
+        MetaEntityFile record = entityFileService.getById(req.getFileId());
+        if (record == null) return ResultBean.error("文件记录不存在");
+        String filePath = record.getStoragePath();
+        if (filePath == null || filePath.isEmpty()) return ResultBean.error("文件路径为空");
+        File localFile = new File(filePath);
+        if (!localFile.exists()) return ResultBean.error("本地文件不存在");
+
+        MetaFtpConfig ftpConfig = ftpConfigService.getById(req.getFtpConfigId());
+        if (ftpConfig == null) return ResultBean.error("FTP配置不存在");
+
+        FTPClient ftpClient = new FTPClient();
+        try (FileInputStream fis = new FileInputStream(localFile)) {
+            int port = ftpConfig.getFtpPort() != null ? ftpConfig.getFtpPort() : 21;
+            ftpClient.connect(ftpConfig.getFtpIp(), port);
+            if (!ftpClient.login(ftpConfig.getUsername(), ftpConfig.getPassword())) {
+                return ResultBean.error("FTP登录失败，请检查用户名密码");
+            }
+            ftpClient.setFileType(FTP.BINARY_FILE_TYPE);
+            ftpClient.enterLocalPassiveMode();
+            ftpClient.setBufferSize(1024 * 1024);
+
+            String remotePath = ftpConfig.getRemotePath();
+            if (remotePath != null && !remotePath.isEmpty()) {
+                makeDirs(ftpClient, remotePath);
+                ftpClient.changeWorkingDirectory(remotePath);
+            }
+
+            String remoteFileName = record.getFileName() != null ? record.getFileName() : localFile.getName();
+            boolean uploaded = ftpClient.storeFile(remoteFileName, fis);
+            if (!uploaded) {
+                return ResultBean.error("FTP上传失败: " + ftpClient.getReplyString());
+            }
+            log.info("FTP upload success: {} -> {}:{}{}/{}", filePath, ftpConfig.getFtpIp(), port, remotePath, remoteFileName);
+            return ResultBean.success("上传成功");
+        } catch (IOException e) {
+            log.error("FTP上传异常", e);
+            return ResultBean.error("FTP上传异常: " + e.getMessage());
+        } finally {
+            try {
+                if (ftpClient.isConnected()) {
+                    ftpClient.logout();
+                    ftpClient.disconnect();
+                }
+            } catch (IOException ignored) {}
+        }
+    }
+
+    private void makeDirs(FTPClient ftpClient, String path) throws IOException {
+        String[] dirs = path.replace('\\', '/').split("/");
+        for (String dir : dirs) {
+            if (dir.isEmpty()) continue;
+            if (!ftpClient.changeWorkingDirectory(dir)) {
+                ftpClient.makeDirectory(dir);
+                ftpClient.changeWorkingDirectory(dir);
+            }
+        }
+    }
+
     // ===================== 系统辅助 =====================
 
     /**
@@ -187,5 +261,15 @@ public class MetaGenController {
         private String targetId;
         public String getTargetId() { return targetId; }
         public void setTargetId(String targetId) { this.targetId = targetId; }
+    }
+
+    public static class UploadFtpRequest {
+        private Long fileId;
+        private Long ftpConfigId;
+
+        public Long getFileId() { return fileId; }
+        public void setFileId(Long fileId) { this.fileId = fileId; }
+        public Long getFtpConfigId() { return ftpConfigId; }
+        public void setFtpConfigId(Long ftpConfigId) { this.ftpConfigId = ftpConfigId; }
     }
 }

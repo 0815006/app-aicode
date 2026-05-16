@@ -42,6 +42,9 @@ public class MetaManagerController {
     @Autowired
     private MetaGenEngineService engineService;
 
+    @Autowired
+    private MetaFtpConfigService ftpConfigService;
+
     @Value("${meta.template-path}")
     private String templatePath;
 
@@ -255,6 +258,33 @@ public class MetaManagerController {
         String empNo = getEmpNo(token);
         List<String> lines = refFileService.previewRefFile(id, lineCount);
         return ResultBean.success(lines);
+    }
+
+    // ===================== FTP配置管理 =====================
+
+    @GetMapping("/ftp-configs")
+    public ResultBean<List<MetaFtpConfig>> listFtpConfigs(@RequestHeader(value = "token", required = false) String token) {
+        String empNo = getEmpNo(token);
+        return ResultBean.success(ftpConfigService.listAll());
+    }
+
+    @PostMapping("/ftp-configs")
+    public ResultBean<MetaFtpConfig> saveFtpConfig(@RequestBody MetaFtpConfig config,
+                                                    @RequestHeader(value = "token", required = false) String token) {
+        String empNo = getEmpNo(token);
+        if (config.getId() == null) {
+            config.setCreateUser(empNo);
+        }
+        ftpConfigService.saveOrUpdate(config);
+        return ResultBean.success(config);
+    }
+
+    @DeleteMapping("/ftp-configs/{id}")
+    public ResultBean<String> deleteFtpConfig(@PathVariable Long id,
+                                               @RequestHeader(value = "token", required = false) String token) {
+        String empNo = getEmpNo(token);
+        ftpConfigService.removeById(id);
+        return ResultBean.success("删除成功");
     }
 
     // ===================== 模板管理 =====================
