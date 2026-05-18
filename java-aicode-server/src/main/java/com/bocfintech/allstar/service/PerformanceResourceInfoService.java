@@ -93,7 +93,7 @@ public class PerformanceResourceInfoService extends BaseServiceImpl<PerformanceR
     /**
      * Excel导入方法
      */
-    public void importExcel(MultipartFile file,String originalFileName,String fileName,String productId,String userId, String fileSource) throws Exception {
+    public void importExcel(MultipartFile file,String originalFileName,String fileName,String productId,String batchNo,String userId, String fileSource) throws Exception {
         Workbook workbook = null;
         InputStream inputStream = file.getInputStream();
         String fileNameLowerCase = file.getOriginalFilename().toLowerCase();
@@ -182,6 +182,7 @@ public class PerformanceResourceInfoService extends BaseServiceImpl<PerformanceR
             entity.setOriginalFileName(originalFileName);
             entity.setFileName(fileName);
             entity.setProductId(productId);
+            entity.setBatchNo(batchNo);
             entity.setFileSource(fileSource);
             entity.setCreateTime(date);
             entity.setCreateOperator(userId);

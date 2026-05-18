@@ -94,10 +94,11 @@ public class ResourceServiceImpl implements ResourceService {
 //                .build();
 //    }
     @Override
-    public ResourceCheckResponse getResourceCheckByProduct(String productId, String fileSource) {
+    public ResourceCheckResponse getResourceCheckByProduct(String productId, String batchNo, String fileSource) {
         List<PerformanceResourceInfo> list = resourceMapper.selectList(
                 Wrappers.<PerformanceResourceInfo>lambdaQuery()
                         .eq(PerformanceResourceInfo::getProductId, productId)
+                        .eq(batchNo != null, PerformanceResourceInfo::getBatchNo, batchNo)
                         .eq(fileSource != null, PerformanceResourceInfo::getFileSource, fileSource)
                         .isNotNull(PerformanceResourceInfo::getDeploymentLocation)
         );
@@ -231,10 +232,11 @@ public class ResourceServiceImpl implements ResourceService {
 
     // ResourceServiceImpl.java
     @Override
-    public int deleteByOriginalFileName(String productId, String originalFileName) {
+    public int deleteByOriginalFileName(String productId, String batchNo, String originalFileName) {
         return resourceMapper.delete(
                 Wrappers.<PerformanceResourceInfo>lambdaQuery()
                         .eq(PerformanceResourceInfo::getProductId, productId)
+                        .eq(batchNo != null, PerformanceResourceInfo::getBatchNo, batchNo)
                         .eq(PerformanceResourceInfo::getOriginalFileName, originalFileName)
         );
     }
@@ -243,13 +245,14 @@ public class ResourceServiceImpl implements ResourceService {
     public List<String> getAllProductIds() {
         List<PerformanceResourceInfo> list = resourceMapper.selectList(
                 Wrappers.<PerformanceResourceInfo>lambdaQuery()
-                        .select(PerformanceResourceInfo::getProductId)
+                        .select(PerformanceResourceInfo::getProductId, PerformanceResourceInfo::getBatchNo)
                         .isNotNull(PerformanceResourceInfo::getProductId)
-                        .groupBy(PerformanceResourceInfo::getProductId)
+                        .groupBy(PerformanceResourceInfo::getProductId, PerformanceResourceInfo::getBatchNo)
         );
         return list.stream()
-                .map(PerformanceResourceInfo::getProductId)
-                .filter(id -> id != null && !id.trim().isEmpty())
+                .map(r -> r.getProductId() + "|" + (r.getBatchNo() != null ? r.getBatchNo() : ""))
+                .filter(s -> !s.startsWith("|") && !s.endsWith("|"))
+                .distinct()
                 .collect(Collectors.toList());
     }
 

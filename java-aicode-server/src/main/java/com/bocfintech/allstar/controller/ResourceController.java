@@ -38,10 +38,12 @@ public class ResourceController {
     public ResultBean query(@RequestParam(value = "pageNum", required = true, defaultValue = "1") int pageNum,
                             @RequestParam(value = "pageSize", required = true, defaultValue = "10") int pageSize,
                             @RequestParam(value = "productId", required = false) String productId,
+                            @RequestParam(value = "batchNo", required = false) String batchNo,
                             @RequestParam(value = "fileName", required = false) String fileName){
         PageHelper.startPage(pageNum, pageSize);
         LambdaQueryWrapper<PerformanceResourceInfo> wrapper = new LambdaQueryWrapper<>();
         if(StringUtils.isNotEmpty(productId))wrapper.eq(PerformanceResourceInfo::getProductId,productId);
+        if(StringUtils.isNotEmpty(batchNo))wrapper.eq(PerformanceResourceInfo::getBatchNo,batchNo);
         if(StringUtils.isNotEmpty(fileName))wrapper.eq(PerformanceResourceInfo::getFileName,fileName);
         wrapper.orderByDesc(PerformanceResourceInfo::getCreateTime);
         List<PerformanceResourceInfo> list = productResourceInfoService.list(wrapper);
@@ -54,6 +56,7 @@ public class ResourceController {
     @ApiOperation(value = "上传环境资源清单")
     @PostMapping("/uploadResource")
     public ResultBean uploadExcelFile(@RequestParam(value = "productId") @NotBlank(message = "产品标识不能为空") String productId,
+                                      @RequestParam(value = "batchNo") @NotBlank(message = "批次不能为空") String batchNo,
                                       @RequestParam(value = "fileSource", required = false, defaultValue = "部署方案") String fileSource,
                                       @RequestParam("file") MultipartFile file,
                                       @RequestHeader(value = "token", required = false) String token) throws Exception {
@@ -63,7 +66,7 @@ public class ResourceController {
         //导入到表
         productResourceInfoService.importExcel(file,
                 Objects.toString(map.get("originalFileName"),"no originalFileName"),
-                Objects.toString(map.get("fileName"),"no fileName"),productId,empNo, fileSource);
+                Objects.toString(map.get("fileName"),"no fileName"),productId,batchNo,empNo, fileSource);
         return success();
     }
 
@@ -85,9 +88,10 @@ public class ResourceController {
     @GetMapping("/check")
     public ResultBean<ResourceCheckResponse> checkResources(
             @RequestParam("productId") @NotBlank(message = "productId 不能为空") String productId,
+            @RequestParam("batchNo") @NotBlank(message = "batchNo 不能为空") String batchNo,
             @RequestParam(value = "fileSource", required = false) String fileSource) {
         try {
-            ResourceCheckResponse response = resourceService.getResourceCheckByProduct(productId, fileSource);
+            ResourceCheckResponse response = resourceService.getResourceCheckByProduct(productId, batchNo, fileSource);
             return ResultBean.success(response);
         } catch (Exception e) {
             return ResultBean.error("查询资源信息失败：" + e.getMessage());
@@ -100,9 +104,10 @@ public class ResourceController {
     @DeleteMapping("/deleteByFile")
     public ResultBean deleteByOriginalFileName(
             @RequestParam("productId") @NotBlank String productId,
+            @RequestParam("batchNo") @NotBlank String batchNo,
             @RequestParam("originalFileName") @NotBlank String originalFileName) {
         try {
-            int count = resourceService.deleteByOriginalFileName(productId, originalFileName);
+            int count = resourceService.deleteByOriginalFileName(productId, batchNo, originalFileName);
             return ResultBean.success("删除成功，共删除 " + count + " 条记录");
         } catch (Exception e) {
             return ResultBean.error("删除失败：" + e.getMessage());

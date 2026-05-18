@@ -204,6 +204,10 @@ public class PerformanceResourceInfo {
     @TableField("product_id")
     private String productId;
 
+    // 性能测试任务-批次
+    @TableField("batch_no")
+    private String batchNo;
+
     // 文件来源
     @TableField("file_source")
     private String fileSource;

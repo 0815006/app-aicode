@@ -6,20 +6,20 @@
     <!-- 查询表单 -->
     <el-card shadow="hover" style="margin-bottom: 20px">
       <el-form :inline="true" size="small" style="display: flex; align-items: center;">
-        <el-form-item label="产品标识" style="margin-bottom: 0;">
+        <el-form-item label="产品标识（批次）" style="margin-bottom: 0;">
           <el-select
-            v-model="productId"
-            placeholder="请选择产品标识"
-            style="width: 250px"
+            v-model="selectedKey"
+            placeholder="请选择产品标识（批次）"
+            style="width: 280px"
             filterable
             clearable
             @change="handleQuery"
           >
             <el-option
               v-for="item in productOptions"
-              :key="item"
-              :label="item"
-              :value="item"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
             />
           </el-select>
         </el-form-item>
@@ -247,8 +247,8 @@ export default {
   },
   data() {
     return {
-      productId: 'BPS-D-AUTO', // 产品ID
-      productOptions: [], // 产品列表
+      selectedKey: '', // 下拉选中值 "productId|batchNo"
+      productOptions: [], // 产品列表 [{ value: "productId|batchNo", label: "productId（batchNo）" }]
       loading: false,
       deleting: '', // 当前正在删除的文件名
       summaryList: [],
@@ -259,6 +259,18 @@ export default {
       fileSummaryListApply: [] // ✅ 申请表文件汇总
     }
   },
+  computed: {
+    productId() {
+      if (!this.selectedKey) return ''
+      const idx = this.selectedKey.lastIndexOf('|')
+      return idx >= 0 ? this.selectedKey.substring(0, idx) : this.selectedKey
+    },
+    batchNo() {
+      if (!this.selectedKey) return ''
+      const idx = this.selectedKey.lastIndexOf('|')
+      return idx >= 0 ? this.selectedKey.substring(idx + 1) : ''
+    }
+  },
   mounted() {
     this.fetchProductIds()
   },
@@ -267,12 +279,22 @@ export default {
       try {
         const res = await getProductIds()
         if (res.code === 200) {
-          this.productOptions = res.data || []
-          // 如果当前 productId 不在列表中且列表不为空，默认选第一个
-          if (this.productOptions.length > 0 && !this.productOptions.includes(this.productId)) {
-            this.productId = this.productOptions[0]
+          const rawList = res.data || []
+          // 后端返回 "productId|batchNo" 格式，转为下拉选项
+          this.productOptions = rawList.map(item => {
+            const idx = item.lastIndexOf('|')
+            const pid = idx >= 0 ? item.substring(0, idx) : item
+            const bno = idx >= 0 ? item.substring(idx + 1) : ''
+            return {
+              value: item,
+              label: pid + '（' + bno + '）'
+            }
+          })
+          // 如果当前 selectedKey 不在列表中且列表不为空，默认选第一个
+          if (this.productOptions.length > 0 && !this.productOptions.find(o => o.value === this.selectedKey)) {
+            this.selectedKey = this.productOptions[0].value
           }
-          if (this.productId) {
+          if (this.selectedKey) {
             this.handleQuery()
           }
         }
@@ -281,8 +303,8 @@ export default {
       }
     },
     async handleQuery() {
-      if (!this.productId.trim()) {
-        this.$message.warning('请输入产品标识')
+      if (!this.productId || !this.batchNo) {
+        this.$message.warning('请选择产品标识（批次）')
         return
       }
 
@@ -298,8 +320,8 @@ export default {
       try {
         // 并行调用两次接口
         const [resPlan, resApply] = await Promise.all([
-          checkResources(this.productId.trim(), '部署方案'),
-          checkResources(this.productId.trim(), '资源申请表')
+          checkResources(this.productId, this.batchNo, '部署方案'),
+          checkResources(this.productId, this.batchNo, '资源申请表')
         ])
 
         if (resPlan.code === 200) {
@@ -331,7 +353,7 @@ export default {
       }
     },
     handleUpload() {
-      this.$refs.uploadDialog.init(this.productId)
+      this.$refs.uploadDialog.init(this.productId, this.batchNo)
     },
     async handleDeleteFile(originalFileName) {
     try {
@@ -347,7 +369,7 @@ export default {
 
       this.deleting = originalFileName
 
-      const res = await deleteResourceByFile(this.productId, originalFileName)
+      const res = await deleteResourceByFile(this.productId, this.batchNo, originalFileName)
 
       if (res.code === 200) {
         this.$message.success(res.message || '删除成功')

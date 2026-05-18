@@ -5,10 +5,9 @@ import com.bocfintech.allstar.entity.ResourceCheckResponse;
 import java.util.List;
 
 public interface ResourceService {
-    ResourceCheckResponse getResourceCheckByProduct(String productId, String fileSource);
+    ResourceCheckResponse getResourceCheckByProduct(String productId, String batchNo, String fileSource);
 
-    // ResourceService.java
-    int deleteByOriginalFileName(String productId, String originalFileName);
+    int deleteByOriginalFileName(String productId, String batchNo, String originalFileName);
 
     List<String> getAllProductIds();
 

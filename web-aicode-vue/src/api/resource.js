@@ -2,19 +2,20 @@
 import request from '@/utils/request'
 
 /**
- * 核查资源：按产品ID查询
+ * 核查资源：按产品ID+批次查询
  * @param {string} productId
+ * @param {string} batchNo
  * @param {string} fileSource
  * @returns {Promise}
  */
-export function checkResources(productId, fileSource) {
+export function checkResources(productId, batchNo, fileSource) {
   return request.get('/resource/check', {
-    params: { productId: productId, fileSource: fileSource }
+    params: { productId, batchNo, fileSource }
   })
 }
 
 /**
- * 获取所有产品ID列表
+ * 获取所有产品ID+批次列表
  * @returns {Promise}
  */
 export function getProductIds() {
@@ -23,13 +24,15 @@ export function getProductIds() {
 /**
  * 上传环境资源清单 Excel 文件
  * @param {string} productId - 产品标识
+ * @param {string} batchNo - 批次
  * @param {File} file - 上传的 Excel 文件
  * @param {string} fileSource - 文件来源
  * @returns {Promise}
  */
-export function uploadResource(productId, file, fileSource) {
+export function uploadResource(productId, batchNo, file, fileSource) {
   const formData = new FormData()
   formData.append('productId', productId)
+  formData.append('batchNo', batchNo)
   formData.append('file', file)
   formData.append('fileSource', fileSource)
 
@@ -43,11 +46,12 @@ export function uploadResource(productId, file, fileSource) {
 /**
  * 删除指定产品下、指定原始文件名的资源数据
  * @param {string} productId
+ * @param {string} batchNo
  * @param {string} originalFileName
  * @returns {Promise}
  */
-export function deleteResourceByFile(productId, originalFileName) {
+export function deleteResourceByFile(productId, batchNo, originalFileName) {
   return request.delete('/resource/deleteByFile', {
-    params: { productId, originalFileName }
+    params: { productId, batchNo, originalFileName }
   })
 }

@@ -1,0 +1,2 @@
+alter table performance_resource_info modify column  `product_id` varchar(32) DEFAULT NULL COMMENT '产品标识与perf_task的product_id对应';
+alter table performance_resource_info add column  `batch_no` varchar(32) NOT NULL COMMENT '性能测试任务-批次 (如：2606)-与perf_task的batch_no对应' after product_id;

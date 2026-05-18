@@ -18,6 +18,16 @@
         />
       </el-form-item>
 
+      <!-- 批次 -->
+      <el-form-item label="批次" prop="batchNo">
+        <el-input
+          v-model="form.batchNo"
+          placeholder="请输入批次，如：2606"
+          style="width: 100%"
+          clearable
+        />
+      </el-form-item>
+
       <!-- 文件来源 -->
       <el-form-item label="文件来源" prop="fileSource">
         <el-select v-model="form.fileSource" placeholder="请选择文件来源" style="width: 100%">
@@ -73,6 +83,7 @@ export default {
       visible: false,
       form: {
         productId: '',
+        batchNo: '',
         fileSource: '部署方案'
       },
       fileList: [],
@@ -85,6 +96,7 @@ export default {
     rules() {
       return {
         productId: [{ required: true, message: '请输入产品标识', trigger: 'blur' }],
+        batchNo: [{ required: true, message: '请输入批次', trigger: 'blur' }],
         fileSource: [{ required: true, message: '请选择文件来源', trigger: 'change' }],
         file: [{ required: true, validator: (rule, value, callback) => {
           if (!this.file) {
@@ -97,9 +109,10 @@ export default {
     }
   },
   methods: {
-    init(productId) {
+    init(productId, batchNo) {
       this.visible = true
       this.form.productId = productId || ''
+      this.form.batchNo = batchNo || ''
       this.form.fileSource = '部署方案'
       this.fileList = []
       this.file = null
@@ -132,7 +145,7 @@ export default {
       this.result = ''
 
       try {
-        const res = await uploadResource(this.form.productId, this.file, this.form.fileSource)
+        const res = await uploadResource(this.form.productId, this.form.batchNo, this.file, this.form.fileSource)
 
         if (res.code === 200) {
           this.result = '✅ 上传成功！'
