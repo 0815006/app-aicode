@@ -164,3 +164,31 @@ export function getTemplateDownloadUrl(fileName) {
 export function getTemplateDownloadByKeywordUrl(keyword) {
   return `/api/performance/file/downloadByKeyword?keyword=${encodeURIComponent(keyword)}`
 }
+
+// 方案文档管理
+export function generateDoc(taskId) {
+  return request({
+    url: '/performance/doc/generate',
+    method: 'post',
+    params: { taskId }
+  })
+}
+
+export function listDocs() {
+  return request({
+    url: '/performance/doc/list',
+    method: 'get'
+  })
+}
+
+export function deleteDoc(fileName) {
+  return request({
+    url: '/performance/doc/delete',
+    method: 'delete',
+    params: { fileName }
+  })
+}
+
+export function getDocDownloadUrl(fileName) {
+  return `/api/performance/doc/download?fileName=${encodeURIComponent(fileName)}`
+}

@@ -192,6 +192,29 @@
               </el-table-column>
             </el-table>
           </el-card>
+
+          <!-- 方案报告文档区块 -->
+          <el-card class="info-block" shadow="hover">
+            <div slot="header" class="card-header">
+              <span class="block-title"><i class="el-icon-document"></i> 方案报告文档</span>
+              <el-button type="success" size="mini" icon="el-icon-plus" @click="handleGenerateDoc" :loading="genLoading">生成方案</el-button>
+            </div>
+            <el-table :data="docList" border stripe size="small" v-loading="docLoading" empty-text="暂无生成文档，点击生成方案按钮生成">
+              <el-table-column prop="fileName" label="文件名" min-width="200" show-overflow-tooltip></el-table-column>
+              <el-table-column label="大小" width="100" align="center">
+                <template slot-scope="scope">{{ scope.row.fileSize | formatFileSize }}</template>
+              </el-table-column>
+              <el-table-column label="修改时间" width="160" align="center">
+                <template slot-scope="scope">{{ scope.row.lastModified | formatDateTime }}</template>
+              </el-table-column>
+              <el-table-column label="操作" width="150" align="center">
+                <template slot-scope="scope">
+                  <el-button type="text" icon="el-icon-download" @click="handleDownloadDoc(scope.row)">下载</el-button>
+                  <el-button type="text" icon="el-icon-delete" style="color:#F56C6C" @click="handleDeleteDoc(scope.row)">删除</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+          </el-card>
         </div>
       </div>
     </div>
@@ -208,7 +231,7 @@
 </template>
 
 <script>
-import { listTasks, getTaskDetail } from '@/api/performance'
+import { listTasks, getTaskDetail, generateDoc, listDocs, deleteDoc, getDocDownloadUrl } from '@/api/performance'
 import { getCurrentEmpNo } from '@/utils/currentUser'
 import CreateTaskDialog from '@/components/performance-test/CreateTaskDialog.vue'
 import TaskInfoEditDialog from '@/components/performance-test/TaskInfoEditDialog.vue'
@@ -238,6 +261,9 @@ export default {
       batches: [],
       datas: [],
       scenes: [],
+      docList: [],
+      docLoading: false,
+      genLoading: false,
       currentUser: getCurrentEmpNo(),
       loading: false
     }
@@ -277,6 +303,7 @@ export default {
         this.batches = res.data.batches
         this.datas = res.data.datas
         this.scenes = res.data.scenes
+        this.fetchDocList()
       }
     },
     refreshDetail() {
@@ -304,6 +331,71 @@ export default {
     },
     openSceneEdit() {
       this.$refs.sceneEditDialog.init(this.activeTaskId, this.trans)
+    },
+    async fetchDocList() {
+      this.docLoading = true
+      try {
+        const res = await listDocs()
+        if (res.code === 200) {
+          this.docList = res.data
+        }
+      } finally {
+        this.docLoading = false
+      }
+    },
+    handleGenerateDoc() {
+      this.$confirm('确认生成方案文档？', '生成方案', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'info'
+      }).then(async () => {
+        this.genLoading = true
+        try {
+          const res = await generateDoc(this.activeTaskId)
+          if (res.code === 200) {
+            this.$message.success('方案文档生成成功: ' + res.data)
+            this.fetchDocList()
+          } else {
+            this.$message.error(res.message || '生成失败')
+          }
+        } catch (e) {
+          this.$message.error('生成失败: ' + (e.message || '未知错误'))
+        } finally {
+          this.genLoading = false
+        }
+      }).catch(() => {})
+    },
+    handleDownloadDoc(row) {
+      window.open(getDocDownloadUrl(row.fileName), '_blank')
+    },
+    handleDeleteDoc(row) {
+      this.$confirm('确认删除 "' + row.fileName + '"？', '删除确认', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(async () => {
+        const res = await deleteDoc(row.fileName)
+        if (res.code === 200) {
+          this.$message.success('删除成功')
+          this.fetchDocList()
+        } else {
+          this.$message.error(res.message || '删除失败')
+        }
+      }).catch(() => {})
+    }
+  },
+  filters: {
+    formatFileSize(size) {
+      if (!size) return '0 B'
+      if (size < 1024) return size + ' B'
+      if (size < 1024 * 1024) return (size / 1024).toFixed(1) + ' KB'
+      return (size / (1024 * 1024)).toFixed(1) + ' MB'
+    },
+    formatDateTime(val) {
+      if (!val) return ''
+      const d = new Date(val)
+      const pad = n => String(n).padStart(2, '0')
+      return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds())
     }
   }
 }
