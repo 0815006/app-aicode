@@ -6,12 +6,17 @@ import com.bocfintech.allstar.entity.*;
 import com.bocfintech.allstar.mapper.*;
 import com.bocfintech.allstar.service.PerformanceDocService;
 import com.deepoove.poi.XWPFTemplate;
+import com.deepoove.poi.config.Configure;
+import com.deepoove.poi.plugin.table.LoopRowTableRenderPolicy;
+import com.deepoove.poi.policy.RenderPolicy;
+import com.deepoove.poi.template.ElementTemplate;
+import com.deepoove.poi.template.run.RunTemplate;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.poi.xwpf.usermodel.XWPFRun;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -57,12 +62,24 @@ public class PerformanceDocServiceImpl implements PerformanceDocService {
         String safeName = sanitizeFilename(ctx.getTask().getTaskName());
         String batchNo = ctx.getTask().getBatchNo() != null ? ctx.getTask().getBatchNo() : "";
         String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-        String outputFilename = safeName + "_" + batchNo + "_方案_" + timestamp + ".docx";
+        String outputFilename = batchNo + "批次_" + safeName + "_性能测试方案_" + timestamp + ".docx";
 
         try {
             Map<String, Object> dataModel = buildDataModel(ctx);
-            XWPFTemplate template = XWPFTemplate.compile(tmpl).render(dataModel);
+
+            LoopRowTableRenderPolicy policy = new LoopRowTableRenderPolicy();
+
+            Configure config = Configure.builder()
+                    .bind("batch_list", new LoopRowTableRenderPolicy())
+                    .bind("tran_list", new LoopRowTableRenderPolicy())
+                    .bind("data_detail_list", new LoopRowTableRenderPolicy())
+                    .bind("resource_list", new LoopRowTableRenderPolicy())
+                    .build();
+
+            XWPFTemplate template = XWPFTemplate.compile(tmpl, config)
+                    .render(dataModel);
             template.writeToFile(docPath + outputFilename);
+            template.close();
             log.info("方案文档生成成功: {}", outputFilename);
             return outputFilename;
         } catch (Exception e) {
@@ -144,10 +161,108 @@ public class PerformanceDocServiceImpl implements PerformanceDocService {
             map.put("batch_max_parallel_count", nvl(t.getBatchMaxParallelCount()));
         }
 
-        map.put("tran_list", ctx.getTranList() != null ? ctx.getTranList() : Collections.emptyList());
-        map.put("batch_list", ctx.getBatchList() != null ? ctx.getBatchList() : Collections.emptyList());
-        map.put("data_detail_list", ctx.getDataDetailList() != null ? ctx.getDataDetailList() : Collections.emptyList());
-        map.put("resource_list", ctx.getResourceList() != null ? ctx.getResourceList() : Collections.emptyList());
+        // ----------------------------------------------------------------
+        // tran_list：转换为 List<Map<String,Object>>，key 与模板单元格占位符一致
+        // 模板行第一格：{{tran_list}}；其余格直接用字段名：{{serialNumber}} {{moduleName}} 等
+        // ----------------------------------------------------------------
+        List<PerfTaskTran> rawTranList = ctx.getTranList();
+        if (rawTranList != null && !rawTranList.isEmpty()) {
+            List<Map<String, Object>> tranRows = new ArrayList<>();
+            int idx = 1;
+            for (PerfTaskTran t2 : rawTranList) {
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("serialNumber",      idx++);
+                row.put("moduleName",        nvl(t2.getModuleName()));
+                row.put("interfaceType",     nvl(t2.getInterfaceType()));
+                row.put("tranName",          nvl(t2.getTranName()));
+                row.put("tranCode",          nvl(t2.getTranCode()));
+                row.put("targetTps",         nvl(t2.getTargetTps()));
+                row.put("targetRt",          nvl(t2.getTargetRt()));
+                row.put("targetSuccessRate", nvl(t2.getTargetSuccessRate()));
+                tranRows.add(row);
+            }
+            map.put("tran_list", tranRows);
+        } else {
+            map.put("tran_list", Collections.emptyList());
+        }
+
+        // batch_list：转换为 List<Map<String,Object>>
+        List<PerfTaskBatch> rawBatchList = ctx.getBatchList();
+        if (rawBatchList != null && !rawBatchList.isEmpty()) {
+            List<Map<String, Object>> batchRows = new ArrayList<>();
+            int idx = 1;
+            for (PerfTaskBatch b : rawBatchList) {
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("serialNumber",    idx++);
+                row.put("jobName",         nvl(b.getJobName()));
+                row.put("jobDuration",     nvl(b.getJobDuration()));
+                row.put("jobDataVolume",   nvl(b.getJobDataVolume()));
+                row.put("jobNo",           nvl(b.getJobNo()));
+                row.put("jobCount",        nvl(b.getJobCount()));
+                row.put("jobParallelMode", nvl(b.getJobParallelMode()));
+                row.put("jobDesc",         nvl(b.getJobDesc()));
+                row.put("selectReason",    nvl(b.getSelectReason()));
+                batchRows.add(row);
+            }
+            map.put("batch_list", batchRows);
+        } else {
+            map.put("batch_list", Collections.emptyList());
+        }
+
+        // data_detail_list：转换为 List<Map<String,Object>>
+        List<PerfDataDetail> rawDetailList = ctx.getDataDetailList();
+        if (rawDetailList != null && !rawDetailList.isEmpty()) {
+            List<Map<String, Object>> detailRows = new ArrayList<>();
+            int idx = 1;
+            for (PerfDataDetail d : rawDetailList) {
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("serialNumber",   idx++);
+                row.put("dataType",       nvl(d.getDataType()));
+                row.put("tableNameEn",    nvl(d.getTableNameEn()));
+                row.put("tableNameCn",    nvl(d.getTableNameCn()));
+                row.put("tableRowsCount", nvl(d.getTableRowsCount()));
+                row.put("targetRowsCount",nvl(d.getTargetRowsCount()));
+                row.put("prepMethod",     nvl(d.getPrepMethod()));
+                row.put("dataDistDesc",   nvl(d.getDataDistDesc()));
+                detailRows.add(row);
+            }
+            map.put("data_detail_list", detailRows);
+        } else {
+            map.put("data_detail_list", Collections.emptyList());
+        }
+
+        // resource_list：转换为 List<Map<String,Object>>
+        List<PerformanceResourceInfo> rawResList = ctx.getResourceList();
+        if (rawResList != null && !rawResList.isEmpty()) {
+            List<Map<String, Object>> resRows = new ArrayList<>();
+            int idx = 1;
+            for (PerformanceResourceInfo r : rawResList) {
+                Map<String, Object> row = new LinkedHashMap<>();
+                // 优先使用实体记录的序号，若为空则自动生成
+                row.put("serialNumber",                  r.getSerialNumber() != null ? r.getSerialNumber() : idx);
+                idx++;
+                row.put("serviceName",                   nvl(r.getServiceName()));
+                row.put("systemPlatform",                nvl(r.getSystemPlatform()));
+                row.put("paasPlatformType",              nvl(r.getPaasPlatformType()));
+                row.put("cpuCores",                      nvl(r.getCpuCores()));
+                row.put("memoryGb",                      nvl(r.getMemoryGb()));
+                row.put("dedicatedStorageGb",            nvl(r.getDedicatedStorageGb()));
+                row.put("sanStorageGb",                  nvl(r.getSanStorageGb()));
+                row.put("nasStorageGb",                  nvl(r.getNasStorageGb()));
+                row.put("operatingSystem",               nvl(r.getOperatingSystem()));
+                row.put("middleware",                    nvl(r.getMiddleware()));
+                row.put("middlewareReasonBelowBaseline", nvl(r.getMiddlewareReasonBelowBaseline()));
+                row.put("deploymentLocation",            nvl(r.getDeploymentLocation()));
+                row.put("networkDeployment",             nvl(r.getNetworkDeployment()));
+                row.put("hostname",                      nvl(r.getHostname()));
+                row.put("ipAddress",                     nvl(r.getIpAddress()));
+                row.put("remarks",                       nvl(r.getRemarks()));
+                resRows.add(row);
+            }
+            map.put("resource_list", resRows);
+        } else {
+            map.put("resource_list", Collections.emptyList());
+        }
 
         PerfDataPlan plan = ctx.getDataPlan();
         if (plan != null) {
@@ -159,7 +274,8 @@ public class PerformanceDocServiceImpl implements PerformanceDocService {
         }
 
         map.put("scene_list", ctx.getSceneList() != null ? ctx.getSceneList() : Collections.emptyList());
-        System.out.println("打印："+map.toString());
+
+        log.debug("DataModel keys: {}", map.keySet());
         return map;
     }
 

@@ -185,7 +185,7 @@ export function deleteDoc(fileName) {
   return request({
     url: '/performance/doc/delete',
     method: 'delete',
-    params: { fileName }
+    data: { fileName }
   })
 }
 

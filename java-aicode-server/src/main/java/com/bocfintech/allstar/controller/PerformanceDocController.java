@@ -14,6 +14,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.net.URLEncoder;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/performance/doc")
@@ -47,7 +48,11 @@ public class PerformanceDocController {
 
     @DeleteMapping("/delete")
     @ApiOperation("删除方案文档")
-    public ResultBean<String> delete(@RequestParam String fileName) {
+    public ResultBean<String> delete(@RequestBody Map<String, String> body) {
+        String fileName = body.get("fileName");
+        if (fileName == null || fileName.isEmpty()) {
+            return ResultBean.error("文件名不能为空");
+        }
         if (docService.deleteDoc(fileName)) {
             return ResultBean.success("删除成功");
         }
