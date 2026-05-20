@@ -11,7 +11,7 @@
       <div class="sidebar-container">
         <!-- 上面：在线用户列表 -->
         <div class="online-users-sidebar">
-          <h3>👥 在线人员</h3>
+          <h3>👥 在线人员（{{ onlineUsers.length }}）</h3>
           <ul class="online-users-list">
             <li
               v-for="user in onlineUsers"
