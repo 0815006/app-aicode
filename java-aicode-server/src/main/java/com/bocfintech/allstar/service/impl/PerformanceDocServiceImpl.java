@@ -72,19 +72,6 @@ public class PerformanceDocServiceImpl implements PerformanceDocService {
         try {
             Map<String, Object> dataModel = buildDataModel(ctx);
 
-            // LoopRowTableRenderPolicy policy = new LoopRowTableRenderPolicy();
-
-            // Configure config = Configure.builder()
-            //         .bind("batch_list", new LoopRowTableRenderPolicy())
-            //         .bind("tran_list", new LoopRowTableRenderPolicy())
-            //         .bind("data_detail_list", new LoopRowTableRenderPolicy())
-            //         .bind("resource_list", new LoopRowTableRenderPolicy())
-            //         .build();
-
-            // XWPFTemplate template = XWPFTemplate.compile(tmpl, config)
-            //         .render(dataModel);
-            // template.writeToFile(docPath + outputFilename);
-            // template.close();
             try (InputStream is = new FileInputStream(tmpl);
                  OutputStream os = new FileOutputStream(docPath + outputFilename)) {
                 PoiEngine.fillModel(is, os, dataModel);

@@ -175,7 +175,26 @@ public final class PoiEngine {
                                      Map<String, ImageInfo> imageData) {
         XWPFDocument document = null;
         try {
+            long startTime = System.currentTimeMillis();
             document = new XWPFDocument(templateInputStream);
+
+            log.info("Resolve the document start...");
+
+            // 收集并打印模板中的所有占位符
+            Set<String> allPlaceholders = collectAllPlaceholders(document);
+            log.info("Resolve the document end, resolve and create {} MetaTemplates.", allPlaceholders.size());
+            for (String ph : allPlaceholders) {
+                log.info("  [模板占位符] {}", ph);
+            }
+
+            // 打印 DataModel 中的所有 key
+            Set<String> modelKeys = new LinkedHashSet<>();
+            if (singleData != null) modelKeys.addAll(singleData.keySet());
+            if (listData != null) modelKeys.addAll(listData.keySet());
+            log.info("Render template start... DataModel 共 {} 个字段:", modelKeys.size());
+            for (String key : modelKeys) {
+                log.info("  [DataModel] {}", key);
+            }
 
             // 1. 处理 singleData 中以 IMAGE_ 开头的 base64 图片（在文本替换前执行）
             if (singleData != null && !singleData.isEmpty()) {
@@ -206,6 +225,9 @@ public final class PoiEngine {
             // 5. 输出
             document.write(outputStream);
             outputStream.flush();
+
+            long elapsed = System.currentTimeMillis() - startTime;
+            log.info("Successfully Render template in {} millis", elapsed);
 
         } catch (Exception e) {
             log.error("Word 模板填充失败", e);
@@ -696,6 +718,41 @@ public final class PoiEngine {
     }
 
     // ==================== 占位符工具 ====================
+
+    /**
+     * 收集文档中所有占位符 key（段落 + 表格），用于日志输出。
+     *
+     * @return 去重后的占位符集合（按原始语法保留，如 ${key}）
+     */
+    private static Set<String> collectAllPlaceholders(XWPFDocument document) {
+        // 使用 LinkedHashSet 保持插入顺序
+        Set<String> result = new LinkedHashSet<>();
+        // 遍历段落
+        for (XWPFParagraph paragraph : document.getParagraphs()) {
+            collectPlaceholdersFromText(getParagraphFullText(paragraph), result);
+        }
+        // 遍历表格
+        for (XWPFTable table : document.getTables()) {
+            for (XWPFTableRow row : table.getRows()) {
+                for (XWPFTableCell cell : row.getTableCells()) {
+                    for (XWPFParagraph paragraph : cell.getParagraphs()) {
+                        collectPlaceholdersFromText(getParagraphFullText(paragraph), result);
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
+     * 从文本中提取所有占位符（保留原始语法），加入集合。
+     */
+    private static void collectPlaceholdersFromText(String text, Set<String> result) {
+        Matcher matcher = PLACEHOLDER_PATTERN.matcher(text);
+        while (matcher.find()) {
+            result.add(matcher.group(0));
+        }
+    }
 
     /**
      * 从组合正则的 Matcher 中提取占位符 key。
