@@ -6,18 +6,24 @@ import com.bocfintech.allstar.entity.*;
 import com.bocfintech.allstar.mapper.*;
 import com.bocfintech.allstar.service.PerformanceDocService;
 import com.deepoove.poi.XWPFTemplate;
-import com.deepoove.poi.config.Configure;
-import com.deepoove.poi.plugin.table.LoopRowTableRenderPolicy;
-import com.deepoove.poi.policy.RenderPolicy;
-import com.deepoove.poi.template.ElementTemplate;
-import com.deepoove.poi.template.run.RunTemplate;
+// import com.deepoove.poi.XWPFTemplate;
+// import com.deepoove.poi.config.Configure;
+// import com.deepoove.poi.plugin.table.LoopRowTableRenderPolicy;
+// import com.deepoove.poi.policy.RenderPolicy;
+// import com.deepoove.poi.template.ElementTemplate;
+// import com.deepoove.poi.template.run.RunTemplate;
+import com.bocfintech.allstar.util.PoiEngine;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.poi.xwpf.usermodel.XWPFRun;
+// import org.apache.poi.xwpf.usermodel.XWPFRun;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -40,7 +46,7 @@ public class PerformanceDocServiceImpl implements PerformanceDocService {
     @Autowired private PerfDataDetailMapper dataDetailMapper;
     @Autowired private PerformanceResourceInfoMapper resourceMapper;
 
-    private static final String TEMPLATE_FILENAME = "性能测试方案模板.docx";
+    private static final String TEMPLATE_FILENAME = "性能测试方案模板poiEngine.docx";
 
     @Override
     public String generateDoc(Long taskId) {
@@ -67,19 +73,23 @@ public class PerformanceDocServiceImpl implements PerformanceDocService {
         try {
             Map<String, Object> dataModel = buildDataModel(ctx);
 
-            LoopRowTableRenderPolicy policy = new LoopRowTableRenderPolicy();
+            // LoopRowTableRenderPolicy policy = new LoopRowTableRenderPolicy();
 
-            Configure config = Configure.builder()
-                    .bind("batch_list", new LoopRowTableRenderPolicy())
-                    .bind("tran_list", new LoopRowTableRenderPolicy())
-                    .bind("data_detail_list", new LoopRowTableRenderPolicy())
-                    .bind("resource_list", new LoopRowTableRenderPolicy())
-                    .build();
+            // Configure config = Configure.builder()
+            //         .bind("batch_list", new LoopRowTableRenderPolicy())
+            //         .bind("tran_list", new LoopRowTableRenderPolicy())
+            //         .bind("data_detail_list", new LoopRowTableRenderPolicy())
+            //         .bind("resource_list", new LoopRowTableRenderPolicy())
+            //         .build();
 
-            XWPFTemplate template = XWPFTemplate.compile(tmpl, config)
-                    .render(dataModel);
-            template.writeToFile(docPath + outputFilename);
-            template.close();
+            // XWPFTemplate template = XWPFTemplate.compile(tmpl, config)
+            //         .render(dataModel);
+            // template.writeToFile(docPath + outputFilename);
+            // template.close();
+            try (InputStream is = new FileInputStream(tmpl);
+                 OutputStream os = new FileOutputStream(docPath + outputFilename)) {
+                PoiEngine.fillModel(is, os, dataModel);
+            }
             log.info("方案文档生成成功: {}", outputFilename);
             return outputFilename;
         } catch (Exception e) {
