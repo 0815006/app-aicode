@@ -28,6 +28,12 @@
         <span slot="title">聊天大厅</span>
       </el-menu-item>
 
+      <!-- ✅ 新增：聊天房间 -->
+      <el-menu-item index="/chat-room">
+        <i class="el-icon-s-home"></i>
+        <span slot="title">聊天房间</span>
+      </el-menu-item>
+
       <el-menu-item index="/data-migration">
         <i class="el-icon-data-line"></i>
         <span slot="title">数据迁移</span>

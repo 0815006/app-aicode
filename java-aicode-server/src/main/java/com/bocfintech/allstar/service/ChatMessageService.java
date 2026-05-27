@@ -32,12 +32,37 @@ public class ChatMessageService {
         return result ? ResultBean.success("消息已保存") : ResultBean.error(ErrorEnum.操作失败, "消息保存失败");
     }
 
+    /** 保存房间消息 */
+    public ResultBean<String> saveRoomMessage(String username, String message, Long roomId) {
+        ChatMessage chatMessage = new ChatMessage();
+        chatMessage.setUsername(username);
+        chatMessage.setMessage(message);
+        chatMessage.setTimestamp(new Date());
+        chatMessage.setRoomId(roomId);
+
+        boolean result = chatMessageMapper.insert(chatMessage) > 0;
+        return result ? ResultBean.success("消息已保存") : ResultBean.error(ErrorEnum.操作失败, "房间消息保存失败");
+    }
+
     /**
      * 获取某时间戳之前的聊天记录（降序排列，限制 20 条）
      */
     public ResultBean<List<ChatMessage>> getMessagesBeforeTimestamp(Long timestamp, int limit) {
         Date targetTime = new Date(timestamp);
         List<ChatMessage> messages = chatMessageMapper.selectList(new QueryWrapper<ChatMessage>()
+                .isNull("room_id")
+                .lt("timestamp", targetTime)
+                .orderByDesc("timestamp")
+                .last("LIMIT " + limit));
+
+        return ResultBean.success(messages);
+    }
+
+    /** 获取房间消息（指定时间戳之前） */
+    public ResultBean<List<ChatMessage>> getRoomMessagesBeforeTimestamp(Long roomId, Long timestamp, int limit) {
+        Date targetTime = new Date(timestamp);
+        List<ChatMessage> messages = chatMessageMapper.selectList(new QueryWrapper<ChatMessage>()
+                .eq("room_id", roomId)
                 .lt("timestamp", targetTime)
                 .orderByDesc("timestamp")
                 .last("LIMIT " + limit));

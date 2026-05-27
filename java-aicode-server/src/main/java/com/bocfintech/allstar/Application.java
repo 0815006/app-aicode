@@ -1,6 +1,7 @@
 package com.bocfintech.allstar;
 
 import com.bocfintech.allstar.service.ChatMessageService;
+import com.bocfintech.allstar.websocket.ChatRoomWebSocketServer;
 import com.bocfintech.allstar.websocket.WebSocketServer;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -22,5 +23,6 @@ public class Application {
         // 注入 ChatMessageService 到 WebSocketServer
         ChatMessageService chatMessageService = context.getBean(ChatMessageService.class);
         WebSocketServer.setChatMessageService(chatMessageService);
+        ChatRoomWebSocketServer.setChatMessageService(chatMessageService);
     }
 }

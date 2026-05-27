@@ -5,6 +5,7 @@ import Home from '@/views/Home.vue'
 import ResourceCheck from '@/views/ResourceCheck.vue'
 import ParkingBookList from '@/views/ParkingBookList.vue' // 新增
 import ChatHall from '@/views/ChatHall.vue' // 新增
+import ChatRoom from '@/views/ChatRoom.vue' // 聊天房间
 import DataMigration from '@/views/DataMigration.vue'
 import VoteManagement from '@/views/VoteManagement.vue'
 import XmindConverter from '@/views/XmindConverter.vue'
@@ -47,6 +48,12 @@ export default new Router({
           name: 'ChatHall',
           component: ChatHall,
           meta: { title: '聊天大厅' }
+        },
+        {
+          path: 'chat-room',
+          name: 'ChatRoom',
+          component: ChatRoom,
+          meta: { title: '聊天房间' }
         },
         {
           path: 'data-migration',

@@ -15,6 +15,9 @@ public class ChatMessage {
     @TableField(value = "timestamp")
     private Date timestamp;
 
+    @TableField(value = "room_id")
+    private Long roomId;
+
     // Getters and Setters
     public Long getId() {
         return id;
@@ -46,5 +49,13 @@ public class ChatMessage {
 
     public void setTimestamp(Date timestamp) {
         this.timestamp = timestamp;
+    }
+
+    public Long getRoomId() {
+        return roomId;
+    }
+
+    public void setRoomId(Long roomId) {
+        this.roomId = roomId;
     }
 }
