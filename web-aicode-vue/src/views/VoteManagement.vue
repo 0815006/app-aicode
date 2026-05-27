@@ -79,19 +79,28 @@
           <div class="podium">
             <div v-if="podiumData[1]" class="podium-item silver">
               <div class="rank">2</div>
-              <img :src="podiumData[1].coverUrl || defaultCover" class="podium-cover" />
+              <div v-if="currentTask.type === '2'" class="podium-avatar">
+                <img :src="podiumData[1].coverUrl || defaultCover" class="podium-cover" />
+              </div>
+              <div v-else class="podium-circle silver-circle">2</div>
               <div class="podium-name">{{ podiumData[1].title }}</div>
               <div class="podium-votes">{{ formatVoteCount(podiumData[1].voteCount) }}</div>
             </div>
             <div v-if="podiumData[0]" class="podium-item gold">
               <div class="rank">1</div>
-              <img :src="podiumData[0].coverUrl || defaultCover" class="podium-cover" />
+              <div v-if="currentTask.type === '2'" class="podium-avatar">
+                <img :src="podiumData[0].coverUrl || defaultCover" class="podium-cover" />
+              </div>
+              <div v-else class="podium-circle gold-circle">1</div>
               <div class="podium-name">{{ podiumData[0].title }}</div>
               <div class="podium-votes">{{ formatVoteCount(podiumData[0].voteCount) }}</div>
             </div>
             <div v-if="podiumData[2]" class="podium-item bronze">
               <div class="rank">3</div>
-              <img :src="podiumData[2].coverUrl || defaultCover" class="podium-cover" />
+              <div v-if="currentTask.type === '2'" class="podium-avatar">
+                <img :src="podiumData[2].coverUrl || defaultCover" class="podium-cover" />
+              </div>
+              <div v-else class="podium-circle bronze-circle">3</div>
               <div class="podium-name">{{ podiumData[2].title }}</div>
               <div class="podium-votes">{{ formatVoteCount(podiumData[2].voteCount) }}</div>
             </div>
@@ -110,12 +119,54 @@
           </div>
         </div>
 
-        <div class="option-area" v-loading="optionsLoading">
+        <!-- 直接投票区域：选项列表 + 进度条 -->
+        <div v-if="currentTask.type === '1'" class="option-area" v-loading="optionsLoading">
           <div class="option-header">
-            <h3>{{ currentTask.type === '1' ? '投票选项' : '作品列表' }}</h3>
+            <h3>投票选项</h3>
+          </div>
+          <div v-if="displayedOptions.length === 0" class="empty-options">
+            <el-empty description="当前暂无可展示内容" :image-size="96" />
+          </div>
+          <div v-else class="direct-vote-list">
+            <div v-for="option in displayedOptions" :key="option.id" class="direct-vote-item" :class="{ 'is-voted': isVoted(option.id) }">
+              <div class="dv-info">
+                <div class="dv-title">
+                  <span v-if="isVoted(option.id)" class="dv-check">✓</span>
+                  {{ option.title }}
+                </div>
+                <div class="dv-meta">
+                  <span class="dv-count">{{ formatVoteCount(option.voteCount) }}</span>
+                </div>
+              </div>
+              <div class="dv-progress-wrap">
+                <div class="dv-progress-bg">
+                  <div
+                    class="dv-progress-fill"
+                    :style="{ width: getDirectVotePercent(option.voteCount) }"
+                  ></div>
+                </div>
+              </div>
+              <div class="dv-action">
+                <el-button
+                  v-if="canVoteOption(option)"
+                  :type="isVoted(option.id) ? 'danger' : 'primary'"
+                  size="small"
+                  @click="handleVote(option)"
+                >
+                  {{ isVoted(option.id) ? '撤回改投' : '投票' }}
+                </el-button>
+                <span v-else class="dv-ended-tag">已截止</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 征集投票区域：卡片网格（保持原有） -->
+        <div v-else class="option-area" v-loading="optionsLoading">
+          <div class="option-header">
+            <h3>作品列表</h3>
             <div class="option-actions-header">
               <el-input
-                v-if="currentTask.type === '2'"
                 v-model.trim="workSearch"
                 size="small"
                 clearable
@@ -139,9 +190,9 @@
               </div>
               <div class="work-body">
                 <div class="work-title">{{ option.title }}</div>
-                <div class="work-author" v-if="currentTask.type === '2'">作者：{{ option.authorName || '-' }}</div>
+                <div class="work-author">作者：{{ option.authorName || '-' }}</div>
                 <div class="work-tags">
-                  <el-tag v-if="currentTask.type === '2'" size="mini" :type="getAuditStatusType(option.auditStatus)">
+                  <el-tag size="mini" :type="getAuditStatusType(option.auditStatus)">
                     {{ getAuditStatusName(option.auditStatus) }}
                   </el-tag>
                   <el-tag v-if="shouldShowVoteCount(option)" size="mini" type="danger">{{ formatVoteCount(option.voteCount) }}</el-tag>
@@ -824,6 +875,12 @@ export default {
     getBarColor(index) {
       const rankColors = ['#FFD700', '#C0C0C0', '#CD7F32'];
       return rankColors[index] || '#409EFF';
+    },
+    getDirectVotePercent(voteCount) {
+      if (!this.options.length) return '0%';
+      const maxVotes = Math.max(...this.options.map(o => Number(o.voteCount || 0)), 1);
+      const current = Number(voteCount || 0);
+      return `${Math.max((current / maxVotes) * 100, 2)}%`;
     }
   }
 };
@@ -1258,6 +1315,144 @@ export default {
 
 .reject-text {
   color: #f56c6c;
+}
+
+/* ===== 直接投票列表样式 ===== */
+.direct-vote-list {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.direct-vote-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  border: 1px solid #edf2ff;
+  border-radius: 10px;
+  background: #fcfdff;
+  transition: all 0.2s ease;
+}
+
+.direct-vote-item:hover {
+  border-color: #cfe0ff;
+  box-shadow: 0 2px 8px rgba(39, 66, 144, 0.06);
+}
+
+.direct-vote-item.is-voted {
+  border-color: #b3d9ff;
+  background: #f4faff;
+}
+
+.dv-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 180px;
+  max-width: 220px;
+}
+
+.dv-title {
+  font-weight: 600;
+  color: #23324a;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dv-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #67c23a;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.dv-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.dv-count {
+  font-size: 13px;
+  color: #f56c6c;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.dv-progress-wrap {
+  flex: 1;
+  min-width: 120px;
+}
+
+.dv-progress-bg {
+  width: 100%;
+  height: 10px;
+  background: #edf2ff;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.dv-progress-fill {
+  height: 100%;
+  border-radius: 20px;
+  background: linear-gradient(90deg, #409eff, #66b1ff);
+  transition: width 0.5s ease;
+  min-width: 2px;
+}
+
+.dv-action {
+  flex-shrink: 0;
+  min-width: 80px;
+  text-align: right;
+}
+
+.dv-ended-tag {
+  font-size: 12px;
+  color: #909399;
+  font-style: italic;
+}
+
+/* ===== Podium 圆圈样式（直接投票无封面图） ===== */
+.podium-circle {
+  width: 86px;
+  height: 86px;
+  border-radius: 50%;
+  border: 4px solid #fff;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.gold-circle {
+  background: linear-gradient(135deg, #ffd700, #ffb800);
+}
+
+.silver-circle {
+  background: linear-gradient(135deg, #c0c0c0, #a8a8a8);
+}
+
+.bronze-circle {
+  background: linear-gradient(135deg, #cd7f32, #b8702a);
+}
+
+.podium-avatar {
+  line-height: 0;
 }
 
 @media (max-width: 1100px) {
