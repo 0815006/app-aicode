@@ -7,8 +7,20 @@
     <!-- 左右布局 -->
     <div class="chat-main-content">
 
-      <!-- 左侧：在线用户列表 + 文件列表 -->
+      <!-- 左侧：用户信息 + 在线用户列表 + 文件列表 -->
       <div class="sidebar-container">
+        <!-- 用户信息区 -->
+        <div class="user-info-sidebar">
+          <h3>👤 当前用户</h3>
+          <div class="user-info-row">
+            <input
+              v-model="currentUser"
+              placeholder="你的名字"
+              class="username-input"
+            />
+          </div>
+        </div>
+
         <!-- 上面：在线用户列表 -->
         <div class="online-users-sidebar">
           <h3>👥 在线人员（{{ onlineUsers.length }}）</h3>
@@ -138,22 +150,10 @@
 
         </div>
 
-        <!-- 输入区：三列等高布局 -->
+        <!-- 输入区 -->
         <div class="input-area">
 
-          <!-- 左侧：用户名输入 -->
-          <div class="username-input-wrapper">
-            <label class="username-label">
-              当前用户名
-            </label>
-            <input
-              v-model="currentUser"
-              placeholder="名字"
-              class="username-input"
-            />
-          </div>
-
-          <!-- 中间：消息输入框 -->
+          <!-- 消息输入框 -->
           <div class="message-input-wrapper">
             <textarea
               v-model="inputMessage"
@@ -163,7 +163,7 @@
             ></textarea>
           </div>
 
-          <!-- 右侧：发送按钮（等高 + 居中） -->
+          <!-- 发送按钮 -->
           <div class="send-button-wrapper">
             <button
               @click="sendMessage"
@@ -539,6 +539,42 @@ export default {
   height: 100%;
 }
 
+.user-info-sidebar {
+  padding: 14px;
+  border: 1px solid #d9e3f2;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 8px 20px rgba(16, 43, 98, 0.08);
+  flex-shrink: 0;
+}
+
+.user-info-sidebar h3 {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  color: #1f2d3d;
+}
+
+.user-info-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.user-info-row .username-input {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid #d6e0ef;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: border-color 0.2s ease;
+}
+
+.user-info-row .username-input:focus {
+  outline: none;
+  border-color: #75b5ff;
+  box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.14);
+}
+
 .online-users-sidebar, .file-list-sidebar {
   padding: 16px 14px;
   border: 1px solid #d9e3f2;
@@ -850,28 +886,6 @@ export default {
   margin-bottom: 10px;
 }
 
-.username-input-wrapper {
-  display: flex;
-  flex-direction: column;
-  min-width: 140px;
-  justify-content: space-between;
-}
-
-.username-label {
-  font-size: 12px;
-  color: #6d7a90;
-}
-
-.username-input {
-  padding: 9px 10px;
-  border: 1px solid #d6e0ef;
-  border-radius: 8px;
-  font-size: 14px;
-  margin-top: 4px;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.username-input:focus,
 .message-textarea:focus {
   outline: none;
   border-color: #75b5ff;
