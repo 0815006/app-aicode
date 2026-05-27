@@ -69,6 +69,11 @@
         <span slot="title">格式化JSON</span>
       </el-menu-item>
 
+      <el-menu-item index="/format-xml">
+        <i class="el-icon-document"></i>
+        <span slot="title">格式化XML</span>
+      </el-menu-item>
+
     </el-menu>
   </div>
 </template>

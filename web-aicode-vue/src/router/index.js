@@ -13,6 +13,7 @@ import TextComparison from '@/views/TextComparison.vue'
 import MediaCrawl from '@/views/MediaCrawl.vue'
 import MetaGen from '@/views/MetaGen.vue'
 import FormatJson from '@/views/FormatJson.vue'
+import FormatXml from '@/views/FormatXml.vue'
 
 Vue.use(Router)
 
@@ -88,6 +89,12 @@ export default new Router({
           name: 'FormatJson',
           component: FormatJson,
           meta: { title: '格式化JSON' }
+        },
+        {
+          path: 'format-xml',
+          name: 'FormatXml',
+          component: FormatXml,
+          meta: { title: '格式化XML' }
         }
       ]
     }
