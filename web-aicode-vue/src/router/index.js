@@ -15,6 +15,7 @@ import MediaCrawl from '@/views/MediaCrawl.vue'
 import MetaGen from '@/views/MetaGen.vue'
 import FormatJson from '@/views/FormatJson.vue'
 import FormatXml from '@/views/FormatXml.vue'
+import TextExtract from '@/views/TextExtract.vue'
 
 Vue.use(Router)
 
@@ -102,6 +103,12 @@ export default new Router({
           name: 'FormatXml',
           component: FormatXml,
           meta: { title: '格式化XML' }
+        },
+        {
+          path: 'text-extract',
+          name: 'TextExtract',
+          component: TextExtract,
+          meta: { title: '文本提取' }
         }
       ]
     }

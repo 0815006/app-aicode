@@ -61,6 +61,8 @@ logging:
 
 vote:
   upload-path: "D:/data/aicode-v1/uploads/vote/"
+text-extract:
+  upload-path: "D:/data/aicode-v1/uploads/text-extract/"
 chat:
   upload-path: "D:/data/aicode-v1/uploads/chat/"
 performance:

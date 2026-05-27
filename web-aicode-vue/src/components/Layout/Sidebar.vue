@@ -80,6 +80,11 @@
         <span slot="title">格式化XML</span>
       </el-menu-item>
 
+      <el-menu-item index="/text-extract">
+        <i class="el-icon-reading"></i>
+        <span slot="title">文本提取</span>
+      </el-menu-item>
+
     </el-menu>
   </div>
 </template>
