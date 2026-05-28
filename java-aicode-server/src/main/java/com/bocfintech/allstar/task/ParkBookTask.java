@@ -245,7 +245,7 @@ public class ParkBookTask {
 
                 if (lastRecord != null) {
                     // 4. 比较结果是否一致
-                    if (!lastRecord.getResult().equals(latestResult.getResult())) {
+                    if (!lastRecord.getResult().equals(latestResult.getResult()) || !lastRecord.getParkingPosition().equals(latestResult.getParkingPosition())) {
                         // 状态不一致，插入新记录
                         parkingRecordMapper.insert(latestResult);
                     } else {
