@@ -23,6 +23,8 @@ public class ParkingBookWithRusult {
 
     private String nextAutoBookDate; // 下次自动开启预约日期 (yyyy-mm-dd)
 
+    private Integer emailEnabled;    // 是否开启邮件通知（0=关闭，1=开启）
+
     private String lastAppointmentDate;   // 最后一次预约入园日期
 
     private String lastAppointmentResult;      // 最后一次预约入园结果

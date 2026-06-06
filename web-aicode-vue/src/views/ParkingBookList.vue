@@ -43,6 +43,13 @@
       <el-table-column prop="lastParkingPosition" label="车位位置" width="140" />
       <el-table-column prop="parkingType" label="车牌类型" width="100" />
       <el-table-column prop="plateNo" label="车牌号" width="120" />
+      <el-table-column label="邮件通知" width="100">
+        <template slot-scope="scope">
+          <el-tag :type="scope.row.emailEnabled === 1 ? 'success' : 'info'">
+            {{ scope.row.emailEnabled === 1 ? '开启' : '关闭' }}
+          </el-tag>
+        </template>
+      </el-table-column>
       <el-table-column prop="createTime" label="创建时间" width="100" sortable >
             <template slot-scope="scope">
                 {{ formatDate(scope.row.createTime) }}
@@ -196,6 +203,26 @@
           />
           <div class="empno-tip">到达此日期早晨8点，系统将自动为您重新开启预约</div>
         </el-form-item>
+        <el-divider content-position="left">邮件通知设置</el-divider>
+        <el-form-item label="邮件通知" prop="emailEnabled">
+          <el-switch
+            v-model="form.emailEnabled"
+            :active-value="1"
+            :inactive-value="0"
+            active-text="开启"
+            inactive-text="关闭"
+          />
+        </el-form-item>
+        <el-form-item label="发件账号" prop="emailUser">
+          <el-input v-model="form.emailUser" placeholder="自动取工号作为邮箱账号" disabled />
+          <div class="empno-tip">发件邮箱账号与工号一致，无需手动填写</div>
+        </el-form-item>
+        <el-form-item v-if="form.emailEnabled === 1" label="邮箱密码" prop="emailPassword">
+          <el-input v-model="form.emailPassword" type="password" placeholder="请输入邮箱密码（明文）" />
+        </el-form-item>
+        <el-form-item v-if="form.emailEnabled === 1" label="收件人邮箱" prop="emailRecipient">
+          <el-input v-model="form.emailRecipient" placeholder="xxxxxxx@bank-of-china.com" />
+        </el-form-item>
       </el-form>
 
       <div slot="footer">
@@ -226,7 +253,11 @@ export default {
         username: '',
         password: '',
         autoBook: 0,
-        nextAutoBookDate: ''
+        nextAutoBookDate: '',
+        emailEnabled: 0,
+        emailUser: '',
+        emailPassword: '',
+        emailRecipient: ''
       },
       rules: {
         empNo: [
@@ -261,6 +292,8 @@ export default {
     const newValue = value.replace(/\D/g, '')
     const limitedValue = newValue.slice(0, 7)
     this.form.empNo = limitedValue
+    // 邮箱账号自动同步工号
+    this.form.emailUser = limitedValue
 
     // 自动聚焦姓名（仅新增时）
     if (!this.isEditing && limitedValue.length === 7) {
@@ -347,14 +380,21 @@ export default {
 
     handleAdd() {
       this.formTitle = '新增车位预约'
-      this.form = { empNo: '', username: '', password: '', autoBook: 0, nextAutoBookDate: '' }
+      this.form = { empNo: '', username: '', password: '', autoBook: 0, nextAutoBookDate: '', emailEnabled: 0, emailUser: '', emailPassword: '', emailRecipient: '' }
       this.isEditing = false
       this.formVisible = true
     },
 
     handleEdit(row) {
       this.formTitle = '修改车位预约'
-      this.form = { ...row, password: '' } // 密码不回显，修改时可留空
+      this.form = {
+        ...row,
+        password: '',        // 密码不回显，修改时可留空
+        emailPassword: '',   // 邮箱密码不回显，修改时可留空
+        emailUser: row.empNo || row.emailUser || '',  // 邮箱账号取工号
+        emailEnabled: row.emailEnabled || 0,
+        emailRecipient: row.emailRecipient || ''
+      }
       this.isEditing = true
       this.formVisible = true
     },
@@ -383,11 +423,13 @@ export default {
         if (!valid) return
 
         this.submitLoading = true
-        const { empNo, username, password, autoBook, nextAutoBookDate } = this.form
+        const { empNo, username, password, autoBook, nextAutoBookDate, emailEnabled, emailUser, emailPassword, emailRecipient } = this.form
         const passHash = this.encryptPassword(password)
+        const encEmailPassword = this.encryptPassword(emailPassword)
 
-        const data = { empNo, username, autoBook, nextAutoBookDate }
+        const data = { empNo, username, autoBook, nextAutoBookDate, emailEnabled, emailUser, emailRecipient }
         if (passHash) data.passHash = passHash
+        if (encEmailPassword) data.emailPassword = encEmailPassword
 
         try {
         const res = await saveOrUpdateParking(data)  // ✅ 接收响应

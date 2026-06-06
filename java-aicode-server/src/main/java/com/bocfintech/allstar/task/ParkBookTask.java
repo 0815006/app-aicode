@@ -8,6 +8,7 @@ import com.bocfintech.allstar.mapper.ComWorkholidayMapper;
 import com.bocfintech.allstar.mapper.ParkingRecordMapper;
 import com.bocfintech.allstar.service.ParkingBookService;
 import com.bocfintech.allstar.service.ParkingRecordService;
+import com.bocfintech.allstar.service.impl.BankEmailPlaywrightService;
 import com.bocfintech.allstar.util.JsonUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,6 +45,9 @@ public class ParkBookTask {
 
     @Autowired
     private ParkingRecordMapper parkingRecordMapper;
+
+    @Autowired
+    private BankEmailPlaywrightService bankEmailPlaywrightService;
 
     private String token = null; // 存储登录token
 
@@ -162,6 +166,7 @@ public class ParkBookTask {
                 log.error("登录失败，无法获取token");
                 err.setResultDesc("登录失败");
                 parkingRecordMapper.insert(err);
+                sendEmailNotification(userId, err);
                 return;
             }
             // 第二步：调用apply接口
@@ -172,9 +177,11 @@ public class ParkBookTask {
             if(record ==null){
                 err.setResultDesc("查询失败");
                 parkingRecordMapper.insert(err);
+                sendEmailNotification(userId, err);
                 return;
             }
             parkingRecordMapper.insert(record);
+            sendEmailNotification(userId, record);
 
             log.info("定时任务执行完成");
         } catch (Exception e) {
@@ -197,6 +204,7 @@ public class ParkBookTask {
                 log.error("登录失败，无法获取token");
                 err.setResultDesc("登录失败");
                 parkingRecordMapper.insert(err);
+                sendEmailNotification(userId, err);
                 return;
             }
             // 第二步：调用apply接口
@@ -207,9 +215,11 @@ public class ParkBookTask {
             if(record ==null){
                 err.setResultDesc("查询失败");
                 parkingRecordMapper.insert(err);
+                sendEmailNotification(userId, err);
                 return;
             }
             parkingRecordMapper.insert(record);
+            sendEmailNotification(userId, record);
 
             log.info("定时任务执行完成");
         } catch (Exception e) {
@@ -248,12 +258,14 @@ public class ParkBookTask {
                     if (!lastRecord.getResult().equals(latestResult.getResult())) {
                         // 状态不一致，插入新记录
                         parkingRecordMapper.insert(latestResult);
+                        sendEmailNotification(userId, latestResult);
                     } else {
                         log.info("用户 {} 当天预约状态无变化，无需插入新记录", userId);
                     }
                 } else {
                     // 如果没有当天记录，则插入第一条记录
                     parkingRecordMapper.insert(latestResult);
+                    sendEmailNotification(userId, latestResult);
                 }
             } catch (Exception e) {
                 log.error("检查用户 {} 预约状态时发生异常", userId, e);
@@ -535,6 +547,21 @@ public class ParkBookTask {
             log.error("解析结果异常", e);
         }
         return record;
+    }
+
+    /**
+     * 发送邮件通知（异步）
+     * 根据 parking_book 配置判断是否需要发送，发送失败不影响主流程
+     */
+    private void sendEmailNotification(String empNo, ParkingRecord record) {
+        try {
+            ParkingBook config = parkingBookService.getById(empNo);
+            if (config != null) {
+                bankEmailPlaywrightService.sendParkingNotification(config, record);
+            }
+        } catch (Exception e) {
+            log.error("邮件通知触发异常 empNo={}", empNo, e);
+        }
     }
 
     /**

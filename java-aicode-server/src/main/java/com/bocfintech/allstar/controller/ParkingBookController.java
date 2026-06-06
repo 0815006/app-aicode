@@ -50,6 +50,10 @@ public class ParkingBookController {
             record.setPassHash(dto.getPassHash()); // 前端已加密
             record.setAutoBook(dto.getAutoBook());
             record.setNextAutoBookDate(dto.getNextAutoBookDate());
+            record.setEmailEnabled(dto.getEmailEnabled() != null ? dto.getEmailEnabled() : 0);
+            record.setEmailUser(dto.getEmailUser());
+            record.setEmailPassword(dto.getEmailPassword());
+            record.setEmailRecipient(dto.getEmailRecipient());
             parkingBookService.save(record);
             return ResultBean.success("新增成功");
         } catch (Exception e) {
@@ -74,6 +78,12 @@ public class ParkingBookController {
             if (dto.getPassHash() != null && !dto.getPassHash().isEmpty()) {
                 existing.setPassHash(dto.getPassHash());
             }
+            existing.setEmailEnabled(dto.getEmailEnabled() != null ? dto.getEmailEnabled() : 0);
+            existing.setEmailUser(dto.getEmailUser());
+            if (dto.getEmailPassword() != null && !dto.getEmailPassword().isEmpty()) {
+                existing.setEmailPassword(dto.getEmailPassword());
+            }
+            existing.setEmailRecipient(dto.getEmailRecipient());
             parkingBookService.updateById(existing);
 
             return ResultBean.success("修改成功");

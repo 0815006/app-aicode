@@ -12,5 +12,13 @@ public class ParkingBookDTO {
     private Integer autoBook;
     private String nextAutoBookDate; // 下次自动开启预约日期 (yyyy-mm-dd)
 
+    private Integer emailEnabled;    // 是否开启邮件通知（0=关闭，1=开启）
+
+    private String emailUser;        // 发送邮件账号用户名（7位工号格式）
+
+    private String emailPassword;    // 发送邮件账号密码（加密存储）
+
+    private String emailRecipient;   // 收件人邮箱地址
+
     // getter and setter
 }
