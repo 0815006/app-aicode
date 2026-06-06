@@ -218,7 +218,9 @@ export default {
 
       try {
         const baseURL = axios.defaults.baseURL || '';
-        const url = baseURL + (this.selectedFile.url || '/api/uploads/text-extract/' + this.selectedFile.fileName);
+        // 文件名可能包含 []、中文等特殊字符，必须 encodeURIComponent，否则后端 400
+        const fileName = encodeURIComponent(this.selectedFile.fileName);
+        const url = baseURL + '/api/uploads/text-extract/' + fileName;
         const response = await axios.get(url, { responseType: 'arraybuffer' });
         this.rawBuffer = response.data;
         return this.rawBuffer;
