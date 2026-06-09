@@ -2,6 +2,13 @@
     "configurations": [
         {
             "type": "java",
+            "name": "Mail163Test",
+            "request": "launch",
+            "mainClass": "com.bocfintech.allstar.test.Mail163Test",
+            "projectName": "aicode"
+        },
+        {
+            "type": "java",
             "name": "Spring Boot-Application<aicode>",
             "request": "launch",
             "cwd": "${workspaceFolder}",
