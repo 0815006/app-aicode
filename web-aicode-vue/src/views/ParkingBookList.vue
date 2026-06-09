@@ -445,7 +445,7 @@ export default {
         }
         } catch (error) {
         // ❌ 网络异常、超时、500 等
-        this.$message.error('网络请求失败，请检查接口')
+        this.$message.error('网络请求失败，请检查接口。网如果好的那就是密码错误！')
         console.error(error)
         } finally {
         this.submitLoading = false
