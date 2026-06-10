@@ -83,7 +83,7 @@ public class Mail163Test {
 
             // ==================== 步骤 B: 启动之后，等待几秒时间 ====================
             log("浏览器启动中，等待 3 秒确保端口就绪...");
-            sleep(3000); 
+            sleep(5000); 
 
             // ==================== 步骤 C: Playwright 连接并操作 ====================
             try (Playwright playwright = Playwright.create()) {
