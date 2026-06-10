@@ -10,6 +10,8 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 银行邮箱发送服务 - 基于 Playwright 自动化
@@ -100,6 +102,13 @@ public class BankEmailPlaywrightService {
     /** 发送按钮（在 iframe 内） — {@code <button id="btnSend">} */
     private static final String SEND_BTN_ID = "#btnSend";
 
+    /** Chrome 浏览器可执行文件路径 */
+    private static final String CHROME_PATH = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
+    /** Chrome 远程调试端口 */
+    private static final int CHROME_PORT = 9222;
+    /** Chrome 用户数据目录（独立 profile，避免与日常使用冲突） */
+    private static final String USER_DATA_DIR = "C:\\chrome_dev_profile";
+
     /**
      * 异步发送预约结果通知邮件。
      * <p>
@@ -167,44 +176,36 @@ public class BankEmailPlaywrightService {
 
         log.info("邮件通知：开始发送 → 用户={}, 收件人={}, 主题={}", config.getEmpNo(), recipient, subject);
 
-        /*
-         * ==================== Playwright 浏览器操作 ====================
-         *
-         * 调用链：
-         *   Playwright.create()         → 启动 Playwright Server (Node.js 进程)
-         *   chromium().launch()         → Playwright Server 启动 Chromium 子进程
-         *   browser.newContext()         → 创建独立浏览器会话（无痕窗口）
-         *   context.newPage()            → 打开新标签页
-         *
-         * 浏览器路径（Windows）：
-         *   %LOCALAPPDATA%\ms-playwright\chromium-1097\chrome.exe
-         *
-         * try-with-resources 确保 Playwright 实例在方法结束时自动关闭。
-         */
-        try (Playwright playwright = Playwright.create()) {
+        Process chromeProcess = null;
 
-            /*
-             * launch() 启动 Chromium 进程：
-             *   headless=true  → 后台运行，无可见窗口（服务器环境必须用 true）
-             *   slowMo=50      → 每步操作间隔50ms，模拟人类速度，降低被反爬拦截的风险
-             *
-             * 内网部署注意：
-             *   如 launch() 失败，通常是因为缺少 VC++ 运行时。
-             *   安装 vc_redist.x64.exe 即可解决：
-             *     https://aka.ms/vc14/vc_redist.x64.exe
-             */
-            Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions()
-                    .setHeadless(true)
-                    .setSlowMo(50));
+        try {
+            // ==================== 步骤 A: 由 Java 动态调用命令打开 Chrome ====================
+            log.info("正在启动本地 Chrome 浏览器并开启 CDP 调试端口...");
 
-            // BrowserContext = 独立的无痕会话，Cookie/Storage 完全隔离
-            // 即使多个账号同时发邮件（不同 Context），登录态也不会串
-            BrowserContext context = browser.newContext(new Browser.NewContextOptions()
-                    .setViewportSize(1920, 1080));
+            List<String> command = new ArrayList<>();
+            command.add(CHROME_PATH);
+            command.add("--remote-debugging-port=" + CHROME_PORT);
+            command.add("--user-data-dir=" + USER_DATA_DIR);
+            command.add("--no-first-run");
+            command.add("--no-default-browser-check");
 
-            Page page = context.newPage();
+            ProcessBuilder pb = new ProcessBuilder(command);
+            pb.redirectErrorStream(true);
+            chromeProcess = pb.start();
 
-            try {
+            // ==================== 步骤 B: 启动之后，等待几秒时间 ====================
+            log.info("浏览器启动中，等待 3 秒确保端口就绪...");
+            Thread.sleep(3000);
+
+            // ==================== 步骤 C: Playwright 连接并操作 ====================
+            try (Playwright playwright = Playwright.create()) {
+                log.info("正在连接内网已打开的 Chrome 浏览器...");
+                Browser browser = playwright.chromium().connectOverCDP("http://localhost:" + CHROME_PORT);
+
+                BrowserContext context = browser.contexts().get(0);
+                Page page = context.pages().get(0);
+
+                try {
                 /*
                  * ==== 步骤1：打开登录页面 ====
                  *
@@ -329,14 +330,28 @@ public class BankEmailPlaywrightService {
                     page.screenshot(new Page.ScreenshotOptions()
                             .setPath(Paths.get("email_error_" + config.getEmpNo() + ".png")));
                 } catch (Exception ignored) {}
-            } finally {
-                // 确保浏览器资源释放（无论成功失败）
-                context.close();
-                browser.close();
+                } finally {
+                    // 确保浏览器资源释放（无论成功失败）
+                    context.close();
+                    browser.close();
+                }
             }
+
+            // ==================== 步骤 D: 发送完成后，关闭之前，等待几秒时间 ====================
+            log.info("邮件发送完成，等待 3 秒后关闭浏览器...");
+            Thread.sleep(3000);
+
+        } catch (java.io.IOException e) {
+            log.error("启动 Chrome 进程失败，请检查配置中的 Chrome 路径是否正确: {}", e.getMessage());
         } catch (Exception e) {
-            // launch() 失败（浏览器未安装、缺少运行库等）
-            log.error("邮件通知：浏览器启动失败 用户={}", config.getEmpNo(), e);
+            log.error("发邮件过程中发生异常: {}", e.getMessage());
+        } finally {
+            // ==================== 步骤 E: 彻底关闭浏览器进程 ====================
+            if (chromeProcess != null && chromeProcess.isAlive()) {
+                log.info("正在关闭 Chrome 浏览器进程...");
+                chromeProcess.destroyForcibly();
+                log.info("Chrome 浏览器已关闭。");
+            }
         }
     }
 

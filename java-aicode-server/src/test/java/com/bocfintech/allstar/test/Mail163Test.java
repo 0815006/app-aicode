@@ -3,9 +3,12 @@ package com.bocfintech.allstar.test;
 import com.microsoft.playwright.*;
 import com.microsoft.playwright.options.LoadState;
 
+import java.io.IOException;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 163邮箱发送测试程序
@@ -28,7 +31,7 @@ public class Mail163Test {
     /** 163邮箱登录用户名（完整邮箱地址，如 yourname@163.com） */
     private static final String USERNAME = "0815006@163.com";
     /** 163邮箱登录密码 或 客户端授权码 */
-    private static final String PASSWORD = "9001301";
+    private static final String PASSWORD = "900130";
     // ============================================================
 
     /** 收件人 */
@@ -48,86 +51,142 @@ public class Mail163Test {
     /** 短等待时间（毫秒） */
     private static final int WAIT_SHORT = 1000;
 
+    // 模拟从 yml 中读取的配置（如果你使用 Spring，可以用 @Value("${chrome.executable-path}") 等注入）
+    private static final String CHROME_PATH = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
+    private static final int CHROME_PORT = 9222;
+    private static final String USER_DATA_DIR = "C:\\chrome_dev_profile";
+
     public static void main(String[] args) {
         printBanner();
 
         if (!checkPlaceholders()) {
             return;
         }
+        Process chromeProcess = null;
 
-        try (Playwright playwright = Playwright.create()) {
-            // 启动 Chromium 浏览器 — headless=false 可观察执行过程
-            // Playwright 使用独立的 Chromium（非系统 Chrome），位于:
-            //   %LOCALAPPDATA%\ms-playwright\chromium-1134\chrome.exe
-            Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions()
-                    .setHeadless(false)   // 有头模式，方便调试观察
-                    .setSlowMo(80));       // 操作间隔80ms，模拟人工操作速度
+        try {
+            // ==================== 步骤 A: 由 Java 动态调用命令打开 Chrome ====================
+            log("正在启动本地 Chrome 浏览器并开启 CDP 调试端口...");
+            
+            List<String> command = new ArrayList<>();
+            command.add(CHROME_PATH);
+            command.add("--remote-debugging-port=" + CHROME_PORT);
+            command.add("--user-data-dir=" + USER_DATA_DIR);
+            // 建议增加以下参数，确保内网环境中多余的弹窗或更新提示不会打扰自动化
+            command.add("--no-first-run");
+            command.add("--no-default-browser-check"); 
 
-            BrowserContext context = browser.newContext(new Browser.NewContextOptions()
-                    .setViewportSize(1920, 1080));
+            ProcessBuilder pb = new ProcessBuilder(command);
+            // 将错误流合并，方便排查潜在的启动错误
+            pb.redirectErrorStream(true); 
+            chromeProcess = pb.start();
 
-            Page page = context.newPage();
+            // ==================== 步骤 B: 启动之后，等待几秒时间 ====================
+            log("浏览器启动中，等待 3 秒确保端口就绪...");
+            sleep(3000); 
 
-            try {
-                // ---- 步骤1: 打开163邮箱登录页 ----
-                log("步骤1: 打开163邮箱登录页面 " + LOGIN_URL);
-                page.navigate(LOGIN_URL);
-                page.waitForLoadState(LoadState.NETWORKIDLE);
-                sleep(WAIT_NORMAL);
+            // ==================== 步骤 C: Playwright 连接并操作 ====================
+            try (Playwright playwright = Playwright.create()) {
+                // 启动 Chromium 浏览器 — headless=false 可观察执行过程
+                // Playwright 使用独立的 Chromium（非系统 Chrome），位于:
+                //   %LOCALAPPDATA%\ms-playwright\chromium-1134\chrome.exe
+                /* 
+                Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions()
+                        .setHeadless(false)   // 有头模式，方便调试观察
+                        .setSlowMo(80));       // 操作间隔80ms，模拟人工操作速度
 
-                // ---- 步骤2: 执行登录 ----
-                log("步骤2: 执行登录...");
-                login163(page);
+                BrowserContext context = browser.newContext(new Browser.NewContextOptions()
+                        .setViewportSize(1920, 1080));
 
-                // ---- 步骤3: 进入邮箱主页后，点击"写信" ----
-                log("步骤3: 点击写信按钮...");
-                clickComposeButton(page);
+                Page page = context.newPage();
+                */
+                // ---- 核心改动：不再 launch 新浏览器，而是通过 CDP 连接已经打开的浏览器 ----
+                log("正在连接内网已打开的 Chrome 浏览器...");
+                Browser browser = playwright.chromium().connectOverCDP("http://localhost:9222");
 
-                // ---- 步骤4: 填写收件人 ----
-                log("步骤4: 填写收件人 -> " + RECIPIENT);
-                fillRecipient(page, RECIPIENT);
+                // 注意：接管已打开的浏览器时，通常直接获取它当前已经存在的 context 和 page
+                // 如果直接 newContext，部分全局配置（如 headless）将以手动打开的浏览器为准
+                BrowserContext context = browser.contexts().get(0); 
+                Page page = context.pages().get(0);
 
-                // ---- 步骤5: 填写主题 ----
-                log("步骤5: 填写主题 -> " + SUBJECT);
-                fillSubject(page, SUBJECT);
-
-                // ---- 步骤6: 填写正文 ----
-                log("步骤6: 填写正文 -> " + BODY);
-                fillBody(page, BODY);
-
-                // ---- 步骤7: 点击发送 ----
-                log("步骤7: 点击发送按钮...");
-                clickSendButton(page);
-                sleep(WAIT_NORMAL);
-
-                log("========== ✅ 邮件发送成功！ ==========");
-
-            } catch (Exception e) {
-                log("========== ❌ 邮件发送失败 ==========");
-                System.err.println("异常信息: " + e.getMessage());
-                e.printStackTrace();
-                // 保存错误截图
                 try {
-                    String screenshotFile = "mail163_error_"
-                            + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
-                            + ".png";
-                    page.screenshot(new Page.ScreenshotOptions()
-                            .setPath(Paths.get(screenshotFile))
-                            .setFullPage(true));
-                    log("已保存错误截图: " + screenshotFile);
-                } catch (Exception ignored) {
-                }
-            } finally {
-                log("关闭浏览器...");
-                context.close();
-                browser.close();
-            }
-        } catch (Exception e) {
-            System.err.println("浏览器启动失败: " + e.getMessage());
-            e.printStackTrace();
-        }
+                    // ---- 步骤1: 打开163邮箱登录页 ----
+                    log("步骤1: 打开163邮箱登录页面 " + LOGIN_URL);
+                    page.navigate(LOGIN_URL);
+                    page.waitForLoadState(LoadState.NETWORKIDLE);
+                    sleep(WAIT_NORMAL);
 
-        log("========== 163邮箱发送测试结束 ==========");
+                    // ---- 步骤2: 执行登录 ----
+                    log("步骤2: 执行登录...");
+                    login163(page);
+
+                    // ---- 步骤3: 进入邮箱主页后，点击"写信" ----
+                    log("步骤3: 点击写信按钮...");
+                    clickComposeButton(page);
+
+                    // ---- 步骤4: 填写收件人 ----
+                    log("步骤4: 填写收件人 -> " + RECIPIENT);
+                    fillRecipient(page, RECIPIENT);
+
+                    // ---- 步骤5: 填写主题 ----
+                    log("步骤5: 填写主题 -> " + SUBJECT);
+                    fillSubject(page, SUBJECT);
+
+                    // ---- 步骤6: 填写正文 ----
+                    log("步骤6: 填写正文 -> " + BODY);
+                    fillBody(page, BODY);
+
+                    // ---- 步骤7: 点击发送 ----
+                    log("步骤7: 点击发送按钮...");
+                    clickSendButton(page);
+                    sleep(WAIT_NORMAL);
+
+                    log("========== ✅ 邮件发送成功！ ==========");
+
+                } catch (Exception e) {
+                    log("========== ❌ 邮件发送失败 ==========");
+                    System.err.println("异常信息: " + e.getMessage());
+                    e.printStackTrace();
+                    // 保存错误截图
+                    try {
+                        String screenshotFile = "mail163_error_"
+                                + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
+                                + ".png";
+                        page.screenshot(new Page.ScreenshotOptions()
+                                .setPath(Paths.get(screenshotFile))
+                                .setFullPage(true));
+                        log("已保存错误截图: " + screenshotFile);
+                    } catch (Exception ignored) {
+                    }
+                } finally {
+                    log("关闭浏览器...");
+                    context.close();
+                    browser.close();
+                }
+            } catch (Exception e) {
+                System.err.println("浏览器启动失败: " + e.getMessage());
+                e.printStackTrace();
+            }
+
+            log("========== 163邮箱发送测试结束 ==========");
+
+            // ==================== 步骤 D: 发送完成后，关闭之前，等待几秒时间 ====================
+                log("邮件发送完成，等待 3 秒后关闭浏览器...");
+                sleep(3000);
+
+        } catch (IOException e) {
+            log("启动 Chrome 进程失败，请检查 Yml 中的路径是否正确: " + e.getMessage());
+        } catch (Exception e) {
+            log("发邮件过程中发生异常: " + e.getMessage());
+        } finally {
+            // ==================== 步骤 E: 彻底关闭浏览器进程 ====================
+            if (chromeProcess != null && chromeProcess.isAlive()) {
+                log("正在关闭 Chrome 浏览器进程...");
+                // 强行终止 Chrome 进程
+                chromeProcess.destroyForcibly(); 
+                log("Chrome 浏览器已关闭。");
+            }
+        }
     }
 
     // =========================== 登录 ===========================
