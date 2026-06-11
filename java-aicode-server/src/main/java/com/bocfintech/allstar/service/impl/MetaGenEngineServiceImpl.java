@@ -71,20 +71,14 @@ public class MetaGenEngineServiceImpl implements MetaGenEngineService {
         String fileName = buildFileName(ctx, "PREVIEW", operator); // 预览文件使用特殊批次名
         fullPreviewContent.append("文件名: ").append(fileName).append(ctx.lineEnding).append(ctx.lineEnding);
 
-        // 2. 生成文件头
-        List<MetaFieldDefinition> headerFields = ctx.getSectionFields("HEADER");
-        if (model.getHasHeader() != null && model.getHasHeader() == 1 && !headerFields.isEmpty()) {
-            fullPreviewContent.append("--- 文件头 (HEADER) ！！最终文件是没有这行的！！---").append(ctx.lineEnding);
-            fullPreviewContent.append(generateSectionContent(ctx, headerFields)).append(ctx.lineEnding).append(ctx.lineEnding);
-        }
-
-        // 3. 生成文件体 (3行)
+        // 2. 先生成文件体 (3行) —— 需要先于 HEADER/FOOTER，以便金额汇总 (SUM) 字段能拿到正确的 bodySumAmount
         List<MetaFieldDefinition> bodyFields = ctx.getSectionFields("BODY");
+        String bodyPreviewContent = "";
         if (!bodyFields.isEmpty()) {
-            fullPreviewContent.append("--- 文件体 (BODY) ！！最终文件是没有这行的！！---").append(ctx.lineEnding);
+            StringBuilder bodyBuilder = new StringBuilder();
             for (int row = 0; row < 3; row++) {
                 StringBuilder line = new StringBuilder();
-                Map<String, String> rowValues = new LinkedHashMap<>(); // 用于存储当前行字段值，供子字段替换
+                Map<String, String> rowValues = new LinkedHashMap<>();
                 for (MetaFieldDefinition f : bodyFields) {
                     String val = generateFieldValue(ctx, f, row);
                     rowValues.put(f.getFieldKey(), val);
@@ -92,21 +86,36 @@ public class MetaGenEngineServiceImpl implements MetaGenEngineService {
                         line.append(val);
                     }
                 }
-                // 处理子字段 (level 2)
                 String lineStr = substituteLevel2(bodyFields, rowValues, line.toString());
-                fullPreviewContent.append(lineStr);
-                if (row < 2) fullPreviewContent.append(ctx.lineEnding); // 最后一行不加换行
+                bodyBuilder.append(lineStr);
+                if (row < 2) bodyBuilder.append(ctx.lineEnding);
             }
-            fullPreviewContent.append(ctx.lineEnding).append(ctx.lineEnding);
+            bodyPreviewContent = bodyBuilder.toString();
         }
 
+        // 3. 生成文件头 (金额汇总已通过先跑 Body 完成累加)
+        String headerPreviewContent = "";
+        List<MetaFieldDefinition> headerFields = ctx.getSectionFields("HEADER");
+        if (model.getHasHeader() != null && model.getHasHeader() == 1 && !headerFields.isEmpty()) {
+            headerPreviewContent = "--- 文件头 (HEADER) ！！最终文件是没有这行的！！---" + ctx.lineEnding
+                    + generateSectionContent(ctx, headerFields) + ctx.lineEnding + ctx.lineEnding;
+        }
 
         // 4. 生成文件尾
+        String footerPreviewContent = "";
         List<MetaFieldDefinition> footerFields = ctx.getSectionFields("FOOTER");
         if (model.getHasFooter() != null && model.getHasFooter() == 1 && !footerFields.isEmpty()) {
-            fullPreviewContent.append("--- 文件尾 (FOOTER) ！！最终文件是没有这行的！！---").append(ctx.lineEnding);
-            fullPreviewContent.append(generateSectionContent(ctx, footerFields)).append(ctx.lineEnding);
+            footerPreviewContent = "--- 文件尾 (FOOTER) ！！最终文件是没有这行的！！---" + ctx.lineEnding
+                    + generateSectionContent(ctx, footerFields) + ctx.lineEnding;
         }
+
+        // 按文件顺序组装: HEADER → BODY → FOOTER
+        fullPreviewContent.append(headerPreviewContent);
+        if (!bodyPreviewContent.isEmpty()) {
+            fullPreviewContent.append("--- 文件体 (BODY) ！！最终文件是没有这行的！！---").append(ctx.lineEnding);
+            fullPreviewContent.append(bodyPreviewContent).append(ctx.lineEnding).append(ctx.lineEnding);
+        }
+        fullPreviewContent.append(footerPreviewContent);
 
         return fullPreviewContent.toString();
     }
@@ -134,7 +143,8 @@ public class MetaGenEngineServiceImpl implements MetaGenEngineService {
         if (rowCount > model.getMaxRowsLimit()) throw new IllegalArgumentException("超过模型最大行数限制: " + model.getMaxRowsLimit());
 
         List<MetaFieldDefinition> fields = fieldService.listByModelId(modelId); // 获取 fields 列表
-        GenerationContext tempCtx = new GenerationContext(model, fields, rowCount, false, operator); // 构建临时 ctx
+        // 使用 isPreview=true 避免文件名构造时意外持久化序列号
+        GenerationContext tempCtx = new GenerationContext(model, fields, rowCount, true, operator);
         tempCtx.init(); // 初始化 ctx，生成 FILENAME 字段值
 
         String displayName = buildFileName(tempCtx, batchName, operator);
@@ -155,7 +165,10 @@ public class MetaGenEngineServiceImpl implements MetaGenEngineService {
         MetaFileModel model = modelService.getById(modelId);
         List<MetaFieldDefinition> fields = fieldService.listByModelId(modelId);
         GenerationContext ctx = new GenerationContext(model, fields, rowCount, false, operator);
-        ctx.init();
+        // 不再调用 ctx.init()，避免 FILENAME 区块中的 SEQ 字段被意外持久化
+        // 文件名已在 generateAsync 中提前构建，此处只需初始化虚拟变量
+        ctx.fieldValues.put("BODY_SUM_AMOUNT", "0");
+        ctx.fieldValues.put("BODY_COUNT", "0");
 
         String encoding = model.getEncoding() != null ? model.getEncoding() : "UTF-8";
         File tmpDir = new File(formalDir + "/tmp");
@@ -654,12 +667,13 @@ public class MetaGenEngineServiceImpl implements MetaGenEngineService {
 
         long intPart;
         long fracPart;
+        long totalInSmallestUnit;
 
         // 检查是否有指定金额值
         Object valueObj = config.get("value");
         if (valueObj != null) {
             double amount = config.getDoubleValue("value");
-            long totalInSmallestUnit = Math.round(amount * Math.pow(10, precision));
+            totalInSmallestUnit = Math.round(amount * Math.pow(10, precision));
             intPart = totalInSmallestUnit / (long) Math.pow(10, precision);
             fracPart = totalInSmallestUnit % (long) Math.pow(10, precision);
         } else {
@@ -668,7 +682,12 @@ public class MetaGenEngineServiceImpl implements MetaGenEngineService {
             long maxIntPart = (long) Math.pow(10, totalLength - precision) - 1;
             intPart = (long)(rnd.nextDouble() * maxIntPart);
             fracPart = rnd.nextInt((int) Math.pow(10, precision));
+            totalInSmallestUnit = intPart * (long) Math.pow(10, precision) + fracPart;
         }
+
+        // 累加金额到上下文，供 HEADER/FOOTER 的 SUM 字段汇总使用
+        ctx.bodySumAmount += totalInSmallestUnit;
+        ctx.lastGeneratedAmount = totalInSmallestUnit;
 
         if ("IMPLICIT".equals(decimalMode)) {
             String combined = String.format("%d%0" + precision + "d", intPart, fracPart);
@@ -883,6 +902,7 @@ public class MetaGenEngineServiceImpl implements MetaGenEngineService {
         Map<String, List<String>> refFileColumnCache = new HashMap<>(); // 新缓存: refFileId:fieldKey -> 列数据
         long bodySumAmount = 0;
         long bodyCount = 0;
+        long lastGeneratedAmount = 0; // 最近一次生成的金额（最小单位），供 bodySumAmount 累加
 
         GenerationContext(MetaFileModel model, List<MetaFieldDefinition> fields, int totalRows, boolean isPreview, String operator) {
             this.model = model;
