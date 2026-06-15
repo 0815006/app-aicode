@@ -1,19 +1,12 @@
 server:
-  port: 8092 # 保持你原有的端口
+  port: ${SERVER_PORT:8092}
   tomcat:
     accesslog:
-      enabled: true          # 开启访问日志
-      directory: logs        # 日志存放目录 (默认在项目根目录下的 logs 文件夹)
-      prefix: access_log     # 文件名前缀
-      suffix: .log           # 文件后缀
-      pattern: "%h %l %u %t \"%r\" %s %b \"%{User-Agent}i\"" # 自定义格式
-      # 解释 pattern:
-      # %h = 客户端 IP (这就是你要找的!)
-      # %t = 时间
-      # %r = 请求行 (包含 URL 和 Method)
-      # %s = 状态码
-      # %b = 响应大小
-      # %{User-Agent}i = 用户代理 (可以看到攻击者的工具特征)
+      enabled: true
+      directory: logs
+      prefix: access_log
+      suffix: .log
+      pattern: "%h %l %u %t \"%r\" %s %b \"%{User-Agent}i\""
 
 spring:
   autoconfigure:
@@ -23,15 +16,13 @@ spring:
 
   servlet:
     multipart:
-      max-file-size: 500MB
-      max-request-size: 500MB
+      max-file-size: ${FILE_MAX_SIZE:500MB}
+      max-request-size: ${FILE_MAX_SIZE:500MB}
 
   datasource:
-    # url: jdbc:mysql://22.188.9.144:3306/stack_db?useSSL=false&useUnicode=true&characterEncoding=UTF8&serverTimezone=GMT%2B8&allowMultiQueries=true&zeroDateTimeBehavior=convertToNull&rewriteBatchedStatements=true
-    url: jdbc:mysql://localhost:3306/stack_db?allowPublicKeyRetrieval=true&useSSL=false&useUnicode=true&characterEncoding=UTF8&serverTimezone=GMT%2B8&allowMultiQueries=true&zeroDateTimeBehavior=convertToNull&rewriteBatchedStatements=true
-    username: root
-    # password: Star002!
-    password: root
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:stack_db}?allowPublicKeyRetrieval=true&useSSL=false&useUnicode=true&characterEncoding=UTF8&serverTimezone=GMT%2B8&allowMultiQueries=true&zeroDateTimeBehavior=convertToNull&rewriteBatchedStatements=true
+    username: ${DB_USER:root}
+    password: ${DB_PASSWORD:root}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       connection-timeout: 30000
@@ -41,7 +32,6 @@ spring:
       max-lifetime: 1800000
       connection-test-query: SELECT 1
 
-  # MyBatis Plus 配置
   mybatis-plus:
     mapper-locations: classpath:mapper/*.xml
     type-aliases-package: com.bocfintech.allstar.entity
@@ -59,37 +49,39 @@ logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 
-vote:
-  upload-path: "D:/data/aicode-v1/uploads/vote/"
-text-extract:
-  upload-path: "D:/data/aicode-v1/uploads/text-extract/"
-chat:
-  upload-path: "D:/data/aicode-v1/uploads/chat/"
-performance:
-  template-path: "D:/data/aicode-v1/uploads/performance/templates/"
-  doc-path: "D:/data/aicode-v1/uploads/performance/docs/"
-
-# 媒体抓取配置
+# =============================================
+# AICode 自定义配置
+# 所有路径可通过 DATA_ROOT 环境变量统一覆盖，
+# 适配 Windows 本地开发 / Docker / 腾讯云 三种部署环境
+# =============================================
 app:
+  data-root: ${DATA_ROOT:D:/data/aicode-v1}
   crawl:
-    image-base-path: "D:/data/aicode-v1/crawl/images/"
-    video-base-path: "D:/data/aicode-v1/crawl/videos/"
+    image-base-path: "${app.data-root}/crawl/images/"
+    video-base-path: "${app.data-root}/crawl/videos/"
+
+vote:
+  upload-path: "${app.data-root}/uploads/vote/"
+text-extract:
+  upload-path: "${app.data-root}/uploads/text-extract/"
+chat:
+  upload-path: "${app.data-root}/uploads/chat/"
+performance:
+  template-path: "${app.data-root}/uploads/performance/templates/"
+  doc-path: "${app.data-root}/uploads/performance/docs/"
 
 # 造数引擎
 meta:
   max-file-lines: 2000
   storage:
-    preview: "D:/data/aicode-v1/meta/preview/"
-    formal: "D:/data/aicode-v1/meta/normal/"
-  template-path: "D:/data/aicode-v1/meta/templates/"
-  ref-file-path: "D:/data/aicode-v1/meta/ref-files/"
+    preview: "${app.data-root}/meta/preview/"
+    formal: "${app.data-root}/meta/normal/"
+  template-path: "${app.data-root}/meta/templates/"
+  ref-file-path: "${app.data-root}/meta/ref-files/"
 
-# 发送邮件
+# Playwright / Chrome 配置
+# 内网桌面环境使用系统 Chrome + CDP；Docker 环境由 Playwright 自行管理浏览器
 chrome:
-  # 内网机器上真正的 chrome.exe 绝对路径
-  # executable-path: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
-  executable-path: "C:\\Users\\chendong\\AppData\\Local\\ms-playwright\\chromium-1097\\chrome-win\\chrome.exe"
-  # CDP 调试端口
-  port: 9222
-  # 用户数据目录
-  user-data-dir: "C:\\chrome_dev_profile"
+  executable-path: ${CHROME_EXECUTABLE_PATH:C:\\Users\\chendong\\AppData\\Local\\ms-playwright\\chromium-1097\\chrome-win\\chrome.exe}
+  port: ${CHROME_CDP_PORT:9222}
+  user-data-dir: ${CHROME_USER_DATA_DIR:C:\\chrome_dev_profile}

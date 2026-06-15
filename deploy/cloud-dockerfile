@@ -1,0 +1,18 @@
+# ============================================
+# 腾讯云部署后端 Dockerfile (Java 8 + Playwright)
+# jar 包由 deploy_cloud_backend.bat 在本地 mvn package 后 scp 到服务器
+# ============================================
+
+FROM mcr.microsoft.com/playwright:v1.41.0-focal
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends openjdk-8-jre-headless curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY app.jar app.jar
+
+EXPOSE 8092
+HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
+    CMD curl -f http://localhost:8092/api/system/get-ip || exit 1
+
+ENTRYPOINT ["java", "-jar", "app.jar"]

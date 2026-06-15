@@ -10,7 +10,7 @@ module.exports = {
       // 代理配置（解决跨域）
       proxy: {
         '/api': {
-          target: 'http://localhost:8092', // 👈 修改为您的后端地址
+          target: 'http://localhost:8092', // 后端服务地址（与 application.yml 端口一致）
           changeOrigin: true,
           pathRewrite: {
             '^/api': '/api' // 可选：如果后端已有 /api 前缀，可不重写

@@ -1,0 +1,75 @@
+# 本地开发环境全家桶一键部署
+# 启动方式: docker compose up -d
+# 注意: 数据库表结构需手工执行 java-aicode-server/ 根目录下的 *.sql 脚本
+services:
+  app:
+    build:
+      context: ../java-aicode-server    # 指向后端源码目录
+      dockerfile: Dockerfile
+    container_name: aicode-server
+    ports:
+      - "8092:8092"                     # 暴露后端端口
+    environment:
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_NAME: stack_db
+      DB_USER: root
+      DB_PASSWORD: root
+      DATA_ROOT: /data/aicode-v1
+      CHROME_EXECUTABLE_PATH: ""        # Docker 内不指定，由 Playwright 自行管理浏览器
+    volumes:
+      - aicode-data:/data/aicode-v1
+    networks:
+      - aicode-internal
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8092/api/system/get-ip"]
+      interval: 15s
+      timeout: 3s
+      retries: 10
+      start_period: 60s
+
+  nginx:
+    build:
+      context: ../web-aicode-vue
+      dockerfile: Dockerfile
+    container_name: aicode-nginx
+    ports:
+      - "80:80"
+    networks:
+      - aicode-internal
+    depends_on:
+      app:
+        condition: service_healthy
+
+  mysql:
+    image: mysql:8.0
+    container_name: aicode-mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: stack_db
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - aicode-internal
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-authentication-plugin=mysql_native_password
+
+volumes:
+  mysql-data:
+  aicode-data:
+
+networks:
+  aicode-internal:
+    driver: bridge
