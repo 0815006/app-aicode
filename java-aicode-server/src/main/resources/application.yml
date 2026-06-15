@@ -1,5 +1,5 @@
 server:
-  port: 8089 # 保持你原有的端口
+  port: 8092 # 保持你原有的端口
   tomcat:
     accesslog:
       enabled: true          # 开启访问日志
