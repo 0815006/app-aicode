@@ -192,6 +192,7 @@ import DOMPurify from 'dompurify'
 import he from 'he'
 import CreateRoomDialog from '@/components/chat-room/CreateRoomDialog.vue'
 import { getRoomList, joinRoom as apiJoinRoom, leaveRoom as apiLeaveRoom, getRoomHistory, getRoomMembers } from '@/api/chat-room'
+import { WS_BASE_URL } from '@/config/websocket'
 
 import 'highlight.js/styles/github.css'
 
@@ -382,7 +383,7 @@ export default {
 
     // ===== WebSocket =====
     initWebSocket(roomId) {
-      const wsUrl = 'ws://localhost:8089/ws/chat/room/' + roomId + '?username=' + encodeURIComponent(this.currentUser)
+      const wsUrl = `${WS_BASE_URL}/ws/chat/room/${roomId}?username=${encodeURIComponent(this.currentUser)}`
       this.ws = new WebSocket(wsUrl)
 
       this.ws.onopen = () => {

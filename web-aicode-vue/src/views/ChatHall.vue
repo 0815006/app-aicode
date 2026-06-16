@@ -195,6 +195,7 @@ import DOMPurify from 'dompurify'
 import he from 'he'
 import { getFileList, deleteFile, getDownloadUrl } from '@/api/chat'
 import { getCurrentEmpNo } from '@/utils/currentUser'
+import { WS_BASE_URL } from '@/config/websocket'
 
 // 引入代码高亮样式
 import 'highlight.js/styles/github.css'
@@ -289,7 +290,7 @@ export default {
   },
   methods: {
     initWebSocket() {
-      const wsUrl = `ws://localhost:8089/ws/chat?username=${encodeURIComponent(this.currentUser)}`
+      const wsUrl = `${WS_BASE_URL}/ws/chat?username=${encodeURIComponent(this.currentUser)}`
       this.ws = new WebSocket(wsUrl)
 
       this.ws.onopen = () => {
