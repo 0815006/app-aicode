@@ -11,6 +11,8 @@ echo ===================================================
 :: 设置 WebSocket 目标地址，走 Nginx 反向代理（wss:// 加密，无需开放 8092 端口）
 set VUE_APP_WS_BASE_URL=wss://realapex.site:8082
 cd /d "%~dp0..\web-aicode-vue"
+:: Node.js 17+ 默认使用 OpenSSL 3，与 webpack 4 不兼容，需开启旧版兼容
+set NODE_OPTIONS=--openssl-legacy-provider
 call npm run build
 set BUILD_RESULT=%errorlevel%
 cd /d "%~dp0."
