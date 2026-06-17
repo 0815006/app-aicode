@@ -6,7 +6,14 @@
     </div>
 
     <div class="header-container">
-      <div class="title">>>>>>>>点击右侧工号切换到自己工号>>>>>>></div>
+      <div class="title">
+        <div class="marquee-wrap">
+          <div class="marquee-track">
+            <span class="marquee-text"><span class="highlight">温馨提示：</span>点击右侧工号，可切换到自己工号，查看个人车位预约状态和预约记录  👉</span>
+            <span class="marquee-text marquee-clone"><span class="highlight">温馨提示：</span>点击右侧工号，可切换到自己工号，查看个人车位预约状态和预约记录  👉</span>
+          </div>
+        </div>
+      </div>
       <div class="user-info">
         <span class="label">当前员工号：</span>
         <template v-if="!editing">
@@ -96,9 +103,43 @@ export default {
 }
 
 .title {
-  font-size: 18px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.marquee-wrap {
+  overflow: hidden;
+}
+
+.marquee-track {
+  display: flex;
+  width: fit-content;
+  animation: marquee-scroll 30s linear infinite;
+}
+
+.marquee-text {
+  display: inline-block;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 500;
+  color: #e8f3ff;
+  padding-right: 60px;
+  flex-shrink: 0;
+}
+
+.marquee-clone {
+  padding-right: 0;
+}
+
+.marquee-text .highlight {
+  color: #ffeeba;
   font-weight: 700;
-  letter-spacing: 0.5px;
+}
+
+@keyframes marquee-scroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
 }
 
 .user-info {
@@ -108,6 +149,7 @@ export default {
   font-size: 13px;
   flex-wrap: wrap;
   justify-content: flex-end;
+  flex-shrink: 0;
 }
 
 .label {

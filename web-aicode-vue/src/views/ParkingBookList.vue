@@ -1,19 +1,27 @@
 <!-- src/views/ParkingBookList.vue -->
 <template>
   <div class="parking-list-container">
-    <h2 class="page-title">车位预约</h2>
+    <div class="page-layout">
+      <div class="main-content">
+        <h2 class="page-title">车位预约</h2>
 
 
-    <!-- 操作按钮 -->
-    <div class="toolbar">
+        <!-- 操作按钮 -->
+        <div class="toolbar">
       <el-button type="primary" icon="el-icon-plus" @click="handleAdd">
         新增
       </el-button>
       <el-button type="success" icon="el-icon-refresh" @click="fetchData" :loading="loading">
         刷新
       </el-button>
-      <el-link type="primary" href="http://22.189.55.96:81/" target="_blank" title="http://22.189.55.96:81/">
-        车位管理系统
+      <el-link
+        type="primary"
+        :underline="false"
+        class="system-link"
+        @click="openParkingSystem"
+      >
+        <i class="el-icon-monitor"></i> 车位管理系统
+        <i class="el-icon-top-right system-link-arrow"></i>
       </el-link>
     </div>
 
@@ -60,7 +68,7 @@
                 {{ formatDate(scope.row.lastTime) }}
             </template>
       </el-table-column>
-      <el-table-column label="操作" width="180">
+      <el-table-column label="操作" min-width="180">
         <template slot-scope="scope">
           <el-button size="mini" type="warning" @click="handleEdit(scope.row)">
             编辑
@@ -231,6 +239,66 @@
       </div>
     </el-dialog>
 
+      </div>
+      <div class="guide-area">
+        <div class="guide-content">
+          <h3>📋 车位预约指南</h3>
+
+          <div class="guide-item">
+            <div class="guide-title">☆ 密码校验说明</div>
+            <div class="guide-desc">
+              保存配置时，系统会使用您填写的<strong>密码</strong>去车位管理系统校验登录。
+              该密码为<strong>车位管理系统的登录密码（即域密码）</strong>，非邮箱密码。
+              若保存失败，通常表示密码校验不通过，请确认域密码是否正确。
+            </div>
+          </div>
+
+          <div class="guide-item">
+            <div class="guide-title">☆ 自动预约与定时任务</div>
+            <div class="guide-desc">
+              开启"自动预约"后，系统将按以下时间节点自动执行（<strong>节假日不执行</strong>）：<br/>
+              <span style="color:#409EFF;">● 每天 8:00</span> — 检查是否有暂停用户需要恢复预约，将其自动开启。<br/>
+              <span style="color:#409EFF;">● 每天 8:30</span> — 为所有开启自动预约的用户执行预约流程（登录→申请→查询结果并记录）。<br/>
+              <span style="color:#409EFF;">● 每天 17:05</span> — 再次检查当天预约记录，若结果有变化则记录并邮件通知。
+            </div>
+          </div>
+
+          <div class="guide-item">
+            <div class="guide-title">☆ 恢复预约设置技巧</div>
+            <div class="guide-desc">
+              恢复日期当天<strong>上午 8:00</strong> 系统会自动重新开启预约，<strong>8:30</strong> 执行预约。
+              但预约的<strong>入园日期是下一天</strong>，因此：<br/>
+              如果您开车上班日期是<strong>周二</strong>，恢复日期应设置为<strong>周一</strong>，这样周一恢复→预约→周二入园。
+            </div>
+          </div>
+
+          <el-divider content-position="left">邮件通知设置</el-divider>
+
+          <div class="guide-item">
+            <div class="guide-title">☆ 发件账号</div>
+            <div class="guide-desc">
+              发件邮箱账号与工号一致，系统会自动填充，无需手动填写。
+            </div>
+          </div>
+          <div class="guide-item">
+            <div class="guide-title">☆ 收件人邮箱</div>
+            <div class="guide-desc">
+              请填写完整的企业邮箱地址，格式如：xxxxxxx@bank-of-china.com
+            </div>
+          </div>
+          <div class="guide-item">
+            <div class="guide-title">☆ 邮箱密码说明</div>
+            <div class="guide-desc">
+              邮箱密码为<strong>登录邮箱的密码</strong>，不是域密码。填域密码无法发送邮件，且不会有报错提示。
+            </div>
+          </div>
+          <div class="guide-item" style="color: #F56C6C; font-weight: bold; margin-top: 12px; line-height: 1.8; font-size: 15px;">
+            ☆ 特别遗憾：<br/>
+            原车位管理系统，没有「申请当天」和「取消当天」的功能。
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -358,6 +426,10 @@ export default {
         this.handleRecordQuery()
     },
 
+    openParkingSystem() {
+      window.open('http://22.189.55.96:81/', '_blank')
+    },
+
     async fetchData() {
       this.loading = true
       try {
@@ -471,7 +543,7 @@ export default {
 .parking-list-container {
   height: calc(100% - 32px);
   box-sizing: border-box;
-  overflow-y: auto;
+  overflow: hidden;
   padding: 20px;
   margin: 16px;
   border-radius: 14px;
@@ -480,13 +552,75 @@ export default {
   box-shadow: 0 10px 22px rgba(21, 52, 105, 0.08);
 }
 
-.parking-list-container::-webkit-scrollbar {
+.page-layout {
+  display: flex;
+  height: 100%;
+}
+
+.main-content {
+  flex: 3;
+  padding-right: 20px;
+  border-right: 1px solid #ebeef5;
+  overflow-y: auto;
+}
+
+.main-content::-webkit-scrollbar {
   width: 6px;
 }
 
-.parking-list-container::-webkit-scrollbar-thumb {
+.main-content::-webkit-scrollbar-thumb {
   background: #c8d8f0;
   border-radius: 8px;
+}
+
+.guide-area {
+  flex: 1;
+  padding-left: 20px;
+  overflow-y: auto;
+  background-color: #fafafa;
+  min-width: 240px;
+}
+
+.guide-area::-webkit-scrollbar {
+  width: 6px;
+}
+
+.guide-area::-webkit-scrollbar-thumb {
+  background: #c8d8f0;
+  border-radius: 8px;
+}
+
+.guide-content h3 {
+  font-size: 15px;
+  color: #303133;
+  margin-top: 0;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #409EFF;
+}
+.guide-content ::v-deep .el-divider__text {
+  font-size: 13px;
+  font-weight: 600;
+  color: #409EFF;
+  background-color: #fafafa;
+}
+
+.guide-item {
+  margin-bottom: 14px;
+  line-height: 1.6;
+}
+
+.guide-title {
+  font-weight: bold;
+  color: #303133;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.guide-desc {
+  color: #606266;
+  font-size: 12px;
+  padding-left: 10px;
 }
 
 .page-title {
@@ -500,6 +634,10 @@ export default {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+}
+.toolbar .el-button + .el-button,
+.toolbar .el-button + .el-link {
+  margin-left: 0;
 }
 
 .record-filter-row {
@@ -538,5 +676,33 @@ export default {
 
 ::v-deep .el-button {
   border-radius: 8px;
+}
+
+.system-link {
+ font-size: 15px;
+ font-weight: 600;
+ color: #409EFF;
+ padding: 6px 14px;
+ border-radius: 8px;
+ background: linear-gradient(135deg, #ecf5ff 0%, #d9ecff 100%);
+ border: 1px solid #b3d8ff;
+ transition: all 0.25s ease;
+ letter-spacing: 0.5px;
+}
+.system-link:hover {
+ color: #fff;
+ background: linear-gradient(135deg, #409EFF 0%, #66b1ff 100%);
+ border-color: #409EFF;
+ box-shadow: 0 4px 12px rgba(64, 158, 255, 0.4);
+ transform: translateY(-1px);
+}
+.system-link-arrow {
+ font-size: 12px;
+ margin-left: 2px;
+ opacity: 0.7;
+ transition: opacity 0.25s;
+}
+.system-link:hover .system-link-arrow {
+ opacity: 1;
 }
 </style>
