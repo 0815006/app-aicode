@@ -4,6 +4,7 @@ import Router from 'vue-router'
 import Home from '@/views/Home.vue'
 import ResourceCheck from '@/views/ResourceCheck.vue'
 import ParkingBookList from '@/views/ParkingBookList.vue' // 新增
+import ParkingScreen from '@/views/ParkingScreen.vue' // 停车大屏
 import ChatHall from '@/views/ChatHall.vue' // 新增
 import ChatRoom from '@/views/ChatRoom.vue' // 聊天房间
 import DataMigration from '@/views/DataMigration.vue'
@@ -43,6 +44,12 @@ export default new Router({
           name: 'ParkingBookList',
           component: ParkingBookList,
           meta: { title: '车位预约查询' }
+        },
+        {
+          path: 'parking-screen',
+          name: 'ParkingScreen',
+          component: ParkingScreen,
+          meta: { title: '停车大屏' }
         },
         {
           path: 'chat',

@@ -21,6 +21,12 @@
         <i class="el-icon-truck"></i>
         <span slot="title">车位预约</span>
       </el-menu-item>
+
+      <!-- ✅ 新增：停车大屏 -->
+      <el-menu-item index="/parking-screen">
+        <i class="el-icon-monitor"></i>
+        <span slot="title">停车大屏</span>
+      </el-menu-item>
     
       <!-- ✅ 新增：聊天大厅 -->
       <el-menu-item index="/chat">
