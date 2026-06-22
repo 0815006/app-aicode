@@ -58,11 +58,6 @@ public class ParkBookTask {
     public void autoEnableSchedule() {
         log.info("开始执行每日自动开启预约检查定时任务");
         LocalDate localDate = LocalDate.now();
-        Date date = Date.from(localDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
-        if("0".equals(comWorkholidayMapper.getStatusByDate(date))){
-            log.info("今天是假日，不执行自动开启逻辑");
-            return;
-        }
 
         // 查找 auto_book = 0 且 next_auto_book_date = 今天 的记录，并更新为开启
         LambdaUpdateWrapper<ParkingBook> updateWrapper = new LambdaUpdateWrapper<>();

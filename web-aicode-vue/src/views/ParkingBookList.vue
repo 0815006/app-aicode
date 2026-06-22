@@ -240,8 +240,11 @@
     </el-dialog>
 
       </div>
-      <div class="guide-area">
-        <div class="guide-content">
+      <div class="guide-toggle-btn" @click="toggleGuide" :title="guideCollapsed ? '展开指南' : '收起指南'">
+        <i :class="guideCollapsed ? 'el-icon-d-arrow-left' : 'el-icon-d-arrow-right'"></i>
+      </div>
+      <div class="guide-area" :class="{ collapsed: guideCollapsed }">
+        <div class="guide-content" v-show="!guideCollapsed">
           <h3>📋 车位预约指南</h3>
 
           <div class="guide-item">
@@ -311,6 +314,7 @@ export default {
   data() {
     return {
       list: [],
+      guideCollapsed: false, // 指南面板是否折叠
       isEditing: false, // 标记是否为编辑模式
       loading: false,
       submitLoading: false,
@@ -355,6 +359,11 @@ export default {
     this.fetchData()
   },
   methods: {
+    // 切换指南面板折叠/展开
+    toggleGuide() {
+      this.guideCollapsed = !this.guideCollapsed
+    },
+
     // 处理工号输入：只允许数字，限制7位
     handleEmpNoInput(value) {
     const newValue = value.replace(/\D/g, '')
@@ -579,6 +588,15 @@ export default {
   overflow-y: auto;
   background-color: #fafafa;
   min-width: 240px;
+  position: relative;
+  transition: flex 0.35s ease, min-width 0.35s ease, padding 0.35s ease;
+}
+
+.guide-area.collapsed {
+  flex: 0 0 40px;
+  min-width: 40px;
+  padding-left: 0;
+  overflow: hidden;
 }
 
 .guide-area::-webkit-scrollbar {
@@ -588,6 +606,37 @@ export default {
 .guide-area::-webkit-scrollbar-thumb {
   background: #c8d8f0;
   border-radius: 8px;
+}
+
+.guide-toggle-btn {
+  position: sticky;
+  top: 50%;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #409EFF 0%, #66b1ff 100%);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.35);
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+  margin-left: -14px;
+  margin-right: -14px;
+  align-self: center;
+}
+
+.guide-toggle-btn:hover {
+  transform: scale(1.15);
+  box-shadow: 0 4px 14px rgba(64, 158, 255, 0.5);
+}
+
+.guide-toggle-btn i {
+  font-size: 14px;
+  font-weight: bold;
 }
 
 .guide-content h3 {
