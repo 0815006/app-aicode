@@ -397,16 +397,15 @@ export default {
             // ★【西墙左侧铺位·子母车位左邻车位】x=15（往左铺），非子母，同部门颜色
             // A001：A033上方南北向车位，靠近A033左边界
             { x: 7, y: 327, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 1 },
-            // A001下方8个车位（4行2列，从左往右逐行编号：3,2,4,5,7,6,8,9）
-            // 西墙4行子母：A009底515距SW墙顶518=3px
-            { x: 15, y: 401, dir: 'hv', count: 1, dept: '其他公司', prefix: 'A', startNo: 3 },
-            { x: 70, y: 401, dir: 'hv', count: 1, dept: '其他公司', prefix: 'A', startNo: 2, tandem: true },
-            { x: 15, y: 429, dir: 'hv', count: 1, dept: '其他公司', prefix: 'A', startNo: 4 },
-            { x: 70, y: 429, dir: 'hv', count: 1, dept: '其他公司', prefix: 'A', startNo: 5, tandem: true },
-            { x: 15, y: 462, dir: 'hv', count: 1, dept: '其他公司', prefix: 'A', startNo: 7 },
-            { x: 70, y: 462, dir: 'hv', count: 1, dept: '其他公司', prefix: 'A', startNo: 6, tandem: true },
-            { x: 15, y: 490, dir: 'hv', count: 1, dept: '其他公司', prefix: 'A', startNo: 8 },
-            { x: 70, y: 490, dir: 'hv', count: 1, dept: '其他公司', prefix: 'A', startNo: 9, tandem: true },
+            // A001下方8个车位，A009底距SW墙顶1柱(8px)
+            { x: 15, y: 388, dir: 'hv', count: 1, dept: '其他公司', prefix: 'A', startNo: 3 },
+            { x: 70, y: 388, dir: 'hv', count: 1, dept: '其他公司', prefix: 'A', startNo: 2, tandem: true },
+            { x: 15, y: 416, dir: 'hv', count: 1, dept: '其他公司', prefix: 'A', startNo: 4 },
+            { x: 70, y: 416, dir: 'hv', count: 1, dept: '其他公司', prefix: 'A', startNo: 5, tandem: true },
+            { x: 15, y: 449, dir: 'hv', count: 1, dept: '其他公司', prefix: 'A', startNo: 7 },
+            { x: 70, y: 449, dir: 'hv', count: 1, dept: '其他公司', prefix: 'A', startNo: 6, tandem: true },
+            { x: 15, y: 477, dir: 'hv', count: 1, dept: '其他公司', prefix: 'A', startNo: 8 },
+            { x: 70, y: 477, dir: 'hv', count: 1, dept: '其他公司', prefix: 'A', startNo: 9, tandem: true },
 
             // 出口道闸上方：3个占位，vh水平排列，上边界对齐西北角墙体下边界(y=55)
             // 编号 A91/A90/A89（从西往东降序）
