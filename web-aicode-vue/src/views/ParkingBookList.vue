@@ -2,7 +2,7 @@
 <template>
   <div class="parking-list-container">
     <div class="page-layout">
-      <div class="main-content">
+      <div class="main-content" :class="{ 'main-content--full': !showGuide }">
         <h2 class="page-title">车位预约</h2>
 
 
@@ -240,11 +240,11 @@
     </el-dialog>
 
       </div>
-      <div class="guide-toggle-btn" @click="toggleGuide" :title="guideCollapsed ? '展开指南' : '收起指南'">
-        <i :class="guideCollapsed ? 'el-icon-d-arrow-left' : 'el-icon-d-arrow-right'"></i>
+      <div class="toggle-btn" :class="{ 'toggle-btn--collapsed': !showGuide }" @click="toggleGuide" :title="showGuide ? '折叠右侧面板' : '展开右侧面板'">
+        <i :class="showGuide ? 'el-icon-d-arrow-right' : 'el-icon-d-arrow-left'"></i>
       </div>
-      <div class="guide-area" :class="{ collapsed: guideCollapsed }">
-        <div class="guide-content" v-show="!guideCollapsed">
+      <div class="guide-area" v-show="showGuide">
+        <div class="guide-content">
           <h3>📋 车位预约指南</h3>
 
           <div class="guide-item">
@@ -314,7 +314,7 @@ export default {
   data() {
     return {
       list: [],
-      guideCollapsed: false, // 指南面板是否折叠
+      showGuide: true, // 指南面板是否显示
       isEditing: false, // 标记是否为编辑模式
       loading: false,
       submitLoading: false,
@@ -359,9 +359,9 @@ export default {
     this.fetchData()
   },
   methods: {
-    // 切换指南面板折叠/展开
+    // 切换指南面板显示/隐藏
     toggleGuide() {
-      this.guideCollapsed = !this.guideCollapsed
+      this.showGuide = !this.showGuide
     },
 
     // 处理工号输入：只允许数字，限制7位
@@ -564,6 +564,7 @@ export default {
 .page-layout {
   display: flex;
   height: 100%;
+  position: relative;
 }
 
 .main-content {
@@ -587,16 +588,7 @@ export default {
   padding-left: 20px;
   overflow-y: auto;
   background-color: #fafafa;
-  min-width: 240px;
-  position: relative;
-  transition: flex 0.35s ease, min-width 0.35s ease, padding 0.35s ease;
-}
-
-.guide-area.collapsed {
-  flex: 0 0 40px;
-  min-width: 40px;
-  padding-left: 0;
-  overflow: hidden;
+  min-width: 260px;
 }
 
 .guide-area::-webkit-scrollbar {
@@ -608,35 +600,43 @@ export default {
   border-radius: 8px;
 }
 
-.guide-toggle-btn {
-  position: sticky;
+/* 折叠按钮（与停车大屏一致） */
+.toggle-btn {
+  position: absolute;
+  left: calc(75% - 14px);
   top: 50%;
+  transform: translateY(-50%);
   z-index: 10;
+  width: 28px;
+  height: 56px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #409EFF 0%, #66b1ff 100%);
-  color: #fff;
+  background: #fff;
+  border: 1px solid #dcdfe6;
+  border-radius: 6px;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.35);
-  transition: all 0.3s ease;
-  flex-shrink: 0;
-  margin-left: -14px;
-  margin-right: -14px;
-  align-self: center;
-}
-
-.guide-toggle-btn:hover {
-  transform: scale(1.15);
-  box-shadow: 0 4px 14px rgba(64, 158, 255, 0.5);
-}
-
-.guide-toggle-btn i {
+  color: #909399;
   font-size: 14px;
-  font-weight: bold;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.toggle-btn:hover {
+  color: #409EFF;
+  border-color: #409EFF;
+  box-shadow: 0 2px 12px rgba(64, 158, 255, 0.2);
+}
+
+.toggle-btn--collapsed {
+  left: calc(100% - 30px);
+}
+
+/* 右侧折叠时，左侧全宽 */
+.main-content--full {
+  border-right: none;
+  padding-right: 0;
+  flex: 1;
 }
 
 .guide-content h3 {

@@ -3,7 +3,7 @@
   <div class="parking-screen-container">
     <div class="page-layout">
       <!-- 左侧：车位图 -->
-      <div class="map-area" :class="{ 'map-area--tall': isTallFloor }">
+      <div class="map-area" :class="{ 'map-area--tall': isTallFloor, 'map-area--full': !showInfo }">
         <div class="map-header">
           <h2 class="page-title">停车大屏</h2>
           <el-radio-group v-model="currentFloor" size="small">
@@ -140,7 +140,7 @@
                 text-anchor="middle"
                 :transform="space.vertical ? `rotate(-90 ${space.x + space.w / 2} ${space.y + space.h / 2})` : ''"
                 fill="#fff"
-                font-size="8"
+                font-size="13"
                 font-weight="600"
               >{{ space.label }}</text>
               <!-- 子母车位标记 -->
@@ -160,8 +160,18 @@
         </div>
       </div>
 
+      <!-- 折叠按钮（居中于分割线） -->
+      <div
+        class="toggle-btn"
+        :class="{ 'toggle-btn--collapsed': !showInfo }"
+        @click="showInfo = !showInfo"
+        :title="showInfo ? '折叠右侧面板' : '展开右侧面板'"
+      >
+        <i :class="showInfo ? 'el-icon-d-arrow-right' : 'el-icon-d-arrow-left'"></i>
+      </div>
+
       <!-- 右侧：文字信息 -->
-      <div class="info-area">
+      <div class="info-area" v-show="showInfo">
         <div class="info-content">
           <h3>{{ currentFloorData.name }}（共{{ currentFloorData.total }}个车位）</h3>
 
@@ -190,6 +200,7 @@ export default {
   data() {
     return {
       currentFloor: '4F-B1',
+      showInfo: true,
       deptColors: {
         '综合管理部': '#F4B183',
         '开发一部': '#FFF2CC',
@@ -264,7 +275,7 @@ export default {
             { x: 70, y: 455, w: 55, h: 55 },   // 西南角（正方形55×55，右边界对齐西车道左侧x=125）
             { x: 1140, y: 455, w: 60, h: 55 },// 东南角（右移+55对齐虚线右边界）
             // 第1排：外部公司占位(A01-A13)与我司有色之间墙体间隔（随A组右移+100）
-            { x: 510, y: 0, w: 155, h: 55 },
+            { x: 510, y: 0, w: 125, h: 55 },
             // 左子岛第4行：从左数第7~9位置墙体（位置7-9，x=365~455，整体右移+95对齐A043）
             { x: 365, y: 285, w: 90, h: 55 },
             // 左子岛第5行：从左数第7~9位置墙体
@@ -275,11 +286,23 @@ export default {
             // ★【第0排·子母车位上铺位】y=-55（每个子母车位正上方铺一个单独车位）
             // 13个单独车位，与下方第1排子母车位一一对齐，同部门颜色
             // ============================================================
-            { x: 905, y: -55, dir: 'vh', count: 3, dept: '开发二部', prefix: 'B', startNo: 93 },
-            { x: 815, y: -55, dir: 'vh', count: 2, dept: '开发三部', prefix: 'B', startNo: 128 },
-            { x: 755, y: -55, dir: 'vh', count: 4, dept: '开发一部', prefix: 'B', startNo: 156 },
-            { x: 695, y: -55, dir: 'vh', count: 2, dept: '开发三部', prefix: 'B', startNo: 130 },
-            { x: 665, y: -55, dir: 'vh', count: 2, dept: '综合管理部', prefix: 'B', startNo: 132 },
+            // B106/B105 铺位 开发四部（S形 106-105）
+            { x: 875, y: -55, dir: 'vh', count: 1, dept: '开发四部', prefix: 'B', startNo: 106 },
+            { x: 905, y: -55, dir: 'vh', count: 1, dept: '开发四部', prefix: 'B', startNo: 105 },
+            { x: 785, y: -55, dir: 'vh', count: 2, dept: '开发三部', prefix: 'B', startNo: 128 },
+            // B156→B114 / B157→B113 / B158→B110 / B159→B109（S形）
+            { x: 725, y: -55, dir: 'vh', count: 1, dept: '开发三部', prefix: 'B', startNo: 114 },
+            { x: 755, y: -55, dir: 'vh', count: 1, dept: '开发一部', prefix: 'B', startNo: 113 },
+            { x: 785, y: -55, dir: 'vh', count: 1, dept: '测试部', prefix: 'B', startNo: 110 },
+            { x: 815, y: -55, dir: 'vh', count: 1, dept: '开发四部', prefix: 'B', startNo: 109 },
+            // B130/B131 铺位 → B118/B117（S形 118-117）
+            { x: 665, y: -55, dir: 'vh', count: 1, dept: '开发三部', prefix: 'B', startNo: 118 },
+            { x: 695, y: -55, dir: 'vh', count: 1, dept: '开发三部', prefix: 'B', startNo: 117 },
+            // B132→B121（S形尾）
+            { x: 635, y: -55, dir: 'vh', count: 1, dept: '应用维护部', prefix: 'B', startNo: 121 },
+            { x: 665, y: -55, dir: 'vh', count: 1, dept: '综合管理部', prefix: 'B', startNo: 118 },
+            // A076：A075上方铺位（子母车位）
+            { x: 485, y: -55, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 76 },
 
             // ============================================================
             // 【第1排·北墙顶排】y=0，vh水平排列
@@ -288,32 +311,76 @@ export default {
             // 8单独: B155(1黄) + B091-B092(2绿) + B081-B088(8粉中前8) ...
             // 左侧8子母: B088-B090(3) + B116-B117(2) + B110-B113(4) ...
             // ============================================================
-            // 左侧13个外部公司占位（A01-A13，右移+100使A013对齐A026）
-            { x: 125, y: 0, dir: 'vh', count: 13, dept: '其他公司', prefix: 'A', startNo: 1 },
+            // 左侧12个外部公司占位，编号A088-A077（从左往右降序）
+            { x: 125, y: 0, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 88 },
+            { x: 155, y: 0, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 87 },
+            { x: 185, y: 0, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 86 },
+            { x: 215, y: 0, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 85 },
+            { x: 245, y: 0, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 84 },
+            { x: 275, y: 0, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 83 },
+            { x: 305, y: 0, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 82 },
+            { x: 335, y: 0, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 81 },
+            { x: 365, y: 0, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 80 },
+            { x: 395, y: 0, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 79 },
+            { x: 425, y: 0, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 78 },
+            { x: 455, y: 0, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 77 },
+            { x: 485, y: 0, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 75, tandem: true },
             // 右侧8个单独车位（从右往左第1~8个，非子母）
             { x: 1085, y: 0, dir: 'vh', count: 1, dept: '开发一部', prefix: 'B', startNo: 155 },
             { x: 1055, y: 0, dir: 'vh', count: 2, dept: '技术平台研发部', prefix: 'B', startNo: 91 },
-            { x: 995, y: 0, dir: 'vh', count: 5, dept: '开发二部', prefix: 'B', startNo: 81 },
-            // 左侧8个子母车位格子（从右往左第9~16个，子母，可停16辆）
-            { x: 905, y: 0, dir: 'vh', count: 3, dept: '开发二部', prefix: 'B', startNo: 86, tandem: true },
-            { x: 815, y: 0, dir: 'vh', count: 2, dept: '开发三部', prefix: 'B', startNo: 116, tandem: true },
-            { x: 755, y: 0, dir: 'vh', count: 4, dept: '开发一部', prefix: 'B', startNo: 110, tandem: true },
-            { x: 695, y: 0, dir: 'vh', count: 2, dept: '开发三部', prefix: 'B', startNo: 114, tandem: true },
-            { x: 665, y: 0, dir: 'vh', count: 2, dept: '综合管理部', prefix: 'B', startNo: 118, tandem: true },
+            // B097-B101 开发四部（从左往右降序：B101-B097）
+            { x: 995, y: 0, dir: 'vh', count: 1, dept: '开发四部', prefix: 'B', startNo: 101 },
+            { x: 1025, y: 0, dir: 'vh', count: 1, dept: '开发四部', prefix: 'B', startNo: 100 },
+            { x: 1055, y: 0, dir: 'vh', count: 1, dept: '开发四部', prefix: 'B', startNo: 99 },
+            { x: 1085, y: 0, dir: 'vh', count: 1, dept: '开发四部', prefix: 'B', startNo: 98 },
+            { x: 1115, y: 0, dir: 'vh', count: 1, dept: '开发四部', prefix: 'B', startNo: 97 },
+            // B107/B104 子母 开发四部（S形 107-104）
+            { x: 875, y: 0, dir: 'vh', count: 1, dept: '开发四部', prefix: 'B', startNo: 107, tandem: true },
+            { x: 905, y: 0, dir: 'vh', count: 1, dept: '开发四部', prefix: 'B', startNo: 104, tandem: true },
+            // B103（原B161）/ B102（原B088）
+            { x: 935, y: 0, dir: 'vh', count: 1, dept: '开发四部', prefix: 'B', startNo: 103 },
+            { x: 965, y: 0, dir: 'vh', count: 1, dept: '开发四部', prefix: 'B', startNo: 102 },
+            { x: 785, y: 0, dir: 'vh', count: 2, dept: '开发三部', prefix: 'B', startNo: 116, tandem: true },
+            // B110→B115 / B111→B112 / B112→B111 / B113→B108（S形）
+            { x: 725, y: 0, dir: 'vh', count: 1, dept: '开发三部', prefix: 'B', startNo: 115, tandem: true },
+            { x: 755, y: 0, dir: 'vh', count: 1, dept: '测试部', prefix: 'B', startNo: 112, tandem: true },
+            { x: 785, y: 0, dir: 'vh', count: 1, dept: '测试部', prefix: 'B', startNo: 111, tandem: true },
+            { x: 815, y: 0, dir: 'vh', count: 1, dept: '开发四部', prefix: 'B', startNo: 108, tandem: true },
+            // B114/B115 子母 → B119/B116（S形 119-116）
+            { x: 665, y: 0, dir: 'vh', count: 1, dept: '开发三部', prefix: 'B', startNo: 119, tandem: true },
+            { x: 695, y: 0, dir: 'vh', count: 1, dept: '开发三部', prefix: 'B', startNo: 116, tandem: true },
+            // B118→B120（S形尾）
+            { x: 635, y: 0, dir: 'vh', count: 1, dept: '应用维护部', prefix: 'B', startNo: 120, tandem: true },
+            { x: 665, y: 0, dir: 'vh', count: 1, dept: '综合管理部', prefix: 'B', startNo: 119, tandem: true },
 
             // ============================================================
             // 【第2排·上部双排岛上排】y=115，车头朝北面向北车道
             // 岛内我司靠后（右侧贴东车道），从右侧起放置。每排30个=15占位+15我司
             // 我司15个开发四部从右(x=1060)往左到x=640；占位15个从x=635往左到x=185
             // ============================================================
-            { x: 185, y: 115, dir: 'vh', count: 15, dept: '其他公司', prefix: 'A', startNo: 14 },
+            { x: 185, y: 115, dir: 'vh', count: 15, dept: '其他公司', prefix: 'A', startNo: 60 },
             { x: 640, y: 115, dir: 'vh', count: 15, dept: '开发四部', prefix: 'B', startNo: 48 },
 
             // ============================================================
             // 【第3排·上部双排岛下排】y=170，车头朝南面向中部车道，与第2排尾对尾
             // 从右侧起放置：我司15个靠右 + 占位15个靠左
             // ============================================================
-            { x: 185, y: 170, dir: 'vh', count: 15, dept: '其他公司', prefix: 'A', startNo: 29 },
+            // A043往左→A029，编号45-59（从左往右降序：A059-A045）
+            { x: 185, y: 170, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 59 },
+            { x: 215, y: 170, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 58 },
+            { x: 245, y: 170, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 57 },
+            { x: 275, y: 170, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 56 },
+            { x: 305, y: 170, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 55 },
+            { x: 335, y: 170, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 54 },
+            { x: 365, y: 170, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 53 },
+            { x: 395, y: 170, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 52 },
+            { x: 425, y: 170, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 51 },
+            { x: 455, y: 170, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 50 },
+            { x: 485, y: 170, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 49 },
+            { x: 515, y: 170, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 48 },
+            { x: 545, y: 170, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 47 },
+            { x: 575, y: 170, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 46 },
+            { x: 605, y: 170, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 45 },
             { x: 640, y: 170, dir: 'vh', count: 15, dept: '开发四部', prefix: 'B', startNo: 63 },
 
             // ============================================================
@@ -322,32 +389,50 @@ export default {
             // 左子岛(标3)整体右移+95使B108对齐A043：位置1-6占位(x=185) + 墙体7-9(x=365) + 位置10-12占位(x=455) + 位置13-15我司(x=545)
             // 右子岛(标18)整体右移+30：9个我司从x=825往右到x=1065
             // ============================================================
-            // 左子岛第4行：位置1-6占位（右移+95）
-            { x: 185, y: 285, dir: 'vh', count: 6, dept: '其他公司', prefix: 'A', startNo: 44 },
-            // 左子岛第4行：位置10-12占位（位置7-9为墙体，已在walls定义，右移+95）
-            { x: 455, y: 285, dir: 'vh', count: 3, dept: '其他公司', prefix: 'A', startNo: 50 },
-            // 左子岛第4行：墙体右侧3个外部公司占位（与有色车位互换位置）
-            { x: 545, y: 285, dir: 'vh', count: 3, dept: '其他公司', prefix: 'A', startNo: 65 },
+            // 左子岛第4行：位置1-6占位（右移+95），编号A033-A038
+            { x: 185, y: 285, dir: 'vh', count: 6, dept: '其他公司', prefix: 'A', startNo: 33 },
+            // 左子岛第4行：位置10-12占位（位置7-9为墙体，已在walls定义，右移+95），编号A039-A041
+            { x: 455, y: 285, dir: 'vh', count: 3, dept: '其他公司', prefix: 'A', startNo: 39 },
+            // 左子岛第4行：墙体右侧3个外部公司占位（与有色车位互换位置），编号A042-A044
+            { x: 545, y: 285, dir: 'vh', count: 3, dept: '其他公司', prefix: 'A', startNo: 42 },
             // 左子岛第4行：3个我司开发四部（B108右边界对齐通道左侧x=765）
             { x: 680, y: 285, dir: 'vh', count: 3, dept: '开发四部', prefix: 'B', startNo: 106 },
             // 右子岛第4行：9个我司开发四部（右移+30，x=825~1065）
-            { x: 825, y: 285, dir: 'vh', count: 9, dept: '开发四部', prefix: 'B', startNo: 97 },
+            { x: 825, y: 285, dir: 'vh', count: 9, dept: '开发四部', prefix: 'B', startNo: 67 },
 
             // ============================================================
             // 【第5排·下部双排岛下排】y=340，车头朝南面向南车道，与第4排尾对尾
             // 左子岛全占位(位置7-9墙体)整体右移+95；右子岛9我司右移+30
             //   位置10-15占位(x=455~605) + 墙体7-9(x=365~455) + 位置1-6占位(x=185~335)
             // ============================================================
-            // 左子岛第5行：位置1-6占位（右移+95）
-            { x: 185, y: 340, dir: 'vh', count: 6, dept: '其他公司', prefix: 'A', startNo: 53 },
-            // 左子岛第5行：位置10-15占位（位置7-9为墙体，右移+95）
-            { x: 455, y: 340, dir: 'vh', count: 6, dept: '其他公司', prefix: 'A', startNo: 59 },
-            // 左子岛第5行：墙体右侧3个外部公司占位（与第4行对齐）
-            { x: 545, y: 340, dir: 'vh', count: 3, dept: '其他公司', prefix: 'A', startNo: 68 },
-            // 左子岛第5行：B106-B108下方补3个外部公司占位
-            { x: 680, y: 340, dir: 'vh', count: 3, dept: '其他公司', prefix: 'A', startNo: 71 },
-            // 右子岛第5行：9个我司开发四部（右移+30，x=825~1065）
-            { x: 825, y: 340, dir: 'vh', count: 9, dept: '开发四部', prefix: 'B', startNo: 77 },
+            // 左子岛第5行：位置1-6占位（右移+95），编号A032-A027（从左往右降序）
+            { x: 185, y: 340, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 32 },
+            { x: 215, y: 340, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 31 },
+            { x: 245, y: 340, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 30 },
+            { x: 275, y: 340, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 29 },
+            { x: 305, y: 340, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 28 },
+            { x: 335, y: 340, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 27 },
+            // 左子岛第5行：位置10-15占位（位置7-9为墙体，右移+95），编号A026-A021
+            { x: 455, y: 340, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 26 },
+            { x: 485, y: 340, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 25 },
+            { x: 515, y: 340, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 24 },
+            { x: 545, y: 340, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 23 },
+            { x: 575, y: 340, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 22 },
+            { x: 605, y: 340, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 21 },
+            // 左子岛第5行：B106-B108下方补3个外部公司占位，编号A020-A018
+            { x: 680, y: 340, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 20 },
+            { x: 710, y: 340, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 19 },
+            { x: 740, y: 340, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 18 },
+            // 右子岛第5行：9个我司开发四部（右移+30），编号B066-B058（从左往右降序）
+            { x: 825, y: 340, dir: 'vh', count: 1, dept: '开发四部', prefix: 'B', startNo: 66 },
+            { x: 855, y: 340, dir: 'vh', count: 1, dept: '开发四部', prefix: 'B', startNo: 65 },
+            { x: 885, y: 340, dir: 'vh', count: 1, dept: '开发四部', prefix: 'B', startNo: 64 },
+            { x: 915, y: 340, dir: 'vh', count: 1, dept: '开发四部', prefix: 'B', startNo: 63 },
+            { x: 945, y: 340, dir: 'vh', count: 1, dept: '开发四部', prefix: 'B', startNo: 62 },
+            { x: 975, y: 340, dir: 'vh', count: 1, dept: '开发四部', prefix: 'B', startNo: 61 },
+            { x: 1005, y: 340, dir: 'vh', count: 1, dept: '开发四部', prefix: 'B', startNo: 60 },
+            { x: 1035, y: 340, dir: 'vh', count: 1, dept: '开发四部', prefix: 'B', startNo: 59 },
+            { x: 1065, y: 340, dir: 'vh', count: 1, dept: '开发四部', prefix: 'B', startNo: 58 },
 
             // ============================================================
             // 【第6排·南墙底排】y=455，vh水平排列
@@ -356,9 +441,9 @@ export default {
             // 通道左侧8个外部公司占位从x=525往左到x=290
             // ============================================================
             // 通道左侧：8个外部公司占位（右移使A024右边界与南北向通道左侧x=765对齐）
-            { x: 530, y: 455, dir: 'vh', count: 8, dept: '其他公司', prefix: 'A', startNo: 17 },
+            { x: 530, y: 455, dir: 'vh', count: 8, dept: '其他公司', prefix: 'A', startNo: 10 },
             // 通道右侧：10个我司开发四部（标示数字10，右移+30，x=795~1065）
-            { x: 825, y: 455, dir: 'vh', count: 10, dept: '开发四部', prefix: 'B', startNo: 152 },
+            { x: 825, y: 455, dir: 'vh', count: 10, dept: '开发四部', prefix: 'B', startNo: 48 },
 
             // ============================================================
             // 【西墙靠边列】x=0，贴西墙（vh宽25，不侵入西车道x=25~85）
@@ -366,43 +451,63 @@ export default {
             // 入口道闸下方8个子母车位(A25-A32)，2个一行分四行，东西停放
             // ============================================================
             // ★【西墙左侧铺位·子母车位左邻车位】x=15（往左铺），非子母，同部门颜色
-            { x: 15, y: 340, dir: 'hv', count: 2, dept: '其他公司', prefix: 'A', startNo: 33 },
-            { x: 15, y: 400, dir: 'hv', count: 2, dept: '其他公司', prefix: 'A', startNo: 35 },
+            // A001：A033上方南北向车位，靠近A033左边界
+            { x: 15, y: 282, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 1 },
+            // A001下方8个车位（4行2列，从左往右逐行编号：3,2,4,5,7,6,8,9）
+            // 第1行：左A03(原A33) / 右A02(原A29,子母)
+            { x: 15, y: 340, dir: 'hv', count: 1, dept: '其他公司', prefix: 'A', startNo: 3 },
+            { x: 70, y: 340, dir: 'hv', count: 1, dept: '其他公司', prefix: 'A', startNo: 2, tandem: true },
+            // 第2行：左A04(原A34) / 右A05(原A30,子母)
+            { x: 15, y: 370, dir: 'hv', count: 1, dept: '其他公司', prefix: 'A', startNo: 4 },
+            { x: 70, y: 370, dir: 'hv', count: 1, dept: '其他公司', prefix: 'A', startNo: 5, tandem: true },
+            // 第3行：左A07(原A35) / 右A06(原A31,子母)
+            { x: 15, y: 400, dir: 'hv', count: 1, dept: '其他公司', prefix: 'A', startNo: 7 },
+            { x: 70, y: 400, dir: 'hv', count: 1, dept: '其他公司', prefix: 'A', startNo: 6, tandem: true },
+            // 第4行：左A08(原A36) / 右A09(原A32,子母)
+            { x: 15, y: 430, dir: 'hv', count: 1, dept: '其他公司', prefix: 'A', startNo: 8 },
+            { x: 70, y: 430, dir: 'hv', count: 1, dept: '其他公司', prefix: 'A', startNo: 9, tandem: true },
 
             // 出口道闸上方：3个占位，vh水平排列，上边界对齐西北角墙体下边界(y=55)
-            { x: 40, y: 55, dir: 'vh', count: 3, dept: '其他公司', prefix: 'A', startNo: 14 },
-            // 入口道闸下方：8个子母车位，2个一行分四行，东西停放（hv横向，右边界对齐西车道左侧x=125）
-            { x: 70, y: 340, dir: 'hv', count: 2, dept: '其他公司', prefix: 'A', startNo: 29, tandem: true },
-            { x: 70, y: 400, dir: 'hv', count: 2, dept: '其他公司', prefix: 'A', startNo: 31, tandem: true },
+            // 编号 A91/A90/A89（从西往东降序）
+            { x: 40, y: 55, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 91 },
+            { x: 70, y: 55, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 90 },
+            { x: 100, y: 55, dir: 'vh', count: 1, dept: '其他公司', prefix: 'A', startNo: 89 },
 
             // ============================================================
             // 【东墙靠边列】x=1145，hv垂直堆叠，贴东墙（东车道以东）
             // 自北向南共11行：第1行1个单独 + 第2~8行7行子母 + 第9~11行3个单独
             // 整体上移-60（一个车道宽度），第1行对齐北墙体(y=55)
             // ============================================================
-            // 第1行：1个单独车位（紫色B120，应用维护部，非子母）
-            { x: 1145, y: 55, dir: 'hv', count: 1, dept: '应用维护部', prefix: 'B', startNo: 120 },
-            // 第2~8行：7行子母车位（含我司有色与外部公司灰色，均子母）
-            { x: 1145, y: 85, dir: 'hv', count: 1, dept: '应用维护部', prefix: 'B', startNo: 121, tandem: true },
-            { x: 1145, y: 115, dir: 'hv', count: 1, dept: '测试部', prefix: 'B', startNo: 122, tandem: true },
-            { x: 1145, y: 145, dir: 'hv', count: 1, dept: '测试部', prefix: 'B', startNo: 123, tandem: true },
-            { x: 1145, y: 175, dir: 'hv', count: 1, dept: '测试部', prefix: 'B', startNo: 124, tandem: true },
-            { x: 1145, y: 205, dir: 'hv', count: 1, dept: '测试部', prefix: 'B', startNo: 125, tandem: true },
-            { x: 1145, y: 235, dir: 'hv', count: 1, dept: '测试部', prefix: 'B', startNo: 126, tandem: true },
-            { x: 1145, y: 265, dir: 'hv', count: 1, dept: '测试部', prefix: 'B', startNo: 127, tandem: true },
-            // 第9~11行：3个单独车位（非子母）
-            { x: 1145, y: 295, dir: 'hv', count: 1, dept: '测试部', prefix: 'B', startNo: 149 },
-            { x: 1145, y: 325, dir: 'hv', count: 1, dept: '测试部', prefix: 'B', startNo: 150 },
-            { x: 1145, y: 355, dir: 'hv', count: 1, dept: '测试部', prefix: 'B', startNo: 151 },
+            // 第1行：B096（原B120，应用维护部）
+            { x: 1145, y: 55, dir: 'hv', count: 1, dept: '应用维护部', prefix: 'B', startNo: 96, tandem: true },
+            // 第2~8行：7行子母车位
+            { x: 1145, y: 85, dir: 'hv', count: 1, dept: '应用维护部', prefix: 'B', startNo: 94, tandem: true },
+            { x: 1145, y: 115, dir: 'hv', count: 1, dept: '测试部', prefix: 'B', startNo: 91, tandem: true },
+            { x: 1145, y: 145, dir: 'hv', count: 1, dept: '测试部', prefix: 'B', startNo: 90, tandem: true },
+            { x: 1145, y: 175, dir: 'hv', count: 1, dept: '测试部', prefix: 'B', startNo: 87, tandem: true },
+            { x: 1145, y: 205, dir: 'hv', count: 1, dept: '测试部', prefix: 'B', startNo: 86, tandem: true },
+            { x: 1145, y: 235, dir: 'hv', count: 1, dept: '测试部', prefix: 'B', startNo: 83, tandem: true },
+            { x: 1145, y: 265, dir: 'hv', count: 1, dept: '测试部', prefix: 'B', startNo: 82, tandem: true },
+            // 第9行：B079（子母，与B080配对）
+            { x: 1145, y: 295, dir: 'hv', count: 1, dept: '开发四部', prefix: 'B', startNo: 79, tandem: true },
+            // 第10~11行：B078/B077
+            { x: 1145, y: 325, dir: 'hv', count: 1, dept: '开发四部', prefix: 'B', startNo: 78 },
+            { x: 1145, y: 355, dir: 'hv', count: 1, dept: '开发四部', prefix: 'B', startNo: 77 },
+            // B076：B077正下方
+            { x: 1145, y: 385, dir: 'hv', count: 1, dept: '测试部', prefix: 'B', startNo: 76 },
 
             // ★【东墙右侧铺位·子母车位右邻车位】x=1200（往右铺），非子母，同部门颜色
-            { x: 1200, y: 85, dir: 'hv', count: 1, dept: '应用维护部', prefix: 'B', startNo: 134 },
-            { x: 1200, y: 115, dir: 'hv', count: 1, dept: '测试部', prefix: 'B', startNo: 135 },
-            { x: 1200, y: 145, dir: 'hv', count: 1, dept: '测试部', prefix: 'B', startNo: 136 },
-            { x: 1200, y: 175, dir: 'hv', count: 1, dept: '测试部', prefix: 'B', startNo: 137 },
-            { x: 1200, y: 205, dir: 'hv', count: 1, dept: '测试部', prefix: 'B', startNo: 138 },
-            { x: 1200, y: 235, dir: 'hv', count: 1, dept: '测试部', prefix: 'B', startNo: 139 },
-            { x: 1200, y: 265, dir: 'hv', count: 1, dept: '测试部', prefix: 'B', startNo: 140 },
+            // B095：B096右侧铺位（子母车位）
+            { x: 1200, y: 55, dir: 'hv', count: 1, dept: '应用维护部', prefix: 'B', startNo: 95 },
+            { x: 1200, y: 85, dir: 'hv', count: 1, dept: '应用维护部', prefix: 'B', startNo: 93 },
+            { x: 1200, y: 115, dir: 'hv', count: 1, dept: '测试部', prefix: 'B', startNo: 92 },
+            { x: 1200, y: 145, dir: 'hv', count: 1, dept: '测试部', prefix: 'B', startNo: 89 },
+            { x: 1200, y: 175, dir: 'hv', count: 1, dept: '测试部', prefix: 'B', startNo: 88 },
+            { x: 1200, y: 205, dir: 'hv', count: 1, dept: '测试部', prefix: 'B', startNo: 85 },
+            { x: 1200, y: 235, dir: 'hv', count: 1, dept: '测试部', prefix: 'B', startNo: 84 },
+            { x: 1200, y: 265, dir: 'hv', count: 1, dept: '测试部', prefix: 'B', startNo: 81 },
+            // B080：B079右侧铺位（子母车位）
+            { x: 1200, y: 295, dir: 'hv', count: 1, dept: '测试部', prefix: 'B', startNo: 80 },
             // ============================================================
             // 【临时车位·东车道上】临1、临2位于中部停车岛右侧的东车道上
             // 临1：上部双排岛右侧，纵向居中于第2、3行之间(y≈142)
@@ -413,14 +518,13 @@ export default {
           ],
           description: '',
           allocations: [
-            { dept: '开发四部', count: 61, spaces: '中部双排岛51个(上岛30+下岛左3+右18)+南墙底排10个(B152-B161)' },
-            { dept: '测试部', count: 15, spaces: 'B122-B127（东墙子母）、B135-B140（东墙右铺位）、B149-B151（东墙单独）' },
-            { dept: '开发二部', count: 13, spaces: 'B081-B090（北墙顶排8单独+3子母）、B093-B095（上铺位）' },
-            { dept: '开发一部', count: 9, spaces: 'B110-B113（北墙顶排子母）、B155（北墙顶排单独）、B156-B159（上铺位）' },
-            { dept: '开发三部', count: 8, spaces: 'B114-B115、B116-B117（北墙顶排子母）、B128-B129、B130-B131（上铺位）' },
-            { dept: '技术平台研发部', count: 2, spaces: 'B091-B092（北墙顶排单独）' },
-            { dept: '应用维护部', count: 3, spaces: 'B120（东墙单独）、B121（东墙子母）、B134（东墙右铺位）' },
-            { dept: '综合管理部', count: 4, spaces: 'B118-B119（北墙顶排子母）、B132-B133（上铺位）' },
+            { dept: '开发四部', count: 46, spaces: 'B097-B104、B106-B108、B048-B075、B077-B079、B152-B154' },
+            { dept: '测试部', count: 37, spaces: 'B093-B094、B096、B110-B112、B122-B151' },
+            { dept: '开发二部', count: 10, spaces: 'B081-B090' },
+            { dept: '开发三部', count: 4, spaces: 'B114-B117' },
+            { dept: '综合管理部', count: 2, spaces: 'B118-B119' },
+            { dept: '技术平台研发部', count: 2, spaces: 'B091-B092' },
+            { dept: '应用维护部', count: 2, spaces: 'B120-B121' },
             { dept: '临时车位', count: 2, spaces: '临1、临2（东车道上各岛右侧）' }
           ]
         },
@@ -457,8 +561,8 @@ export default {
           // 西侧车道(纵向)：左侧靠墙与岛1之间
           // 岛间纵向支车道：各岛之间穿插
           lanes: [
-            // 北部车道（横向）
-            { x: 100, y: 70, w: 1080, h: 25 },
+            // 北部车道（横向）：位于北侧停车位（y=55~110）与岛1~5（y≥120）之间，经rotate(-90)后为左侧南北向车道
+            { x: 100, y: 110, w: 1080, h: 25 },
             // 南部车道（横向）
             { x: 100, y: 545, w: 1080, h: 25 },
             // 西侧车道（纵向）
@@ -480,42 +584,43 @@ export default {
 
             // ===== 岛1·第四双排岛（标示"11"，最左侧岛）=====
             // 左列：临5(顶)+C060-C071(占位11)  |  右列：临6(顶)+C049-C059(开发三部11)
-            { x: 120, y: 120, dir: 'v', count: 1, dept: '临时车位', prefix: '临', startNo: 5 },
-            { x: 120, y: 153, dir: 'v', count: 11, dept: '其他公司', prefix: 'C', startNo: 60 },
-            { x: 150, y: 120, dir: 'v', count: 1, dept: '临时车位', prefix: '临', startNo: 6 },
-            { x: 150, y: 153, dir: 'v', count: 11, dept: '开发三部', prefix: 'C', startNo: 49 },
+            // hv=南北朝向(旋转后)，w=55→左右列x间距60，y步进30
+            { x: 120, y: 120, dir: 'hv', count: 1, dept: '临时车位', prefix: '临', startNo: 5 },
+            { x: 120, y: 150, dir: 'hv', count: 11, dept: '其他公司', prefix: 'C', startNo: 60 },
+            { x: 180, y: 120, dir: 'hv', count: 1, dept: '临时车位', prefix: '临', startNo: 6 },
+            { x: 180, y: 150, dir: 'hv', count: 11, dept: '开发三部', prefix: 'C', startNo: 49 },
 
             // ===== 岛2·第二双排岛（标示"24"，中间左侧岛）=====
             // 左列：临4(顶)+C002(综合管理部第2格)+C019-C030(开发三部11)
             // 右列：C031-C042(开发三部12)
-            { x: 370, y: 120, dir: 'v', count: 1, dept: '临时车位', prefix: '临', startNo: 4 },
-            { x: 370, y: 153, dir: 'v', count: 1, dept: '综合管理部', prefix: 'C', startNo: 2 },
-            { x: 370, y: 186, dir: 'v', count: 11, dept: '开发三部', prefix: 'C', startNo: 19 },
-            { x: 400, y: 120, dir: 'v', count: 12, dept: '开发三部', prefix: 'C', startNo: 31 },
+            { x: 370, y: 120, dir: 'hv', count: 1, dept: '临时车位', prefix: '临', startNo: 4 },
+            { x: 370, y: 150, dir: 'hv', count: 1, dept: '综合管理部', prefix: 'C', startNo: 2 },
+            { x: 370, y: 180, dir: 'hv', count: 11, dept: '开发三部', prefix: 'C', startNo: 19 },
+            { x: 430, y: 120, dir: 'hv', count: 12, dept: '开发三部', prefix: 'C', startNo: 31 },
 
             // ===== 岛3·第三双排岛（标示"12"）=====
             // C043-C044(技术平台2绿,顶端)+C003-C014(开发三部12蓝)
-            { x: 610, y: 120, dir: 'v', count: 2, dept: '技术平台研发部', prefix: 'C', startNo: 43 },
-            { x: 610, y: 186, dir: 'v', count: 12, dept: '开发三部', prefix: 'C', startNo: 3 },
+            { x: 610, y: 120, dir: 'hv', count: 2, dept: '技术平台研发部', prefix: 'C', startNo: 43 },
+            { x: 610, y: 180, dir: 'hv', count: 12, dept: '开发三部', prefix: 'C', startNo: 3 },
 
             // ===== 岛4·第一双排岛（标示"11"，中间右侧岛）=====
             // B001-B011(开发三部11蓝)
-            { x: 760, y: 120, dir: 'v', count: 11, dept: '开发三部', prefix: 'B', startNo: 1 },
+            { x: 760, y: 120, dir: 'hv', count: 11, dept: '开发三部', prefix: 'B', startNo: 1 },
 
             // ===== 岛5·第五双排岛（标示"2"/"16"，最右侧岛）=====
             // 左列：B031(技术平台1绿)+B032-B037(占位6灰)
             // 右列：B030(技术平台1绿)+B020-B029/B038-B043(综合管理部16橙)
-            { x: 910, y: 120, dir: 'v', count: 1, dept: '技术平台研发部', prefix: 'B', startNo: 31 },
-            { x: 910, y: 153, dir: 'v', count: 6, dept: '其他公司', prefix: 'B', startNo: 32 },
-            { x: 940, y: 120, dir: 'v', count: 1, dept: '技术平台研发部', prefix: 'B', startNo: 30 },
-            { x: 940, y: 153, dir: 'v', count: 16, dept: '综合管理部', prefix: 'B', startNo: 20 },
+            { x: 910, y: 120, dir: 'hv', count: 1, dept: '技术平台研发部', prefix: 'B', startNo: 31 },
+            { x: 910, y: 150, dir: 'hv', count: 6, dept: '其他公司', prefix: 'B', startNo: 32 },
+            { x: 970, y: 120, dir: 'hv', count: 1, dept: '技术平台研发部', prefix: 'B', startNo: 30 },
+            { x: 970, y: 150, dir: 'hv', count: 16, dept: '综合管理部', prefix: 'B', startNo: 20 },
 
             // ===== 右侧靠墙列（东侧）=====
             // B012-B013(占位2)+B014-B019/B102-B103(综合管理部9)+B044-B047(综合管理部4)
-            { x: 1080, y: 120, dir: 'v', count: 2, dept: '其他公司', prefix: 'B', startNo: 12 },
-            { x: 1080, y: 186, dir: 'v', count: 9, dept: '综合管理部', prefix: 'B', startNo: 14 },
-            { x: 1080, y: 483, dir: 'v', count: 4, dept: '综合管理部', prefix: 'B', startNo: 44 },
-            { x: 1105, y: 483, dir: 'v', count: 4, dept: '综合管理部', prefix: 'B', startNo: 102 },
+            { x: 1080, y: 120, dir: 'hv', count: 2, dept: '其他公司', prefix: 'B', startNo: 12 },
+            { x: 1080, y: 180, dir: 'hv', count: 9, dept: '综合管理部', prefix: 'B', startNo: 14 },
+            { x: 1080, y: 483, dir: 'hv', count: 4, dept: '综合管理部', prefix: 'B', startNo: 44 },
+            { x: 1145, y: 483, dir: 'hv', count: 4, dept: '综合管理部', prefix: 'B', startNo: 102 },
 
             // ===== 南侧靠墙车位行（y=580, vh水平排列）=====
             // C080-C091(占位12)+C092-C096(延伸5)
@@ -812,6 +917,7 @@ export default {
 .page-layout {
   display: flex;
   height: 100%;
+  position: relative;
 }
 
 /* ============ 左侧：车位图 ============ */
@@ -911,6 +1017,45 @@ export default {
   overflow-y: auto;
   background-color: #fafafa;
   min-width: 260px;
+}
+
+/* 折叠按钮 */
+.toggle-btn {
+  position: absolute;
+  left: calc(75% - 14px);
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  width: 28px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border: 1px solid #dcdfe6;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #909399;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.toggle-btn:hover {
+  color: #409EFF;
+  border-color: #409EFF;
+  box-shadow: 0 2px 12px rgba(64, 158, 255, 0.2);
+}
+
+.toggle-btn--collapsed {
+  left: calc(100% - 30px);
+}
+
+/* 右侧折叠时，左侧全宽 */
+.map-area--full {
+  border-right: none;
+  padding-right: 0;
+  flex: 1;
 }
 
 .info-area::-webkit-scrollbar {
