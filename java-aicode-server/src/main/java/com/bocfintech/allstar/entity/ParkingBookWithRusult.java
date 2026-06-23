@@ -25,6 +25,10 @@ public class ParkingBookWithRusult {
 
     private Integer emailEnabled;    // 是否开启邮件通知（0=关闭，1=开启）
 
+    private String emailUser;        // 发送邮件账号用户名（7位工号格式）
+
+    private String emailRecipient;   // 收件人邮箱地址
+
     private String lastAppointmentDate;   // 最后一次预约入园日期
 
     private String lastAppointmentResult;      // 最后一次预约入园结果

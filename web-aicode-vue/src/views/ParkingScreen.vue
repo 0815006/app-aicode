@@ -55,9 +55,9 @@
 
             <!-- 车道装饰线（外环） -->
             <rect
-              x="20"
+              :x="currentFloorData.dashedBorderX || 20"
               y="20"
-              :width="currentSvgWidth - 40"
+              :width="currentSvgWidth - (currentFloorData.dashedBorderX || 20) - 20"
               :height="currentSvgHeight - 40"
               fill="none"
               stroke="#cfd6e0"
@@ -78,9 +78,20 @@
                 :y="lane.y"
                 :width="lane.w"
                 :height="lane.h"
-                fill="#dfe4ea"
-                opacity="0.55"
+                :fill="lane.color || '#dfe4ea'"
+                :opacity="lane.color ? 0.3 : 0.55"
                 rx="3"
+              />
+              <!-- 普通车道中线 -->
+              <line
+                v-if="lane.line"
+                :x1="lane.x + lane.w / 2"
+                :y1="lane.y + 10"
+                :x2="lane.x + lane.w / 2"
+                :y2="lane.y + lane.h - 10"
+                :stroke="lane.line"
+                stroke-width="2"
+                stroke-dasharray="8 6"
               />
               <!-- 方向车道（出口/入口标记） -->
               <template v-if="lane.dir">
@@ -153,9 +164,9 @@
                   />
                   <!-- 出口标签（居中） -->
                   <rect
-                    :x="lane.x + lane.w / 2 - 18"
+                    :x="lane.x + lane.w / 2 - (lane.labelUpW || 36) / 2"
                     :y="lane.y + 12"
-                    :width="36"
+                    :width="lane.labelUpW || 36"
                     :height="22"
                     fill="#F56C6C"
                     rx="4"
@@ -166,7 +177,7 @@
                     :y="lane.y + 27"
                     text-anchor="middle"
                     fill="#fff"
-                    font-size="12"
+                    :font-size="lane.labelUpSize || 12"
                     font-weight="bold"
                   >{{ lane.labelUp != null ? lane.labelUp : '出口' }}</text>
                   <!-- 入口标签（居中） -->
@@ -226,9 +237,14 @@
               <path
                 v-if="lane.arc"
                 :d="arcPath(lane)"
-                fill="#dfe4ea"
-                opacity="0.55"
+                :fill="lane.color || '#dfe4ea'"
+                :opacity="lane.color ? 0.3 : 0.55"
               />
+            </g>
+
+            <!-- 车道中线路径（连续弧线） -->
+            <g v-for="(cl, i) in (currentFloorData.centerLines || [])" :key="'cl-' + i">
+              <path :d="cl.path" :stroke="cl.stroke" stroke-width="2" stroke-dasharray="8 6" fill="none" />
             </g>
 
             <!-- 墙体（四角及岛内间隔墙体） -->
@@ -632,11 +648,9 @@ export default {
           id: '5F-B1',
           name: '5号楼B1层',
           total: 103,
-          svgTransform: 'translate(210, 60)', // 整体右移5车位宽
-          width: 1400,
-          height: 1100,
-          displayWidth: 1400,
-          displayHeight: 1100,
+          svgTransform: 'translate(184, -2)',
+          width: 1380,
+          height: 820,
           facilities: [
             // 按PRD修正版：
             // B2地库入口在东侧(右侧偏中)，靠近C001
@@ -645,9 +659,9 @@ export default {
             // 往研修院方向电梯间在西南角(左下角)
             { type: 'elevator', name: '5号楼B1电梯间', x: 1026, y: 350, w: 135, h: 45, rotate: 90 },
             { type: 'entrance', name: '往4号楼B1方向', x: 1026, y: 138, w: 110, h: 24 },
-            { type: 'entrance', name: 'B2入口', x: 1310, y: 138, w: 60, h: 24 },
-            { type: 'elevator', name: '研修院方向电梯间', x: -60, y: 0, w: 140, h: 50, rotate: 360 },
-            { type: 'entrance', name: '地面入口', x: 170, y: 745, w: 80, h: 24 }
+            { type: 'elevator', name: '研修院方向电梯间', x: -60, y: 52, w: 140, h: 50, rotate: 360 },
+            { type: 'entrance', name: '地面入口', x: 216, y: 721, w: 70, h: 22 },
+            { type: 'entrance', name: '通往B2', x: -77, y: 652, w: 60, h: 24 }
           ],
           // 车道：网格状分布
           // 北部车道(横向)：北侧靠墙行与各岛之间
@@ -655,10 +669,14 @@ export default {
           // 西侧车道(纵向)：左侧靠墙与岛1之间
           // 岛间纵向支车道：各岛之间穿插
           lanes: [
-            // 北部车道（横向）y=110-191
-            { x: 95, y: 110, w: 1135, h: 81 },
+            // 北部车道（横向）y=110-191，右边界对齐右墙体右边界1151
+            { x: 95, y: 110, w: 1056, h: 81 },
             // 南部车道（横向）y=555-636，左延到C94右边界
             { x: -87, y: 555, w: 1042, h: 81 },
+            // 通往B2：弧线上方小长方形 + 扇形，绿色背景
+            { x: -87, y: 636, w: 81, h: 55, arc: { dir: 'se-ccw', r: 81 }, color: 'rgba(103,194,58,0.25)' },
+            // 通往B2：正方形，绿色背景
+            { x: -6, y: 691, w: 81, h: 81, color: 'rgba(103,194,58,0.25)' },
             // 左1车道（西侧纵向）右贴临5左
             { x: 95, y: 191, w: 81, h: 364 },
             // 左2车道（岛1-岛2间）
@@ -666,19 +684,24 @@ export default {
             // 车道3（岛2-岛3间）
             { x: 487, y: 191, w: 81, h: 364 },
             // 车道4（岛3-岛4间）→ 错层双向：45°斜线分割，上方出口+下方B2入口
-            { x: 623, y: 191, w: 81, h: 364, dir: 'both' },
+            { x: 623, y: 191, w: 81, h: 364, dir: 'both', labelUp: '地面出口', labelUpW: 52, labelUpSize: 13 },
             // 车道5（岛4-岛5间）
             { x: 759, y: 191, w: 81, h: 364 },
             // 车道6（岛5右侧，上起北车道下边界，下至南车道底部）
             { x: 955, y: 191, w: 81, h: 445 },
-            // 地面入口：整体绕小长方形左下角(291,636)逆时针旋转90°
-            { x: 291, y: 636, w: 81, h: 81, arc: { dir: 'sw-es', r: 81 } },
-            { x: 129, y: 717, w: 162, h: 81 }
+            // 地面入口：弧线上方小长方形高缩为1车位长(55)，红色出口背景
+            { x: 291, y: 636, w: 81, h: 55, arc: { dir: 'sw-es', r: 81 }, color: 'rgba(103,194,58,0.25)' },
+            { x: 210, y: 691, w: 81, h: 81, color: 'rgba(103,194,58,0.25)' }
           ],
           // 墙体
           walls: [
             // 右1车道右侧墙体（下边界对齐B042居中）
             { x: 1036, y: 191, w: 115, h: 316 }
+          ],
+          // 地面入口/B2出口 连续中线：正方形→弧线→上方长方形
+          centerLines: [
+            { path: 'M 75 731.5 L -6 731.5 A 40.5 40.5 0 0 1 -46.5 691 L -46.5 645', stroke: '#67C23A' },
+            { path: 'M 210 731.5 L 291 731.5 A 40.5 40.5 0 0 0 331.5 691 L 331.5 645', stroke: '#67C23A' }
           ],
           blocks: [
             // ===== 北侧靠墙车位行（y=55, vh，从右往左组:3,3,3,3,1,3,1,3,3,3,3,2）=====
@@ -807,27 +830,32 @@ export default {
           id: '5F-B2',
           name: '5号楼B2层',
           total: 136,
-          svgTransform: 'translate(160, 60)',
-          width: 1400,
-          height: 1100,
-          displayWidth: 1400,
-          displayHeight: 1100,
+          svgTransform: 'translate(55, -3)',
+          width: 1300,
+          height: 910,
+          dashedBorderX: 60,
           facilities: [
-            { type: 'elevator', name: '5号楼B2电梯间', x: 1026, y: 350, w: 135, h: 45, rotate: 90 }
+            { type: 'elevator', name: '5号楼B2电梯间', x: 1008, y: 395, w: 135, h: 45, rotate: 270 },
+            { type: 'exit', name: 'B2出口', x: 297, y: 742, w: 70, h: 22 }
           ],
           lanes: [
-            { x: 95, y: 110, w: 1135, h: 81 },
-            { x: -87, y: 644, w: 1317, h: 81 },
+            { x: 95, y: 110, w: 1100, h: 81 },
+            { x: 35, y: 644, w: 1160, h: 81 },
             { x: 95, y: 191, w: 81, h: 453 },
             { x: 291, y: 191, w: 81, h: 453 },
             { x: 487, y: 191, w: 81, h: 453 },
-            { x: 623, y: 191, w: 81, h: 453, dir: 'both', labelUp: '通往B1', labelDown: '' },
+            { x: 623, y: 191, w: 81, h: 453, dir: 'both', labelUp: '通往B1', labelUpW: 52, labelUpSize: 13, labelDown: '' },
             { x: 759, y: 191, w: 81, h: 453 },
             { x: 955, y: 191, w: 81, h: 453 },
-            { x: 291, y: 725, w: 81, h: 81, dir: 'down', label: 'B2出口' }
+            // B2出口：弧线上方小长方形 + 正方形，红色背景
+            { x: 291, y: 725, w: 81, h: 55, arc: { dir: 'sw-es', r: 81 }, color: 'rgba(245,108,108,0.25)' },
+            { x: 210, y: 780, w: 81, h: 81, color: 'rgba(245,108,108,0.25)' }
           ],
           walls: [
             { x: 1036, y: 288, w: 115, h: 259 }
+          ],
+          centerLines: [
+            { path: 'M 210 820.5 L 291 820.5 A 40.5 40.5 0 0 0 331.5 780 L 331.5 734', stroke: '#F56C6C' }
           ],
           blocks: [
             { x: 139, y: 55, dir: 'vh', count: 5, dept: '其他公司', prefix: 'B', startNo: 88, numberStep: -1 },
@@ -835,7 +863,7 @@ export default {
             { x: 467, y: 55, dir: 'vh', count: 3, dept: '开发二部', prefix: 'B', startNo: 17, numberStep: -1 },
             { x: 556, y: 55, dir: 'vh', count: 1, dept: '开发二部', prefix: 'B', startNo: 14 },
             { x: 636, y: 55, dir: 'hv', count: 1, dept: '开发二部', prefix: 'A', startNo: 83 },
-            { x: 807, y: 55, dir: 'hv', count: 1, dept: '开发二部', prefix: 'A', startNo: 82 },
+            { x: 799, y: 55, dir: 'hv', count: 1, dept: '开发二部', prefix: 'A', startNo: 82 },
             { x: 870, y: 55, dir: 'hv', count: 1, dept: '临时车位', prefix: '临', startNo: 7 },
             { x: 928, y: 55, dir: 'vh', count: 1, dept: '开发二部', prefix: 'A', startNo: 51 },
             { x: 956, y: 55, dir: 'vh', count: 1, dept: '开发二部', prefix: 'A', startNo: 50 },
@@ -1129,7 +1157,8 @@ export default {
         'sw': [x,     y + h],      // SW角：西→北 CW
         'ne': [x + w, y],          // NE角：东→南 CW
         'nw': [x,     y],          // NW角：南→西 CW
-        'sw-es': [x, y + h]        // SW角：东→南 CW
+        'sw-es': [x, y + h],       // SW角：东→南 CW
+        'se-ccw': [x + w, y + h]   // SE角：西→南 CCW
       }
       const [cx, cy] = centers[dir] || centers['se']
       const paths = {
@@ -1137,7 +1166,8 @@ export default {
         'sw': `M ${cx-r} ${cy} A ${r} ${r} 0 0 1 ${cx} ${cy-r} L ${cx} ${cy} Z`,
         'ne': `M ${cx+r} ${cy} A ${r} ${r} 0 0 1 ${cx} ${cy+r} L ${cx} ${cy} Z`,
         'nw': `M ${cx} ${cy+r} A ${r} ${r} 0 0 1 ${cx-r} ${cy} L ${cx} ${cy} Z`,
-        'sw-es': `M ${cx+r} ${cy} A ${r} ${r} 0 0 1 ${cx} ${cy+r} L ${cx} ${cy} Z`
+        'sw-es': `M ${cx+r} ${cy} A ${r} ${r} 0 0 1 ${cx} ${cy+r} L ${cx} ${cy} Z`,
+        'se-ccw': `M ${cx-r} ${cy} A ${r} ${r} 0 0 0 ${cx} ${cy+r} L ${cx} ${cy} Z`
       }
       return paths[dir] || paths['se']
     },
