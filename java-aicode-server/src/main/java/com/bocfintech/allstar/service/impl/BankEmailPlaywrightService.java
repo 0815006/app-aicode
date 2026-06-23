@@ -233,6 +233,7 @@ public class BankEmailPlaywrightService {
                  */
                 log.info("邮件通知：执行登录 user={} ...", emailUser);
                 page.fill(USERNAME_ID, emailUser);
+                page.click(PASSWORD_ID);
                 page.fill(PASSWORD_ID, emailPassword);
                 page.click(LOGIN_BTN_ID);
 
@@ -307,7 +308,7 @@ public class BankEmailPlaywrightService {
                  * 正文内容和主题相同，都是预约成功+日期+车位信息。
                  */
                 log.info("邮件通知：输入正文...");
-                composeFrame.locator(BODY_ID).fill(content);
+                // composeFrame.locator(BODY_ID).fill(content);
 
                 /*
                  * ==== 步骤8：点击发送 ====
