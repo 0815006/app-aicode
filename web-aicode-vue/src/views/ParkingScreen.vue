@@ -177,7 +177,7 @@
                     :y="lane.y + 27"
                     text-anchor="middle"
                     fill="#fff"
-                    :font-size="lane.labelUpSize || 12"
+                    :font-size="lane.labelUpSize || 13"
                     font-weight="bold"
                   >{{ lane.labelUp != null ? lane.labelUp : '出口' }}</text>
                   <!-- 入口标签（居中） -->
@@ -196,7 +196,7 @@
                     :y="lane.y + lane.h - 15"
                     text-anchor="middle"
                     fill="#fff"
-                    font-size="11"
+                    font-size="13"
                     font-weight="bold"
                   >{{ lane.labelDown || 'B2入口' }}</text>
                   </template>
@@ -228,7 +228,7 @@
                     :y="lane.y + lane.h / 2 + 4"
                     text-anchor="middle"
                     fill="#fff"
-                    font-size="11"
+                    font-size="13"
                     font-weight="bold"
                   >{{ lane.label }}</text>
                 </template>
@@ -277,7 +277,7 @@
                 :y="fac.y + (fac.h || 28) / 2 + 4"
                 text-anchor="middle"
                 fill="#fff"
-                font-size="12"
+                font-size="13"
                 font-weight="bold"
               >{{ fac.name }}</text>
             </g>
@@ -399,8 +399,9 @@ export default {
         {
           id: '4F-B1',
           name: '4号楼B1层',
-          total: 127,
-          width: 1380,
+          total: 103,
+          wosiTotal: 103,
+          width: 1350,
           height: 720,
           xOffset: 25, // 整体右移25px（使车位图居中于虚线框内，左边界x=15→40，右边界x≈1255→1280）
           yOffset: 85, // 整体下移85px（原30+55，为第1排子母车位上方的铺位腾空间）
@@ -412,8 +413,8 @@ export default {
           facilities: [
             { type: 'exit', name: '出口道闸', x: 40, y: 176, w: 55, h: 26 },
             { type: 'entrance', name: '入口道闸', x: 40, y: 256, w: 55, h: 26 },
-            { type: 'entrance', name: '4号楼B1入口', x: 751, y: 588, w: 80, h: 24 },
-            { type: 'entrance', name: '5号楼B1入口', x: 751, y: 621, w: 80, h: 24 },
+            { type: 'entrance', name: '4号楼B1入口', x: 751, y: 550, w: 80, h: 24 },
+            { type: 'entrance', name: '5号楼B1入口', x: 751, y: 583, w: 80, h: 24 },
             // 4号楼/5号楼B1入口上下放置于A024右侧，紧挨底部虚线边框
           ],
           // ===== 环形闭环车道系统（宽60px）=====
@@ -432,8 +433,8 @@ export default {
             { x: 1107, y: 55, w: 81, h: 463 },
             // A024右侧南北向通道上半段（B152右边界743+柱子8=751）
             { x: 751, y: 327, w: 81, h: 110 },
-            // A024右侧南北向通道下半段（底对齐虚线框下边界700）
-            { x: 751, y: 518, w: 81, h: 182 },
+            // A024右侧南北向通道下半段（底对齐5号楼B1入口标签下+1柱）
+            { x: 751, y: 518, w: 81, h: 97 },
             // 入口通道：左边延伸到虚线，右边接西车道
             { x: 0, y: 246, w: 125, h: 81 },
             // 出口通道
@@ -647,17 +648,18 @@ export default {
         {
           id: '5F-B1',
           name: '5号楼B1层',
-          total: 103,
-          svgTransform: 'translate(184, -2)',
-          width: 1380,
-          height: 820,
+          total: 124,
+          wosiTotal: 124,
+          svgTransform: 'translate(169, -25)',
+          width: 1347,
+          height: 774,
           facilities: [
             // 按PRD修正版：
             // B2地库入口在东侧(右侧偏中)，靠近C001
             // 5号楼B1电梯间在北侧(上方偏右)，紧邻往4号楼通道
             // 往4号楼B1方向通道在东北角
             // 往研修院方向电梯间在西南角(左下角)
-            { type: 'elevator', name: '5号楼B1电梯间', x: 1026, y: 350, w: 135, h: 45, rotate: 90 },
+            { type: 'elevator', name: '5号楼B1电梯间', x: 1026, y: 350, w: 135, h: 45, rotate: 270 },
             { type: 'entrance', name: '往4号楼B1方向', x: 1026, y: 138, w: 110, h: 24 },
             { type: 'elevator', name: '研修院方向电梯间', x: -60, y: 52, w: 140, h: 50, rotate: 360 },
             { type: 'entrance', name: '地面入口', x: 216, y: 721, w: 70, h: 22 },
@@ -684,7 +686,7 @@ export default {
             // 车道3（岛2-岛3间）
             { x: 487, y: 191, w: 81, h: 364 },
             // 车道4（岛3-岛4间）→ 错层双向：45°斜线分割，上方出口+下方B2入口
-            { x: 623, y: 191, w: 81, h: 364, dir: 'both', labelUp: '地面出口', labelUpW: 52, labelUpSize: 13 },
+            { x: 623, y: 191, w: 81, h: 364, dir: 'both', labelUp: '地面出口', labelUpW: 52 },
             // 车道5（岛4-岛5间）
             { x: 759, y: 191, w: 81, h: 364 },
             // 车道6（岛5右侧，上起北车道下边界，下至南车道底部）
@@ -830,12 +832,12 @@ export default {
           id: '5F-B2',
           name: '5号楼B2层',
           total: 136,
-          svgTransform: 'translate(55, -3)',
-          width: 1300,
+          wosiTotal: 136,
+          svgTransform: 'translate(-10, -31) scale(1.062)',
+          width: 1290,
           height: 910,
-          dashedBorderX: 60,
           facilities: [
-            { type: 'elevator', name: '5号楼B2电梯间', x: 1008, y: 395, w: 135, h: 45, rotate: 270 },
+            { type: 'elevator', name: '5号楼B2电梯间', x: 1028, y: 395, w: 135, h: 45, rotate: 270 },
             { type: 'exit', name: 'B2出口', x: 297, y: 742, w: 70, h: 22 }
           ],
           lanes: [
@@ -844,7 +846,7 @@ export default {
             { x: 95, y: 191, w: 81, h: 453 },
             { x: 291, y: 191, w: 81, h: 453 },
             { x: 487, y: 191, w: 81, h: 453 },
-            { x: 623, y: 191, w: 81, h: 453, dir: 'both', labelUp: '通往B1', labelUpW: 52, labelUpSize: 13, labelDown: '' },
+            { x: 623, y: 191, w: 81, h: 453, dir: 'both', labelUp: '通往B1', labelUpW: 52, labelDown: '' },
             { x: 759, y: 191, w: 81, h: 453 },
             { x: 955, y: 191, w: 81, h: 453 },
             // B2出口：弧线上方小长方形 + 正方形，红色背景
@@ -1269,7 +1271,7 @@ export default {
   background: #eef0f3;
   border-radius: 10px;
   border: 1px solid #dcdfe6;
-  overflow: hidden;
+  overflow: auto;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1295,17 +1297,17 @@ export default {
 
 /* ============ 右侧：文字信息 ============ */
 .info-area {
-  flex: 1;
+  flex: 0.8;
   padding-left: 20px;
   overflow-y: auto;
   background-color: #fafafa;
-  min-width: 260px;
+  min-width: 200px;
 }
 
 /* 折叠按钮 */
 .toggle-btn {
   position: absolute;
-  left: calc(75% - 14px);
+  left: calc(79% - 14px);
   top: 50%;
   transform: translateY(-50%);
   z-index: 10;

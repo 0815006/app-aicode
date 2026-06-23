@@ -6,7 +6,9 @@
       "Bash(rm -rf *)",
       "Bash(unzip -o \"d:/ProjectDir/aicode-v1/docs/性能测试方案模板.docx\")",
       "Bash(grep -v '^$')",
-      "Bash(mvn dependency:tree -Dincludes=org.apache.poi)"
+      "Bash(mvn dependency:tree -Dincludes=org.apache.poi)",
+      "Bash(node -e ' *)",
+      "Bash(node)"
     ]
   }
 }
