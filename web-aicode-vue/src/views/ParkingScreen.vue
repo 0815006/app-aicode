@@ -326,6 +326,61 @@
               </g>
             </g>
 
+            <!-- 定位标记：3D 立体定位图标 + 地面椭圆脉冲（俯视透视 → 脉冲沿地面扩散） -->
+            <g v-if="targetSpaceData">
+              <!-- 滤镜与渐变定义 -->
+              <defs>
+                <!-- 投影滤镜：3D 立体感核心 -->
+                <filter id="pinShadow" x="-50%" y="-20%" width="200%" height="160%">
+                  <feDropShadow dx="0" dy="2.5" stdDeviation="2" flood-color="#000" flood-opacity="0.3"/>
+                </filter>
+                <!-- 径向渐变：模拟 3D 球体光照（光源左上角） -->
+                <radialGradient id="pinGrad" cx="38%" cy="32%" r="60%">
+                  <stop offset="0%" stop-color="#FF7B8A"/>
+                  <stop offset="40%" stop-color="#FF4757"/>
+                  <stop offset="100%" stop-color="#C0392B"/>
+                </radialGradient>
+              </defs>
+
+              <g :transform="`translate(${targetSpaceData.x + targetSpaceData.w / 2}, ${targetSpaceData.y + targetSpaceData.h / 2})`">
+
+                <!-- 地面椭圆脉冲 × 3 层（rx:ry ≈ 2.3:1，模拟 ~65° 俯视角地面扩散） -->
+                <!-- 第 1 层（0s 启动，最深色） -->
+                <ellipse cx="0" cy="0" rx="10" ry="4" fill="none" stroke="#FF4757" stroke-width="2.2" opacity="0">
+                  <animate attributeName="rx" values="10;42" dur="1.8s" begin="0s" repeatCount="indefinite" calcMode="spline" keySplines="0.25 0.1 0.25 1" keyTimes="0;1"/>
+                  <animate attributeName="ry" values="4;18" dur="1.8s" begin="0s" repeatCount="indefinite" calcMode="spline" keySplines="0.25 0.1 0.25 1" keyTimes="0;1"/>
+                  <animate attributeName="opacity" values="0.6;0" dur="1.8s" begin="0s" repeatCount="indefinite" calcMode="spline" keySplines="0.25 0.1 0.25 1" keyTimes="0;1"/>
+                  <animate attributeName="stroke-width" values="2.2;0.3" dur="1.8s" begin="0s" repeatCount="indefinite" calcMode="spline" keySplines="0.25 0.1 0.25 1" keyTimes="0;1"/>
+                </ellipse>
+
+                <!-- 第 2 层（0.6s 延迟，中间色） -->
+                <ellipse cx="0" cy="0" rx="10" ry="4" fill="none" stroke="#FF6B7A" stroke-width="1.8" opacity="0">
+                  <animate attributeName="rx" values="10;42" dur="1.8s" begin="0.6s" repeatCount="indefinite" calcMode="spline" keySplines="0.25 0.1 0.25 1" keyTimes="0;1"/>
+                  <animate attributeName="ry" values="4;18" dur="1.8s" begin="0.6s" repeatCount="indefinite" calcMode="spline" keySplines="0.25 0.1 0.25 1" keyTimes="0;1"/>
+                  <animate attributeName="opacity" values="0.45;0" dur="1.8s" begin="0.6s" repeatCount="indefinite" calcMode="spline" keySplines="0.25 0.1 0.25 1" keyTimes="0;1"/>
+                  <animate attributeName="stroke-width" values="1.8;0.2" dur="1.8s" begin="0.6s" repeatCount="indefinite" calcMode="spline" keySplines="0.25 0.1 0.25 1" keyTimes="0;1"/>
+                </ellipse>
+
+                <!-- 第 3 层（1.2s 延迟，最浅色） -->
+                <ellipse cx="0" cy="0" rx="10" ry="4" fill="none" stroke="#FF8C94" stroke-width="1.4" opacity="0">
+                  <animate attributeName="rx" values="10;42" dur="1.8s" begin="1.2s" repeatCount="indefinite" calcMode="spline" keySplines="0.25 0.1 0.25 1" keyTimes="0;1"/>
+                  <animate attributeName="ry" values="4;18" dur="1.8s" begin="1.2s" repeatCount="indefinite" calcMode="spline" keySplines="0.25 0.1 0.25 1" keyTimes="0;1"/>
+                  <animate attributeName="opacity" values="0.3;0" dur="1.8s" begin="1.2s" repeatCount="indefinite" calcMode="spline" keySplines="0.25 0.1 0.25 1" keyTimes="0;1"/>
+                  <animate attributeName="stroke-width" values="1.4;0.1" dur="1.8s" begin="1.2s" repeatCount="indefinite" calcMode="spline" keySplines="0.25 0.1 0.25 1" keyTimes="0;1"/>
+                </ellipse>
+
+                <!-- 3D 立体定位图标（Google Material Design "location_on" 路径 + 渐变 + 投影 + 高光） -->
+                <g filter="url(#pinShadow)" transform="translate(-12, -26) scale(1.05)">
+                  <!-- 主体：径向渐变填充 -->
+                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="url(#pinGrad)"/>
+                  <!-- 高光区域：左上角椭圆，模拟 3D 球面光泽反射 -->
+                  <ellipse cx="9" cy="5.5" rx="3" ry="2" fill="rgba(255,255,255,0.28)"/>
+                  <!-- 中心白点：定位孔视觉焦点 -->
+                  <circle cx="12" cy="9" r="2.5" fill="#fff" opacity="0.92"/>
+                </g>
+              </g>
+            </g>
+
             </g><!-- 整体偏移包裹层结束 -->
           </svg>
         </div>
@@ -372,6 +427,7 @@ export default {
     return {
       currentFloor: '4F-B1',
       showInfo: true,
+      targetSpace: null, // 来自预约查询页跳转的定位车位 { label }
       deptColors: {
         '综合管理部': '#F4B183',
         '开发一部': '#FFF2CC',
@@ -978,6 +1034,17 @@ export default {
       ]
     }
   },
+  created() {
+    // 来自预约查询页的跳转：?floor=4F-B1&space=B124
+    const qFloor = this.$route.query.floor
+    const qSpace = this.$route.query.space
+    if (qFloor && this.floors.some(f => f.id === qFloor)) {
+      this.currentFloor = qFloor
+    }
+    if (qSpace) {
+      this.targetSpace = { label: qSpace }
+    }
+  },
   computed: {
     currentFloorData() {
       return this.floors.find(f => f.id === this.currentFloor) || this.floors[0]
@@ -1149,6 +1216,11 @@ export default {
         }
       })
       return spaces
+    },
+    // 匹配目标车位的位置数据（来自路由query参数跳转）
+    targetSpaceData() {
+      if (!this.targetSpace || !this.targetSpace.label) return null
+      return this.currentSpaces.find(s => s.label === this.targetSpace.label) || null
     }
   },
   methods: {

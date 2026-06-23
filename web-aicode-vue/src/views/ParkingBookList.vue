@@ -48,7 +48,19 @@
       <!-- <el-table-column prop="nextAutoBookDate" label="下次重启预约日期" width="100" /> -->
       <el-table-column prop="lastAppointmentDate" label="最近预约入园日期" width="120" />
       <el-table-column prop="lastAppointmentResult" label="最近预约入园结果" width="120" />
-      <el-table-column prop="lastParkingPosition" label="车位位置" width="140" />
+      <el-table-column label="车位位置" width="150">
+        <template slot-scope="scope">
+          <el-link
+            v-if="canNavigateToScreen(scope.row.lastParkingPosition)"
+            type="primary"
+            :underline="false"
+            @click="goToParkingScreen(scope.row.lastParkingPosition)"
+          >
+            {{ scope.row.lastParkingPosition }}
+          </el-link>
+          <span v-else>{{ scope.row.lastParkingPosition || '-' }}</span>
+        </template>
+      </el-table-column>
       <el-table-column prop="parkingType" label="车牌类型" width="100" />
       <el-table-column prop="plateNo" label="车牌号" width="120" />
       <el-table-column label="邮件通知" width="100">
@@ -145,7 +157,19 @@
         </template>
         </el-table-column>
         <el-table-column prop="resultDesc" label="结果描述" min-width="130" show-overflow-tooltip />
-        <el-table-column prop="parkingPosition" label="车位位置" width="130" />
+        <el-table-column label="车位位置" width="130">
+          <template slot-scope="scope">
+            <el-link
+              v-if="canNavigateToScreen(scope.row.parkingPosition)"
+              type="primary"
+              :underline="false"
+              @click="goToParkingScreen(scope.row.parkingPosition)"
+            >
+              {{ scope.row.parkingPosition }}
+            </el-link>
+            <span v-else>{{ scope.row.parkingPosition || '-' }}</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="plateNo" label="车牌号" width="100" />
         <el-table-column prop="parkingType" label="停车证类型" width="80" />
         <el-table-column prop="createTime" label="创建时间" width="100" sortable >
@@ -359,6 +383,41 @@ export default {
     this.fetchData()
   },
   methods: {
+    // 判断车位位置文本是否匹配已知楼层前缀，只有匹配的才显示为可点击链接
+    canNavigateToScreen(positionText) {
+      if (!positionText) return false
+      const knownPrefixes = ['4号楼B1层', '5号楼B1层', '5号楼B2层']
+      return knownPrefixes.some(p => positionText.includes(p))
+    },
+
+    // 从车位位置文本解析楼层ID和车位编号，跳转到停车大屏
+    // 车位位置格式示例："4号楼B1层B124"、"5号楼B2层C056"
+    goToParkingScreen(positionText) {
+      if (!positionText) return
+      const floorMap = {
+        '4号楼B1层': '4F-B1',
+        '5号楼B1层': '5F-B1',
+        '5号楼B2层': '5F-B2'
+      }
+      let floorId = ''
+      let spaceLabel = ''
+      for (const [key, value] of Object.entries(floorMap)) {
+        if (positionText.includes(key)) {
+          floorId = value
+          spaceLabel = positionText.substring(positionText.indexOf(key) + key.length).trim()
+          break
+        }
+      }
+      if (!floorId) {
+        this.$router.push({ name: 'ParkingScreen' })
+        return
+      }
+      this.$router.push({
+        name: 'ParkingScreen',
+        query: { floor: floorId, space: spaceLabel }
+      })
+    },
+
     // 切换指南面板显示/隐藏
     toggleGuide() {
       this.showGuide = !this.showGuide
