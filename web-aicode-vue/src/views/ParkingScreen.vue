@@ -43,6 +43,16 @@
               fill="#eef0f3"
             />
 
+            <!-- SVG箭头标记定义 -->
+            <defs>
+              <marker id="arrowUp" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+                <polygon points="0,8 4,0 8,8" fill="#67C23A" />
+              </marker>
+              <marker id="arrowDown" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+                <polygon points="0,8 4,0 8,8" fill="#F56C6C" />
+              </marker>
+            </defs>
+
             <!-- 车道装饰线（外环） -->
             <rect
               x="20"
@@ -61,7 +71,9 @@
 
             <!-- 车道带（浅色背景，体现车位行+车道行交替） -->
             <g v-for="(lane, i) in currentFloorData.lanes" :key="'lane-' + i">
+              <!-- 普通车道 -->
               <rect
+                v-if="!lane.dir"
                 :x="lane.x"
                 :y="lane.y"
                 :width="lane.w"
@@ -69,6 +81,148 @@
                 fill="#dfe4ea"
                 opacity="0.55"
                 rx="3"
+              />
+              <!-- 方向车道（出口/入口标记） -->
+              <template v-if="lane.dir">
+                <!-- 方向车道背景 -->
+                <rect
+                  v-if="lane.dir !== 'both'"
+                  :x="lane.x"
+                  :y="lane.y"
+                  :width="lane.w"
+                  :height="lane.h"
+                  :fill="lane.dir === 'up' ? 'rgba(103,194,58,0.25)' : 'rgba(245,108,108,0.25)'"
+                  rx="3"
+                />
+                <!-- 双向车道：45°斜线一分为二，上方出口 + 下方入口 -->
+                <template v-if="lane.dir === 'both'">
+                  <!-- 车道背景 -->
+                  <rect
+                    :x="lane.x"
+                    :y="lane.y"
+                    :width="lane.w"
+                    :height="lane.h"
+                    fill="rgba(64,158,255,0.08)"
+                    rx="3"
+                  />
+                  <!-- 上方三角：出口（红色调） -->
+                  <polygon
+                    :points="`${lane.x},${lane.y} ${lane.x+lane.w},${lane.y} ${lane.x+lane.w},${lane.y+lane.h/2+lane.w/2} ${lane.x},${lane.y+lane.h/2-lane.w/2}`"
+                    fill="rgba(245,108,108,0.12)"
+                    stroke="none"
+                  />
+                  <!-- 下方三角：入口（绿色调） -->
+                  <polygon
+                    :points="`${lane.x},${lane.y+lane.h/2-lane.w/2} ${lane.x+lane.w},${lane.y+lane.h/2+lane.w/2} ${lane.x+lane.w},${lane.y+lane.h} ${lane.x},${lane.y+lane.h}`"
+                    fill="rgba(103,194,58,0.12)"
+                    stroke="none"
+                  />
+                  <!-- 45° 分界线 -->
+                  <line
+                    :x1="lane.x"
+                    :y1="lane.y + lane.h / 2 - lane.w / 2"
+                    :x2="lane.x + lane.w"
+                    :y2="lane.y + lane.h / 2 + lane.w / 2"
+                    stroke="#909399"
+                    stroke-width="2.5"
+                  />
+                  <!-- 出口车道中线（红色虚线） -->
+                  <line
+                    :x1="lane.x + lane.w / 2"
+                    :y1="lane.y + 10"
+                    :x2="lane.x + lane.w / 2"
+                    :y2="lane.y + lane.h / 2 - 6"
+                    stroke="#F56C6C"
+                    stroke-width="1.5"
+                    stroke-dasharray="6 4"
+                    opacity="0.7"
+                  />
+                  <!-- 入口车道中线（绿色虚线） -->
+                  <line
+                    :x1="lane.x + lane.w / 2"
+                    :y1="lane.y + lane.h / 2 + 6"
+                    :x2="lane.x + lane.w / 2"
+                    :y2="lane.y + lane.h - 10"
+                    stroke="#67C23A"
+                    stroke-width="1.5"
+                    stroke-dasharray="6 4"
+                    opacity="0.7"
+                  />
+                  <!-- 出口标签（居中） -->
+                  <rect
+                    :x="lane.x + lane.w / 2 - 18"
+                    :y="lane.y + 12"
+                    :width="36"
+                    :height="22"
+                    fill="#F56C6C"
+                    rx="4"
+                    opacity="0.9"
+                  />
+                  <text
+                    :x="lane.x + lane.w / 2"
+                    :y="lane.y + 27"
+                    text-anchor="middle"
+                    fill="#fff"
+                    font-size="12"
+                    font-weight="bold"
+                  >出口</text>
+                  <!-- 入口标签（居中） -->
+                  <rect
+                    :x="lane.x + lane.w / 2 - 26"
+                    :y="lane.y + lane.h - 30"
+                    :width="52"
+                    :height="22"
+                    fill="#67C23A"
+                    rx="4"
+                    opacity="0.9"
+                  />
+                  <text
+                    :x="lane.x + lane.w / 2"
+                    :y="lane.y + lane.h - 15"
+                    text-anchor="middle"
+                    fill="#fff"
+                    font-size="11"
+                    font-weight="bold"
+                  >B2入口</text>
+                </template>
+                <!-- 单方向箭头中线 -->
+                <line
+                  v-if="lane.dir !== 'both'"
+                  :x1="lane.x + lane.w / 2"
+                  :y1="lane.y + 12"
+                  :x2="lane.x + lane.w / 2"
+                  :y2="lane.y + lane.h - 12"
+                  :stroke="lane.dir === 'up' ? '#67C23A' : '#F56C6C'"
+                  stroke-width="2"
+                  stroke-dasharray="8 6"
+                />
+                <!-- 单方向标签 -->
+                <template v-if="lane.dir !== 'both'">
+                  <rect
+                    :x="lane.x + 2"
+                    :y="lane.y + lane.h / 2 - 14"
+                    :width="lane.w - 4"
+                    :height="28"
+                    :fill="lane.dir === 'up' ? '#67C23A' : '#F56C6C'"
+                    rx="4"
+                    opacity="0.9"
+                  />
+                  <text
+                    :x="lane.x + lane.w / 2"
+                    :y="lane.y + lane.h / 2 + 4"
+                    text-anchor="middle"
+                    fill="#fff"
+                    font-size="11"
+                    font-weight="bold"
+                  >{{ lane.label }}</text>
+                </template>
+              </template>
+              <!-- 弧线转角（车道90°转弯） -->
+              <path
+                v-if="lane.arc"
+                :d="arcPath(lane)"
+                fill="#dfe4ea"
+                opacity="0.55"
               />
             </g>
 
@@ -475,9 +629,9 @@ export default {
           total: 103,
           svgTransform: 'translate(210, 60)', // 整体右移5车位宽
           width: 1400,
-          height: 880,
+          height: 1100,
           displayWidth: 1400,
-          displayHeight: 880,
+          displayHeight: 1100,
           facilities: [
             // 按PRD修正版：
             // B2地库入口在东侧(右侧偏中)，靠近C001
@@ -487,7 +641,8 @@ export default {
             { type: 'elevator', name: '5号楼B1电梯间', x: 1026, y: 350, w: 135, h: 45, rotate: 90 },
             { type: 'entrance', name: '往4号楼B1方向', x: 1026, y: 138, w: 110, h: 24 },
             { type: 'entrance', name: 'B2入口', x: 1310, y: 138, w: 60, h: 24 },
-            { type: 'elevator', name: '研修院方向电梯间', x: -60, y: 0, w: 140, h: 50, rotate: 360 }
+            { type: 'elevator', name: '研修院方向电梯间', x: -60, y: 0, w: 140, h: 50, rotate: 360 },
+            { type: 'entrance', name: '地面入口', x: 170, y: 745, w: 80, h: 24 }
           ],
           // 车道：网格状分布
           // 北部车道(横向)：北侧靠墙行与各岛之间
@@ -505,12 +660,15 @@ export default {
             { x: 291, y: 191, w: 81, h: 364 },
             // 车道3（岛2-岛3间）
             { x: 487, y: 191, w: 81, h: 364 },
-            // 车道4（岛3-岛4间）
-            { x: 623, y: 191, w: 81, h: 364 },
+            // 车道4（岛3-岛4间）→ 错层双向：45°斜线分割，上方出口+下方B2入口
+            { x: 623, y: 191, w: 81, h: 364, dir: 'both' },
             // 车道5（岛4-岛5间）
             { x: 759, y: 191, w: 81, h: 364 },
             // 车道6（岛5右侧，上起北车道下边界，下至南车道底部）
-            { x: 955, y: 191, w: 81, h: 445 }
+            { x: 955, y: 191, w: 81, h: 445 },
+            // 地面入口：整体绕小长方形左下角(291,636)逆时针旋转90°
+            { x: 291, y: 636, w: 81, h: 81, arc: { dir: 'sw-es', r: 81 } },
+            { x: 129, y: 717, w: 162, h: 81 }
           ],
           // 墙体
           walls: [
@@ -627,7 +785,7 @@ export default {
             { x: 900, y: 514, dir: 'hv', count: 1, dept: '综合管理部', prefix: 'B', startNo: 43 },
 
           ],
-          description: '5号楼B1层，上北下南。车道宽81px，柱→3→柱→3网格。横向：北车道y=110-191、南车道y=601-682。纵向6条车道(y=191-601)紧贴5岛互不重叠：左1(95-176)→岛1(176/236)→左2(291-372)→岛2(372/432)→车道3(487-568)→岛3(568)→车道4(623-704)→岛4(704)→车道5(759-840)→岛5(840/900)→车道6(955-1036)。岛1左临5+占位11/右临6+开发三部11；岛2左临4+C002+开发三部10/右开发三部12；岛3技术平台2+开发三部10；岛4开发三部12；岛5左占位2+B014-B022综合9(从右墙挪入)/右B030技术1+B025-B035综合11。北侧靠墙行贴左：开发一部8+占位12+技术平台4+占位5+技术平台15。右侧靠墙列仅B012-B013占位2。南墙行(C080-C096/C097-C099)、右墙B044-B065/B097-B105均已删除。',
+          description: '5号楼B1层，上北下南。车道宽81px，柱→3→柱→3网格。横向：北车道y=110-191、南车道y=555-636。纵向6条车道(y=191-636)紧贴5岛互不重叠：左1(95-176)→岛1(176/236)→左2(291-372)→岛2(372/432)→车道3(487-568)→岛3(568)→车道4→出口/入口(623-704)→岛4(704)→车道5(759-840)→岛5(840/900)→车道6(955-1036)。车道4为错层双向通道：45°斜线分割，上方出口(红色)南行→地面，下方B2入口(绿色)北行→地库。地面入口：整体绕小长方形左下角(291,636)逆时针旋转90°→西行2车道长(162px, x:129~291)。岛1左临5+占位11/右临6+开发三部11；岛2左临4+C002+开发三部10/右开发三部12；岛3技术平台2+开发三部10；岛4开发三部12；岛5左占位2+B014-B022综合9(从右墙挪入)/右B030技术1+B025-B035综合11。北侧靠墙行贴左：开发一部8+占位12+技术平台4+占位5+技术平台15。右侧靠墙列仅B012-B013占位2。南墙行(C080-C096/C097-C099)、右墙B044-B065/B097-B105均已删除。',
           allocations: [
             { dept: '综合管理部', count: 29, spaces: 'B014-B019、B102-B103、B038-B043、B020-B029、B044-B047、C002' },
             { dept: '开发一部', count: 12, spaces: 'C045-C048、C072-C079' },
@@ -927,6 +1085,25 @@ export default {
     }
   },
   methods: {
+    arcPath(lane) {
+      const { x, y, w, h, arc: { dir, r } } = lane
+      const centers = {
+        'se': [x + w, y + h],      // SE角：北→东 CW
+        'sw': [x,     y + h],      // SW角：西→北 CW
+        'ne': [x + w, y],          // NE角：东→南 CW
+        'nw': [x,     y],          // NW角：南→西 CW
+        'sw-es': [x, y + h]        // SW角：东→南 CW
+      }
+      const [cx, cy] = centers[dir] || centers['se']
+      const paths = {
+        'se': `M ${cx} ${cy-r} A ${r} ${r} 0 0 1 ${cx+r} ${cy} L ${cx} ${cy} Z`,
+        'sw': `M ${cx-r} ${cy} A ${r} ${r} 0 0 1 ${cx} ${cy-r} L ${cx} ${cy} Z`,
+        'ne': `M ${cx+r} ${cy} A ${r} ${r} 0 0 1 ${cx} ${cy+r} L ${cx} ${cy} Z`,
+        'nw': `M ${cx} ${cy+r} A ${r} ${r} 0 0 1 ${cx-r} ${cy} L ${cx} ${cy} Z`,
+        'sw-es': `M ${cx+r} ${cy} A ${r} ${r} 0 0 1 ${cx} ${cy+r} L ${cx} ${cy} Z`
+      }
+      return paths[dir] || paths['se']
+    },
     facilityColor(type) {
       const map = {
         entrance: '#67C23A',
