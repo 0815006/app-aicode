@@ -391,7 +391,7 @@ export default {
     },
 
     // 从车位位置文本解析楼层ID和车位编号，跳转到停车大屏
-    // 车位位置格式示例："4号楼B1层B124"、"5号楼B2层C056"
+    // 车位位置格式示例："4号楼B1层B124"、"5号楼B2层C056"、"5号楼B2层B区B045"
     goToParkingScreen(positionText) {
       if (!positionText) return
       const floorMap = {
@@ -405,6 +405,11 @@ export default {
         if (positionText.includes(key)) {
           floorId = value
           spaceLabel = positionText.substring(positionText.indexOf(key) + key.length).trim()
+          // 5号楼B2层特殊处理：合并A区B区后，车位位置含"B区"/"A区"标记
+          // 格式如"5号楼B2层B区B045"，需去掉中间的区标记，只保留车位编号
+          if (floorId === '5F-B2') {
+            spaceLabel = spaceLabel.replace(/^[AB]区/, '')
+          }
           break
         }
       }
