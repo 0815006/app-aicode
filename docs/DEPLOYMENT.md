@@ -13,7 +13,7 @@
 | 模式 | 目标环境 | 核心文件 | 用途 |
 |------|---------|---------|------|
 | **模式 A：全家桶一键部署** | 本地开发机（Docker Desktop） | [`deploy/docker-compose.yml`](deploy/docker-compose.yml) | 本地开发/测试，一键拉起全部服务 |
-| **模式 B：腾讯云服务器部署** | 腾讯云 CVM（129.211.9.238） | [`deploy/deploy_cloud_backend.bat`](deploy/deploy_cloud_backend.bat) + [`deploy/deploy_cloud_frontend.bat`](deploy/deploy_cloud_frontend.bat) | 生产环境，前后端分离部署 |
+| **模式 B：腾讯云服务器部署** | 腾讯云 CVM（129.211.9.238） | [`deploy/deploy-server-tencent.bat`](deploy/deploy-server-tencent.bat) + [`deploy/deploy-web-tencent.bat`](deploy/deploy-web-tencent.bat) | 生产环境，前后端分离部署 |
 
 ---
 
@@ -255,7 +255,7 @@ mkdir -p /data/aicode-v1
 
 ### 6.3 后端部署
 
-执行 [`deploy/deploy_cloud_backend.bat`](deploy/deploy_cloud_backend.bat)，该脚本自动完成以下步骤：
+执行 [`deploy/deploy-server-tencent.bat`](deploy/deploy-server-tencent.bat)，该脚本自动完成以下步骤：
 
 | 步骤 | 操作 | 说明 |
 |------|------|------|
@@ -292,7 +292,7 @@ docker run -d \
 
 ### 6.4 前端部署
 
-执行 [`deploy/deploy_cloud_frontend.bat`](deploy/deploy_cloud_frontend.bat)，该脚本自动完成以下步骤：
+执行 [`deploy/deploy-web-tencent.bat`](deploy/deploy-web-tencent.bat)，该脚本自动完成以下步骤：
 
 | 步骤 | 操作 | 说明 |
 |------|------|------|
@@ -574,8 +574,8 @@ app-aicode/
 ├── deploy/                                  # 部署相关文件
 │   ├── docker-compose.yml                   # 模式 A：本地全家桶编排
 │   ├── cloud-dockerfile                     # 模式 B：云端单阶段构建
-│   ├── deploy_cloud_backend.bat             # 模式 B：后端部署脚本（Windows）
-│   ├── deploy_cloud_frontend.bat            # 模式 B：前端部署脚本（Windows）
+│   ├── deploy-server-tencent.bat             # 模式 B：后端部署脚本（Windows）
+│   ├── deploy-web-tencent.bat               # 模式 B：前端部署脚本（Windows）
 │   └── nginx-aicode.conf                    # 模式 B：云端 Nginx 配置（HTTPS）
 ├── docs/
 │   ├── DEPLOYMENT.md                        # 本文档

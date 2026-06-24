@@ -1,6 +1,6 @@
 # ============================================
 # 腾讯云部署后端 Dockerfile (Java 8 + Playwright)
-# jar 包由 deploy_cloud_backend.bat 在本地 mvn package 后 scp 到服务器
+# jar 包由 deploy-server-tencent.bat 在本地 mvn package 后 scp 到服务器
 # ============================================
 
 FROM mcr.microsoft.com/playwright:v1.41.0-focal
