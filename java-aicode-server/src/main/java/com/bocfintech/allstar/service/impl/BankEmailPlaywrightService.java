@@ -130,7 +130,7 @@ public class BankEmailPlaywrightService {
      * @param config parking_book 配置（含邮箱账号、加密密码、收件人、邮件开关）
      * @param record 预约记录（含日期、车位等信息，用于拼装邮件内容）
      */
-    @Async
+    @Async("mailTaskExecutor")
     public void sendParkingNotification(ParkingBook config, ParkingRecord record) {
         // ---- 参数校验 ----
         if (config == null || record == null) {
@@ -171,7 +171,8 @@ public class BankEmailPlaywrightService {
         // ---- 组装邮件内容 ----
         String appointmentDate = nvl(record.getAppointmentDate(), "暂无");
         String parkingPosition = nvl(record.getParkingPosition(), "暂无");
-        String subject = "车辆预约成功 " + appointmentDate + " 位置：" + parkingPosition;
+        String statusText = nvl(record.getResult(), "状态未知");
+        String subject = "车辆预约-" + statusText + " " + appointmentDate + " 位置：" + parkingPosition;
         String content = subject; // 正文和主题一致
 
         log.info("邮件通知：开始发送 → 用户={}, 收件人={}, 主题={}", config.getEmpNo(), recipient, subject);

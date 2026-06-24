@@ -53,11 +53,9 @@ public class ParkingRecordController {
         }
 
         // 排序：按预约日期倒序，再按创建时间倒序
-        wrapper.orderByDesc(ParkingRecord::getAppointmentDate)
-                .orderByDesc(ParkingRecord::getCreateTime);
-
-        // 分页查询
+        // 注意：orderBy 必须在 startPage 之后调用，否则排序会被忽略
         PageHelper.startPage(pageNum, pageSize);
+        PageHelper.orderBy("appointment_date DESC, create_time DESC");
         List<ParkingRecord> list = parkingRecordService.list(wrapper);
 
         if (list == null || list.isEmpty()) {

@@ -54,6 +54,7 @@
             v-if="canNavigateToScreen(scope.row.lastParkingPosition)"
             type="primary"
             :underline="false"
+            style="font-size: inherit"
             @click="goToParkingScreen(scope.row.lastParkingPosition)"
           >
             {{ scope.row.lastParkingPosition }}
@@ -142,7 +143,6 @@
         size="small"
         style="width: 100%"
         :loading="recordLoading"
-        :default-sort="{ prop: 'appointmentDate', order: 'descending' }"
     >
         <el-table-column prop="appointmentDate" label="预约日期" width="100" sortable >
             <template slot-scope="scope">
@@ -163,6 +163,7 @@
               v-if="canNavigateToScreen(scope.row.parkingPosition)"
               type="primary"
               :underline="false"
+              style="font-size: inherit"
               @click="goToParkingScreen(scope.row.parkingPosition)"
             >
               {{ scope.row.parkingPosition }}
