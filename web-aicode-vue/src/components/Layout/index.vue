@@ -10,8 +10,9 @@
     </header>
 
     <div class="status-bar">
-      <span class="status-item">系统时间：{{ currentTime }}</span>
-      <span v-if="clientIp" class="status-item">登录IP：{{ clientIp }}</span>
+      <span class="status-item status-left">系统时间：{{ currentTime }}</span>
+      <span class="status-item copyright-text">Copyright &copy; 2026 工具箱网站 All Rights Reserved. cd5403 版权所有</span>
+      <span v-if="clientIp" class="status-item status-right">登录IP：{{ clientIp }}</span>
     </div>
 
     <main class="content">
@@ -82,7 +83,7 @@ export default {
 
 .sidebar {
   grid-column: 1;
-  grid-row: 1 / 4;
+  grid-row: 1 / 3;
   background: linear-gradient(180deg, #1f3555 0%, #1a2d49 100%);
   border-right: 1px solid rgba(255, 255, 255, 0.08);
   overflow: hidden;
@@ -101,8 +102,7 @@ export default {
   grid-row: 3;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 28px;
+  gap: 8px;
   height: 34px;
   padding: 0 18px;
   background: linear-gradient(90deg, #1e2f4f 0%, #23528c 50%, #1e2f4f 100%);
@@ -114,6 +114,26 @@ export default {
 
 .status-item {
   white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.status-left {
+  flex-shrink: 0;
+}
+
+.status-right {
+  flex-shrink: 0;
+}
+
+.copyright-text {
+  flex: 1 1 auto;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 11px;
+  letter-spacing: 0.3px;
 }
 
 .content {
