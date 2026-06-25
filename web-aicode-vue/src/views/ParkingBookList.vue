@@ -27,6 +27,7 @@
 
     <!-- 数据表格 -->
     <el-table
+      ref="mainTable"
       :data="list"
       border
       size="small"
@@ -100,6 +101,19 @@
         </template>
       </el-table-column>
     </el-table>
+
+    <!-- 粘性水平滚动条：固定在列表可视区域底部，与表格水平滚动双向同步 -->
+    <div
+      v-show="tableScrollWidth > 0"
+      class="sticky-h-scrollbar"
+      @scroll="onStickyHScroll"
+      ref="stickyHScrollbar"
+    >
+      <div
+        class="sticky-h-scrollbar__spacer"
+        :style="{ width: tableScrollWidth + 'px', height: '1px' }"
+      ></div>
+    </div>
 
     <!-- 预约记录弹窗 -->
     <el-dialog
@@ -377,13 +391,90 @@ export default {
         pageSize: 10,
         appointmentDate: '',
         result: ''
-        }
+        },
+      // 粘性水平滚动条相关
+      tableScrollWidth: 0,
+      stickyScrollSyncing: false
     }
   },
   created() {
     this.fetchData()
   },
+  mounted() {
+    this._resizeObserver = new ResizeObserver(() => {
+      this.syncStickyScrollbar()
+    })
+    this.$nextTick(() => {
+      const el = this.$refs.mainTable && this.$refs.mainTable.$el
+      if (el) {
+        const bodyWrapper = el.querySelector('.el-table__body-wrapper')
+        if (bodyWrapper) {
+          this._resizeObserver.observe(bodyWrapper)
+          bodyWrapper.addEventListener('scroll', this.onTableScroll)
+        }
+      }
+    })
+  },
+  beforeDestroy() {
+    if (this._resizeObserver) {
+      this._resizeObserver.disconnect()
+      this._resizeObserver = null
+    }
+    const el = this.$refs.mainTable && this.$refs.mainTable.$el
+    if (el) {
+      const bodyWrapper = el.querySelector('.el-table__body-wrapper')
+      if (bodyWrapper) {
+        bodyWrapper.removeEventListener('scroll', this.onTableScroll)
+      }
+    }
+  },
+  watch: {
+    list() {
+      this.$nextTick(() => {
+        this.syncStickyScrollbar()
+      })
+    }
+  },
   methods: {
+    // 同步粘性滚动条宽度及可见性
+    syncStickyScrollbar() {
+      const el = this.$refs.mainTable && this.$refs.mainTable.$el
+      if (!el) return
+      const bodyWrapper = el.querySelector('.el-table__body-wrapper')
+      if (!bodyWrapper) return
+      const maxWidth = bodyWrapper.scrollWidth - bodyWrapper.clientWidth
+      this.tableScrollWidth = maxWidth > 0 ? bodyWrapper.scrollWidth : 0
+    },
+
+    // 表格纵向滚动时同步：无需额外操作，el-table 自身纵向滚动正常
+    // 表格水平滚动 → 同步粘性滚动条
+    onTableScroll() {
+      if (this.stickyScrollSyncing) return
+      const el = this.$refs.mainTable && this.$refs.mainTable.$el
+      if (!el) return
+      const bodyWrapper = el.querySelector('.el-table__body-wrapper')
+      const sticky = this.$refs.stickyHScrollbar
+      if (bodyWrapper && sticky) {
+        this.stickyScrollSyncing = true
+        sticky.scrollLeft = bodyWrapper.scrollLeft
+        this.$nextTick(() => { this.stickyScrollSyncing = false })
+      }
+    },
+
+    // 粘性滚动条水平滚动 → 同步表格
+    onStickyHScroll() {
+      if (this.stickyScrollSyncing) return
+      const el = this.$refs.mainTable && this.$refs.mainTable.$el
+      if (!el) return
+      const bodyWrapper = el.querySelector('.el-table__body-wrapper')
+      const sticky = this.$refs.stickyHScrollbar
+      if (bodyWrapper && sticky) {
+        this.stickyScrollSyncing = true
+        bodyWrapper.scrollLeft = sticky.scrollLeft
+        this.$nextTick(() => { this.stickyScrollSyncing = false })
+      }
+    },
+
     // 判断车位位置文本是否匹配已知楼层前缀，只有匹配的才显示为可点击链接
     canNavigateToScreen(positionText) {
       if (!positionText) return false
@@ -776,6 +867,51 @@ export default {
 ::v-deep .el-table th {
   background: #f3f8ff;
   color: #42526a;
+}
+
+/* 隐藏 el-table 原生水平滚动条，用下方粘性滚动条替代 */
+::v-deep .el-table__body-wrapper {
+  overflow-x: hidden !important;
+}
+
+/* 粘性水平滚动条 */
+.sticky-h-scrollbar {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: #f0f2f5;
+  border-top: 1px solid #dcdfe6;
+  border-radius: 0 0 8px 8px;
+  z-index: 5;
+}
+
+.sticky-h-scrollbar::-webkit-scrollbar {
+  height: 12px;
+}
+
+.sticky-h-scrollbar::-webkit-scrollbar-thumb {
+  background: #c0c4cc;
+  border-radius: 6px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.sticky-h-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #909399;
+  background-clip: padding-box;
+}
+
+.sticky-h-scrollbar::-webkit-scrollbar-track {
+  background: #f0f2f5;
+  border-radius: 0 0 8px 8px;
+}
+
+.sticky-h-scrollbar__spacer {
+  pointer-events: none;
 }
 
 ::v-deep .el-dialog {

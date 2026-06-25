@@ -53,22 +53,24 @@ public class ParkBookTask {
 
     /**
      * 每天上午8点执行定时任务，检查是否有需要自动开启预约的用户
+     * 使用 le（<=）而非 eq（=）的原因：若因服务器重启/任务异常导致某天的定时任务被跳过，
+     * 使用 eq 会使该用户永远无法恢复自动预约；使用 le 相当于"今天及之前该恢复的全部补上"。
      */
     @Scheduled(cron = "0 0 8 * * *")
     public void autoEnableSchedule() {
         log.info("开始执行每日自动开启预约检查定时任务");
         LocalDate localDate = LocalDate.now();
 
-        // 查找 auto_book = 0 且 next_auto_book_date = 今天 的记录，并更新为开启
+        // 查找 auto_book = 0 且 next_auto_book_date <= 今天 的记录，并更新为开启
         LambdaUpdateWrapper<ParkingBook> updateWrapper = new LambdaUpdateWrapper<>();
         updateWrapper.eq(ParkingBook::getAutoBook, 0)
-                .eq(ParkingBook::getNextAutoBookDate, localDate.toString())
+                .le(ParkingBook::getNextAutoBookDate, localDate.toString())
                 .set(ParkingBook::getAutoBook, 1)
                 .set(ParkingBook::getNextAutoBookDate, null);
 
         boolean updated = parkingBookService.update(updateWrapper);
         if (updated) {
-            log.info("成功处理今日自动开启预约的用户状态");
+            log.info("成功处理自动开启预约的用户状态，共影响记录批次");
         } else {
             log.info("今日无需要自动开启预约的用户");
         }
