@@ -2,13 +2,18 @@ package com.bocfintech.allstar.service.impl;
 
 import com.bocfintech.allstar.entity.ParkingBook;
 import com.bocfintech.allstar.entity.ParkingRecord;
+import com.bocfintech.allstar.service.ParkingScreenshotService;
 import com.bocfintech.allstar.util.AesUtils;
 import com.microsoft.playwright.*;
 import com.microsoft.playwright.options.LoadState;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.awt.*;
+import java.awt.event.KeyEvent;
+import java.io.File;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,6 +42,10 @@ import java.util.List;
 @Service
 @Slf4j
 public class BankEmailPlaywrightService {
+
+    /** 停车大屏截图服务（独立服务，低耦合，出问题可注释掉） */
+    @Autowired
+    private ParkingScreenshotService parkingScreenshotService;
 
     /*
      * ==================== 登录页 URL ====================
@@ -115,15 +124,17 @@ public class BankEmailPlaywrightService {
      * 根据 parking_book 配置，解密邮箱密码后登录银行邮箱发送通知。
      * 使用 {@code @Async} 注解，在独立线程中执行，不阻塞主流程。
      * <p>
-     * 完整流程（8步）：
+     * 完整流程（10步）：
      * <ol>
+     *   <li>启动 Chrome + CDP 连接</li>
+     *   <li>截图车位图并写入系统剪贴板（失败降级为纯文字邮件）</li>
      *   <li>打开登录页面</li>
      *   <li>填写用户名+密码，点击登录</li>
      *   <li>点击"新建邮件"按钮</li>
      *   <li>切换到编辑区 iframe</li>
      *   <li>填写收件人</li>
      *   <li>填写主题</li>
-     *   <li>填写正文</li>
+     *   <li>填写正文（有截图时先 Ctrl+V 粘贴图片，再输入文字）</li>
      *   <li>点击发送</li>
      * </ol>
      *
@@ -205,6 +216,24 @@ public class BankEmailPlaywrightService {
 
                 BrowserContext context = browser.contexts().get(0);
                 Page page = context.pages().get(0);
+
+                // ---- 截图车位图并写入剪贴板（失败降级为纯文字） ----
+                String screenshotPath = null;
+                try {
+                    screenshotPath = parkingScreenshotService.takeScreenshot(browser, parkingPosition);
+                    if (screenshotPath != null) {
+                        boolean copied = parkingScreenshotService.copyToClipboard(screenshotPath);
+                        if (!copied) {
+                            log.warn("邮件通知：车位图写入剪贴板失败，将仅发文字邮件");
+                            screenshotPath = null;
+                        }
+                    } else {
+                        log.warn("邮件通知：车位图截图失败，将仅发文字邮件");
+                    }
+                } catch (Exception e) {
+                    log.warn("邮件通知：截图服务异常，将仅发文字邮件: {}", e.getMessage());
+                    screenshotPath = null;
+                }
 
                 try {
                 /*
@@ -306,10 +335,25 @@ public class BankEmailPlaywrightService {
                  * 页面元素（iframe 内）：
                  *   #txtContent → <textarea id="txtContent">  邮件正文
                  *
-                 * 正文内容和主题相同，都是预约成功+日期+车位信息。
+                 * 优先级：
+                 *   1. 有截图 → 先 Ctrl+V 粘贴图片，再输入文字说明
+                 *   2. 无截图 → 仅输入文字（降级）
                  */
                 log.info("邮件通知：输入正文...");
-                // composeFrame.locator(BODY_ID).fill(content);
+                if (screenshotPath != null) {
+                    // 有车位截图：聚焦正文区 → Ctrl+V 粘贴图片 → 换行 → 输入文字
+                    composeFrame.locator(BODY_ID).click();
+                    page.waitForTimeout(300);
+                    pressCtrlV();
+                    page.waitForTimeout(2000);  // 等编辑器上传/渲染图片
+                    page.keyboard().press("Enter");
+                    // 注意：不能用 fill()，fill 会清除已有内容（包括刚粘贴的图片）
+                    // insertText 在光标位置插入文本，不清除现有内容
+                    page.keyboard().insertText(content);
+                } else {
+                    // 无截图：仅文字（降级）
+                    composeFrame.locator(BODY_ID).fill(content);
+                }
 
                 /*
                  * ==== 步骤8：点击发送 ====
@@ -333,6 +377,13 @@ public class BankEmailPlaywrightService {
                             .setPath(Paths.get("email_error_" + config.getEmpNo() + ".png")));
                 } catch (Exception ignored) {}
                 } finally {
+                    // 清理截图文件
+                    if (screenshotPath != null) {
+                        try {
+                            new File(screenshotPath).delete();
+                            log.info("邮件通知：截图已清理 {}", screenshotPath);
+                        } catch (Exception ignored) {}
+                    }
                     // 确保浏览器资源释放（无论成功失败）
                     context.close();
                     browser.close();
@@ -354,6 +405,27 @@ public class BankEmailPlaywrightService {
                 chromeProcess.destroyForcibly();
                 log.info("Chrome 浏览器已关闭。");
             }
+        }
+    }
+
+    /**
+     * 使用 java.awt.Robot 在操作系统层面模拟真实的 Ctrl+V 按键。
+     *
+     * <p><b>为什么不用 page.keyboard().press("Control+V")？</b></p>
+     * Playwright 通过 CDP 发送的是合成键盘事件（synthesized events），
+     * 浏览器出于安全策略不将其视为受信任的用户输入，不触发系统剪贴板粘贴。
+     * java.awt.Robot 生成的是操作系统级别的原生键盘事件，浏览器无法区分。
+     */
+    private static void pressCtrlV() {
+        try {
+            Robot robot = new Robot();
+            robot.keyPress(KeyEvent.VK_CONTROL);
+            robot.keyPress(KeyEvent.VK_V);
+            robot.delay(50);
+            robot.keyRelease(KeyEvent.VK_V);
+            robot.keyRelease(KeyEvent.VK_CONTROL);
+        } catch (AWTException e) {
+            throw new RuntimeException("Robot 模拟 Ctrl+V 失败", e);
         }
     }
 

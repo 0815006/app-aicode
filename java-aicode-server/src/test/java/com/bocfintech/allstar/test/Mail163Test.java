@@ -2,13 +2,21 @@ package com.bocfintech.allstar.test;
 
 import com.microsoft.playwright.*;
 import com.microsoft.playwright.options.LoadState;
+import com.microsoft.playwright.options.WaitUntilState;
 
+import java.awt.*;
+import java.awt.datatransfer.*;
+import java.awt.event.KeyEvent;
+import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+
+import javax.imageio.ImageIO;
 
 /**
  * 163邮箱发送测试程序
@@ -55,6 +63,21 @@ public class Mail163Test {
     private static final String CHROME_PATH = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
     private static final int CHROME_PORT = 9222;
     private static final String USER_DATA_DIR = "C:\\chrome_dev_profile";
+
+    // ==================== 停车大屏截图相关 ====================
+    /** 停车大屏页面地址 */
+    private static final String PARKING_SCREEN_URL = "https://realapex.site:8082/#/parking-screen";
+    /** 截图元素选择器：纯 SVG 车位图区域 */
+    private static final String SVG_WRAPPER_SELECTOR = ".svg-wrapper";
+    /** 截图等待时间（ms） */
+    private static final int SCREENSHOT_WAIT_MS = 2000;
+    /** 截图文件名前缀 */
+    private static final String SCREENSHOT_NAME_PREFIX = "parking_screenshot_test_";
+    /** 测试用的车位位置文本 */
+    private static final String TEST_PARKING_POSITION = "4号楼B1层B124";
+    /** 楼层 → floorId 映射（与前端 goToParkingScreen() 一致） */
+    private static final String TEST_FLOOR_ID = "4F-B1";
+    private static final String TEST_SPACE_LABEL = "B124";
 
     public static void main(String[] args) {
         printBanner();
@@ -106,14 +129,39 @@ public class Mail163Test {
 
                 // 注意：接管已打开的浏览器时，通常直接获取它当前已经存在的 context 和 page
                 // 如果直接 newContext，部分全局配置（如 headless）将以手动打开的浏览器为准
-                BrowserContext context = browser.contexts().get(0); 
+                BrowserContext context = browser.contexts().get(0);
                 Page page = context.pages().get(0);
+
+                // ---- 截图车位图并写入剪贴板（失败降级为纯文字） ----
+                String screenshotPath = null;
+                try {
+                    screenshotPath = takeParkingScreenshot(browser);
+                    if (screenshotPath != null) {
+                        boolean copied = copyImageToClipboard(screenshotPath);
+                        if (copied) {
+                            log("车位图已写入系统剪贴板，将粘贴到邮件正文");
+                        } else {
+                            log("⚠ 车位图写入剪贴板失败，将仅发文字邮件");
+                            screenshotPath = null;
+                        }
+                    } else {
+                        log("⚠ 车位图截图失败，将仅发文字邮件");
+                    }
+                } catch (Exception e) {
+                    log("⚠ 截图服务异常，将仅发文字邮件: " + e.getMessage());
+                    screenshotPath = null;
+                }
+
+                // 截图后确保邮箱页面在前台（截图 Context 关闭后焦点可能丢失）
+                page.bringToFront();
 
                 try {
                     // ---- 步骤1: 打开163邮箱登录页 ----
+                    // 注意：163.com 有大量持续 AJAX/WebSocket 连接，
+                    // NETWORKIDLE 会超时（网络永不 idle），改用 DOMCONTENTLOADED + 固定等待
                     log("步骤1: 打开163邮箱登录页面 " + LOGIN_URL);
                     page.navigate(LOGIN_URL);
-                    page.waitForLoadState(LoadState.NETWORKIDLE);
+                    page.waitForLoadState(LoadState.DOMCONTENTLOADED);
                     sleep(WAIT_NORMAL);
 
                     // ---- 步骤2: 执行登录 ----
@@ -134,7 +182,7 @@ public class Mail163Test {
 
                     // ---- 步骤6: 填写正文 ----
                     log("步骤6: 填写正文 -> " + BODY);
-                    fillBody(page, BODY);
+                    fillBody(page, BODY, screenshotPath);
 
                     // ---- 步骤7: 点击发送 ----
                     log("步骤7: 点击发送按钮...");
@@ -159,6 +207,13 @@ public class Mail163Test {
                     } catch (Exception ignored) {
                     }
                 } finally {
+                    // 清理车位截图文件
+                    if (screenshotPath != null) {
+                        try {
+                            new File(screenshotPath).delete();
+                            log("截图已清理: " + screenshotPath);
+                        } catch (Exception ignored) {}
+                    }
                     log("关闭浏览器...");
                     context.close();
                     browser.close();
@@ -215,6 +270,13 @@ public class Mail163Test {
         sleep(WAIT_AFTER_LOGIN);
         log("当前URL: " + page.url());
         log("页面标题: " + page.title());
+
+        // 检测是否已登录（Cookie 持久化导致自动登录）
+        // 已登录状态下页面不含登录 iframe，直接跳到写信步骤
+        if (page.url().contains("/js6/main.jsp") || page.url().contains("sid=")) {
+            log("检测到已登录状态（Cookie 有效），跳过登录步骤");
+            return;
+        }
 
         try {
             /*
@@ -311,9 +373,10 @@ public class Mail163Test {
             log("已点击登录按钮");
 
             // 等待登录完成，页面跳转至邮箱主页
-            page.waitForLoadState(LoadState.NETWORKIDLE);
+            // 163.com 网络永不 idle，用 DOMCONTENTLOADED + 固定等待替代
+            page.waitForLoadState(LoadState.DOMCONTENTLOADED);
             sleep(WAIT_AFTER_LOGIN);
-            page.waitForLoadState(LoadState.NETWORKIDLE);
+            page.waitForLoadState(LoadState.DOMCONTENTLOADED);
 
             log("登录后URL: " + page.url());
             log("登录后页面标题: " + page.title());
@@ -368,7 +431,7 @@ public class Mail163Test {
             log("写信按钮已出现，点击...");
             page.click("//span[@class='oz0' and contains(text(),'写')]");
             sleep(WAIT_NORMAL);
-            page.waitForLoadState(LoadState.NETWORKIDLE);
+            page.waitForLoadState(LoadState.DOMCONTENTLOADED);
             log("写信编辑区已打开");
         } catch (Exception e) {
             throw new RuntimeException("点击写信按钮失败: " + e.getMessage(), e);
@@ -469,72 +532,150 @@ public class Mail163Test {
 
     /**
      * 在正文编辑区填写邮件正文。
-     * <p>
-     * 163 写信页使用 APP-editor 富文本编辑器，正文在 iframe 里：
-     * <pre>
-     *   div id="_mail_editor_0_403"
-     *     div class="APP-editor APP-editor-basic"
-     *       div class="APP-editor-tbar"           ← 工具栏（加粗/斜体等）
-     *       iframe class="APP-editor-iframe"      ← 正文在这！
-     *         html
-     *           body                               ← 可编辑区，contenteditable
-     * </pre>
-     * <p>
-     * 定位要点：
-     * 1. 正文编辑器的主体是 iframe，不是 div，需要 FrameLocator 进入
-     * 2. iframe class 包含 "APP-editor"（完整是 "APP-editor-iframe"）
-     *    用 contains 匹配防止 class 名变化
-     * 3. 在 iframe 内，直接 fill 到 body 元素（整个 body 是可编辑区）
-     * 4. 备选方案：某些版本/上下文正文在 div#spnEditorContent 中
+     *
+     * @param page          Page 实例
+     * @param body          文字正文（纯文本）
+     * @param screenshotPath 车位截图文件路径，不为 null 时先 Ctrl+V 粘贴图片
      */
-    private static void fillBody(Page page, String body) {
+    private static void fillBody(Page page, String body, String screenshotPath) {
         try {
             log("等待正文编辑器出现...");
 
-            /*
-             * 方式1：新版163 — 正文在 iframe.APP-editor-iframe 中
-             *
-             * 选择器链：
-             *   iframe[class*='APP-editor']        找 APP-editor 相关的 iframe
-             *     -> body                           iframe 内的 body 就是编辑区
-             *
-             * [class*='APP-editor'] 是 CSS contains 匹配
-             *   class="APP-editor-iframe" 会被匹配到
-             *   即使 163 升级后 class 变成 "APP-editor-v2-iframe" 也能适配
-             */
             Locator bodyIframe = page.locator("iframe[class*='APP-editor']");
             if (bodyIframe.count() > 0) {
-                log("找到正文编辑器iframe，在其中填写...");
+                log("找到正文编辑器iframe...");
                 FrameLocator editorFrame = page.frameLocator("iframe[class*='APP-editor']");
-                // 等待 iframe 内 body 元素加载
                 editorFrame.locator("body").waitFor(
                         new Locator.WaitForOptions().setTimeout(10000));
-                // contenteditable 区域先 click 聚焦，再 fill
-                editorFrame.locator("body").click();
-                editorFrame.locator("body").fill(body);
+
+                if (screenshotPath != null) {
+                    // 有车位截图：聚焦 → Ctrl+V 粘贴图片 → 换行 → 输入文字
+                    log("粘贴车位图到正文...");
+                    editorFrame.locator("body").click();
+                    page.waitForTimeout(300);
+                    pressCtrlV();
+                    sleep(2000);  // 等编辑器上传/渲染图片
+                    page.keyboard().press("Enter");
+                    // insertText 不清除已有内容（fill 会清除刚粘贴的图片）
+                    page.keyboard().insertText(body);
+                } else {
+                    // 无截图：仅文字
+                    editorFrame.locator("body").click();
+                    editorFrame.locator("body").fill(body);
+                }
                 sleep(WAIT_SHORT);
                 log("正文填写完成(iframe方式)");
                 return;
             }
 
-            /*
-             * 方式2：旧版/特殊上下文 — 正文在主页面 div 中
-             *
-             * 选择器: div[id*='spnEditor']
-             *   某些页面正文不在 iframe 里，而是 <div id="spnEditorContent">
-             *   [id*='spnEditor'] 做 contains 匹配更灵活
-             */
+            // 方式2：旧版/特殊上下文 — 正文在主页面 div 中
             log("未找到iframe，尝试主页面填写...");
             page.waitForSelector("div[id*='spnEditor']",
                     new Page.WaitForSelectorOptions().setTimeout(5000));
-            page.click("div[id*='spnEditor']");
-            sleep(200);
-            page.fill("div[id*='spnEditor']", body);
+            if (screenshotPath != null) {
+                page.click("div[id*='spnEditor']");
+                sleep(300);
+                pressCtrlV();
+                sleep(2000);
+                page.keyboard().press("Enter");
+                page.keyboard().insertText(body);
+            } else {
+                page.click("div[id*='spnEditor']");
+                sleep(200);
+                page.fill("div[id*='spnEditor']", body);
+            }
             sleep(WAIT_SHORT);
             log("正文填写完成(div方式)");
 
         } catch (Exception e) {
             throw new RuntimeException("填写正文失败: " + e.getMessage(), e);
+        }
+    }
+
+    // =========================== 停车大屏截图 ===========================
+
+    /**
+     * 打开停车大屏页面，截取 SVG 车位图区域。
+     * <p>
+     * 使用独立 BrowserContext 避免影响邮箱页面的 Cookie/登录态。
+     * </p>
+     *
+     * @param browser 已通过 CDP 连接的 Browser 实例
+     * @return 截图 PNG 文件路径，失败返回 null
+     */
+    private static String takeParkingScreenshot(Browser browser) {
+        String url = PARKING_SCREEN_URL + "?floor=" + TEST_FLOOR_ID + "&space=" + TEST_SPACE_LABEL;
+        log("截图服务：打开页面 " + url);
+
+        BrowserContext screenshotCtx = null;
+        try {
+            // 新建独立 Context，不影响邮箱页
+            screenshotCtx = browser.newContext(
+                new Browser.NewContextOptions().setViewportSize(1920, 1080));
+            Page screenshotPage = screenshotCtx.newPage();
+
+            // 导航并等待渲染（外部站点网速可能很慢，navigate 默认等 "load" 事件会超时）
+            screenshotPage.navigate(url, new Page.NavigateOptions()
+                    .setTimeout(60000)
+                    .setWaitUntil(WaitUntilState.DOMCONTENTLOADED));
+            screenshotPage.waitForTimeout(SCREENSHOT_WAIT_MS);
+
+            // 截取 SVG 车位图区域
+            String screenshotPath = SCREENSHOT_NAME_PREFIX
+                    + System.currentTimeMillis() + ".png";
+            screenshotPage.locator(SVG_WRAPPER_SELECTOR).screenshot(
+                new Locator.ScreenshotOptions().setPath(Paths.get(screenshotPath)));
+            log("截图成功 → " + screenshotPath);
+            return screenshotPath;
+
+        } catch (Exception e) {
+            log("截图失败: " + e.getMessage());
+            return null;
+        } finally {
+            if (screenshotCtx != null) {
+                try { screenshotCtx.close(); } catch (Exception ignored) {}
+            }
+        }
+    }
+
+    /**
+     * 将 PNG 图片写入 Windows 系统剪贴板，供 Ctrl+V 粘贴使用。
+     *
+     * @param imagePath PNG 图片文件路径
+     * @return true 成功，false 失败
+     */
+    private static boolean copyImageToClipboard(String imagePath) {
+        if (imagePath == null) return false;
+        File file = new File(imagePath);
+        if (!file.exists()) {
+            log("⚠ 剪贴板：文件不存在 " + imagePath);
+            return false;
+        }
+        try {
+            BufferedImage image = ImageIO.read(file);
+            if (image == null) {
+                log("⚠ 剪贴板：无法读取图片 " + imagePath);
+                return false;
+            }
+            Transferable transferable = new Transferable() {
+                @Override public DataFlavor[] getTransferDataFlavors() {
+                    return new DataFlavor[] { DataFlavor.imageFlavor };
+                }
+                @Override public boolean isDataFlavorSupported(DataFlavor flavor) {
+                    return DataFlavor.imageFlavor.equals(flavor);
+                }
+                @Override public Object getTransferData(DataFlavor flavor) {
+                    return image;
+                }
+            };
+            Toolkit.getDefaultToolkit()
+                   .getSystemClipboard()
+                   .setContents(transferable, null);
+            log("截图已写入系统剪贴板");
+            return true;
+        } catch (Exception e) {
+            log("⚠ 剪贴板写入失败: " + e.getMessage());
+            return false;
         }
     }
 
@@ -589,6 +730,29 @@ public class Mail163Test {
             log("已点击发送按钮");
         } catch (Exception e) {
             throw new RuntimeException("点击发送按钮失败: " + e.getMessage(), e);
+        }
+    }
+
+    // =========================== 系统剪贴板粘贴（Robot） ===========================
+
+    /**
+     * 使用 java.awt.Robot 在操作系统层面模拟真实的 Ctrl+V 按键。
+     *
+     * <p><b>为什么不用 page.keyboard().press("Control+V")？</b></p>
+     * Playwright 通过 CDP 发送的是合成键盘事件（synthesized events），
+     * 浏览器出于安全策略不将其视为受信任的用户输入，不触发系统剪贴板粘贴。
+     * java.awt.Robot 生成的是操作系统级别的原生键盘事件，浏览器无法区分。
+     */
+    private static void pressCtrlV() {
+        try {
+            Robot robot = new Robot();
+            robot.keyPress(KeyEvent.VK_CONTROL);
+            robot.keyPress(KeyEvent.VK_V);
+            robot.delay(50);
+            robot.keyRelease(KeyEvent.VK_V);
+            robot.keyRelease(KeyEvent.VK_CONTROL);
+        } catch (AWTException e) {
+            throw new RuntimeException("Robot 模拟 Ctrl+V 失败", e);
         }
     }
 
