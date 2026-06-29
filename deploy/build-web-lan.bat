@@ -1,10 +1,10 @@
 @echo off
 chcp 65001 >nul 2>&1
-title 🔨 构建 Apex Web → 内网 Windows 部署
+title 🔨 构建 Aicode Web → 内网 Windows 部署
 setlocal
 
 echo ==================================================
-echo   🔨 构建 Apex 前端 Web 内网版本
+echo   🔨 构建 Aicode 前端 Web 内网版本
 echo ==================================================
 echo.
 
@@ -21,8 +21,8 @@ echo.
 
 :: ========== Step 1: 校验项目文件 ==========
 echo [1/4] 📋 校验项目文件...
-if not exist "web-apex-vue\package.json" (
-    echo ❌ 未找到 web-apex-vue\package.json！
+if not exist "web-aicode-vue\package.json" (
+    echo ❌ 未找到 web-aicode-vue\package.json！
     pause
     exit /b 1
 )
@@ -30,11 +30,11 @@ echo ✅ 项目文件就绪
 echo.
 
 :: ========== Step 2: npm 编译打包 ==========
-echo [2/4] ⚡ Vite 生产环境打包...
+echo [2/4] ⚡ Vue CLI 生产环境打包...
 echo   执行: npm run build
 echo.
 
-cd /d "%PROJECT_ROOT%\web-apex-vue"
+cd /d "%PROJECT_ROOT%\web-aicode-vue"
 
 :: 检查 node_modules
 if not exist "node_modules" (
@@ -50,6 +50,7 @@ if not exist "node_modules" (
     echo.
 )
 
+set NODE_OPTIONS=--openssl-legacy-provider
 call npm run build
 set BUILD_RESULT=%errorlevel%
 
@@ -61,14 +62,14 @@ if %BUILD_RESULT% neq 0 (
     exit /b 1
 )
 echo.
-echo ✅ Vite 打包完成
+echo ✅ Vue CLI 打包完成
 echo.
 
-:: ========== Step 3: 清空并复制到 bin\apex-web ==========
-echo [3/4] 📦 复制 dist 产物到 bin\apex-web\ ...
+:: ========== Step 3: 清空并复制到 bin\aicode-web ==========
+echo [3/4] 📦 复制 dist 产物到 bin\aicode-web\ ...
 
-set "DIST_SRC=%PROJECT_ROOT%\web-apex-vue\dist"
-set "WEB_OUT=%PROJECT_ROOT%\bin\apex-web"
+set "DIST_SRC=%PROJECT_ROOT%\web-aicode-vue\dist"
+set "WEB_OUT=%PROJECT_ROOT%\bin\aicode-web"
 
 if not exist "%DIST_SRC%" (
     echo ❌ 未找到打包产物 %DIST_SRC%
@@ -81,7 +82,7 @@ if not exist "%DIST_SRC%" (
 if exist "%WEB_OUT%" rmdir /s /q "%WEB_OUT%"
 mkdir "%WEB_OUT%" >nul 2>&1
 
-:: 复制 dist 目录下所有文件到 apex-web
+:: 复制 dist 目录下所有文件到 aicode-web
 xcopy /e /y "%DIST_SRC%\*" "%WEB_OUT%\" >nul
 echo   %DIST_SRC%\*
 echo   → %WEB_OUT%\
@@ -96,10 +97,10 @@ echo   📌 构建产物目录: %WEB_OUT%\
 dir /b "%WEB_OUT%"
 echo.
 echo   📌 Nginx 配置参考:
-echo      1. 将 bin\apex-web\ 下所有文件复制到 D:\app\apex-web\
-echo      2. Windows Nginx 配置: deploy\nginx-apex-lan.conf
+echo      1. 将 bin\aicode-web\ 下所有文件复制到 D:\app\aicode-web\
+echo      2. Windows Nginx 配置: deploy\nginx-aicode-lan.conf
 echo.
-echo   💡 注: vite.config.ts 已配置 host='0.0.0.0'，支持内网访问
+echo   💡 注: vue.config.js 已配置 devServer.host='0.0.0.0'，支持内网访问
 echo   💡 重新构建: 直接运行本 bat 即可
 echo ==================================================
 echo.

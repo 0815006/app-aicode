@@ -62,6 +62,9 @@ java-aicode-server/*.ipr
 java-aicode-server/*.iws
 java-aicode-server/logs/
 
+# Build output (构建产物)
+/bin/
+
 # Sync Bundles
 /maven_sync.zip
 /vue_sync.zip
