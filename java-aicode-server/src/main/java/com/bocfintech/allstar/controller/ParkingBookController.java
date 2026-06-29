@@ -1,11 +1,15 @@
 package com.bocfintech.allstar.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.bocfintech.allstar.bean.ResultBean;
 import com.bocfintech.allstar.constants.ErrorEnum;
 import com.bocfintech.allstar.entity.ParkingBook;
 import com.bocfintech.allstar.entity.ParkingBookDTO;
 import com.bocfintech.allstar.entity.ParkingBookWithRusult;
+import com.bocfintech.allstar.entity.ParkingRecord;
 import com.bocfintech.allstar.service.ParkingBookService;
+import com.bocfintech.allstar.service.ParkingRecordService;
+import com.bocfintech.allstar.service.impl.BankEmailPlaywrightService;
 import com.bocfintech.allstar.task.ParkBookTask;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +28,12 @@ public class ParkingBookController {
 
     @Autowired
     private ParkBookTask parkBookTask;
+
+    @Autowired
+    private ParkingRecordService parkingRecordService;
+
+    @Autowired
+    private BankEmailPlaywrightService bankEmailPlaywrightService;
 
     /**
      * 查询所有车位预约记录（不返回密码哈希）
@@ -217,6 +227,44 @@ public class ParkingBookController {
         }
         return ResultBean.success("手动触发取消预约成功");
 
+    }
+
+    /**
+     * 【测试用】直接给用户 2036377 发一封带车位截图的测试邮件。
+     * GET /api/parking/book/testSendMail
+     */
+    @GetMapping("/testSendMail")
+    public ResultBean testSendMail() {
+        try {
+            // 1. 查 2036377 的配置
+            ParkingBook config = parkingBookService.getById("2036377");
+            if (config == null) {
+                return ResultBean.error("用户 2036377 未配置 ParkingBook");
+            }
+
+            // 2. 查 2036377 最新一条预约记录（按 id 倒序取第一条）
+            ParkingRecord latestRecord = parkingRecordService.getOne(
+                new LambdaQueryWrapper<ParkingRecord>()
+                    .eq(ParkingRecord::getEmpNo, "2036377")
+                    .orderByDesc(ParkingRecord::getId)
+                    .last("LIMIT 1")
+            );
+            if (latestRecord == null) {
+                return ResultBean.error("用户 2036377 没有任何预约记录");
+            }
+
+            // 3. 发送邮件（异步，含截图）
+            bankEmailPlaywrightService.sendParkingNotification(config, latestRecord);
+
+            log.info("测试邮件已触发：empNo=2036377, recordId={}", latestRecord.getId());
+            return ResultBean.success("测试邮件已触发，subject=" + latestRecord.getResult()
+                + " " + latestRecord.getAppointmentDate()
+                + " 位置：" + latestRecord.getParkingPosition());
+
+        } catch (Exception e) {
+            log.error("测试邮件触发失败", e);
+            return ResultBean.error("测试邮件触发失败：" + e.getMessage());
+        }
     }
 
 }
