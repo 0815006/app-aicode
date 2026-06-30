@@ -155,7 +155,7 @@ echo   ^<id^>aicode-server^</id^>
 echo   ^<name^>Aicode 全栈平台后端服务^</name^>
 echo   ^<description^>Aicode Spring Boot 后端服务 (Java 8^)</description^>
 echo   ^<executable^>java^</executable^>
-echo   ^<arguments^>-Xms256m -Xmx512m -jar aicode-server.jar^</arguments^>
+echo   ^<arguments^>-Xms256m -Xmx512m -Dplaywright.driver.dir=%DEPLOY_DIR%\playwright-driver -jar aicode-server.jar^</arguments^>
 echo   ^<workingdirectory^>%DEPLOY_DIR:\=\\%^</workingdirectory^>
 echo   ^<env name="DB_HOST" value="%DB_HOST%"/^>
 echo   ^<env name="DB_PORT" value="%DB_PORT%"/^>

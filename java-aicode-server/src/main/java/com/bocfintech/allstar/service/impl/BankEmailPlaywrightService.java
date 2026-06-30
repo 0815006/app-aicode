@@ -117,8 +117,14 @@ public class BankEmailPlaywrightService {
     private static final String CHROME_PATH = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
     /** Chrome 远程调试端口 */
     private static final int CHROME_PORT = 9222;
-    /** Chrome 用户数据目录（独立 profile，避免与日常使用冲突） */
-    private static final String USER_DATA_DIR = "C:\\chrome_dev_profile";
+    /**
+     * Chrome 用户数据目录（独立 profile，避免与日常使用冲突）。
+     * <p>
+     * WinSW 服务以 SYSTEM 账户在 Session 0 运行，C:\ 根目录可能无写权限，
+     * 因此改用 JVM 工作目录下的子目录。IDEA 启动时 user.dir=项目根目录，
+     * WinSW 启动时 user.dir=D:\app\aicode-server（由 WinSW xml 的 workingdirectory 指定）。
+     */
+    private static final String USER_DATA_DIR = System.getProperty("user.dir") + "\\chrome_dev_profile";
 
     /**
      * 异步发送预约结果通知邮件。
@@ -199,8 +205,10 @@ public class BankEmailPlaywrightService {
             command.add(CHROME_PATH);
             command.add("--remote-debugging-port=" + CHROME_PORT);
             command.add("--user-data-dir=" + USER_DATA_DIR);
+            command.add("--headless=new");          // WinSW Session 0 兼容：新 Headless 模式，完整渲染 DOM/CSS/JS/SVG
             command.add("--no-first-run");
             command.add("--no-default-browser-check");
+            command.add("--disable-gpu");           // Session 0 无 GPU 上下文，禁用 GPU 加速避免渲染异常
 
             ProcessBuilder pb = new ProcessBuilder(command);
             pb.redirectErrorStream(true);
