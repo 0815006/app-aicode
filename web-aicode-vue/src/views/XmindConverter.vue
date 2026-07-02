@@ -1154,7 +1154,7 @@ export default {
   left: 0;
   width: 100vw;
   height: 100vh;
-  z-index: 9999;
+  z-index: 100;
   border-radius: 0;
   margin: 0;
 }
