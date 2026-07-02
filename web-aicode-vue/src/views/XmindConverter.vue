@@ -27,8 +27,9 @@
                 :show-file-list="false"
                 accept=".xmind"
               >
-                <el-button type="primary" icon="el-icon-plus">上传 XMind</el-button>
+                <el-button type="primary" icon="el-icon-upload">上传 XMind</el-button>
               </el-upload>
+              <el-button type="success" icon="el-icon-plus" @click="createNewXmind" style="margin-top: 8px;">新建 XMind</el-button>
             </div>
             
             <div class="file-list-container">
@@ -493,6 +494,45 @@ export default {
         console.error('解析失败:', error);
         this.$message.error('解析失败: ' + error.message);
       }
+    },
+    async createNewXmind() {
+      // 构建 simple-mind-map 所需的树形数据
+      const data = {
+        data: { text: '新建demo', expand: true, note: '' },
+        children: []
+      };
+
+      // 构建 XMind content.json 原始模型数据
+      const topicId = this.createTopicId();
+      const sheetId = this.createTopicId();
+      const rawModelData = [{
+        id: sheetId,
+        title: '画布 1',
+        rootTopic: {
+          id: topicId,
+          title: '新建demo',
+          children: { attached: [] }
+        }
+      }];
+
+      // 创建一个最小的 XMind zip 作为 raw 文件，供后续保存/导出使用
+      const zip = new JSZip();
+      zip.file('content.json', JSON.stringify(rawModelData, null, 2));
+      zip.file('metadata.json', JSON.stringify({ creator: { name: 'aicode', version: '1.0' } }));
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const fakeFile = new File([zipBlob], '新建demo.xmind', { type: 'application/x-zip-compressed' });
+
+      this.uploadedFiles.unshift({
+        name: '新建demo.xmind',
+        size: zipBlob.size,
+        raw: fakeFile,
+        data: data,
+        rawModelData
+      });
+      this.selectedFileIndex = 0;
+      this.jsonResult = null;
+      this.previewMode = '';
+      this.$message.success('已创建空白 XMind「新建demo.xmind」，请点击预览按钮查看');
     },
     selectFile(index) {
       this.selectedFileIndex = index;
