@@ -202,7 +202,7 @@
                     </el-radio-group>
                   </div>
 
-                  <div v-if="!showRawModel">
+                  <div v-if="!showRawModel" class="model-content-body">
                     <div class="model-view-mode">
                       <el-radio-group v-model="modelViewMode" size="mini">
                         <el-radio-button label="tree">树形视图</el-radio-button>
@@ -939,17 +939,31 @@ export default {
     enterFullscreen() {
       this.isFullscreen = true;
       this.$nextTick(() => {
-        if (this.mindMapInstance && this.mindMapInstance.view) {
-          this.mindMapInstance.view.fit();
-        }
+        setTimeout(() => {
+          if (this.mindMapInstance) {
+            if (typeof this.mindMapInstance.resize === 'function') {
+              this.mindMapInstance.resize();
+            }
+            if (this.mindMapInstance.view && typeof this.mindMapInstance.view.fit === 'function') {
+              this.mindMapInstance.view.fit();
+            }
+          }
+        }, 200);
       });
     },
     exitFullscreen() {
       this.isFullscreen = false;
       this.$nextTick(() => {
-        if (this.mindMapInstance && this.mindMapInstance.view) {
-          this.mindMapInstance.view.fit();
-        }
+        setTimeout(() => {
+          if (this.mindMapInstance) {
+            if (typeof this.mindMapInstance.resize === 'function') {
+              this.mindMapInstance.resize();
+            }
+            if (this.mindMapInstance.view && typeof this.mindMapInstance.view.fit === 'function') {
+              this.mindMapInstance.view.fit();
+            }
+          }
+        }, 200);
       });
     },
     async saveMindMapData() {
@@ -1196,8 +1210,10 @@ export default {
 
 .preview-body {
   flex: 1;
+  min-height: 0;
   overflow: hidden;
   padding: 0;
+  position: relative;
   position: relative;
 }
 
@@ -1209,8 +1225,9 @@ export default {
 }
 
 .mind-map-canvas {
+  flex: 1;
+  min-height: 0;
   width: 100%;
-  height: 100%;
   background: #fff;
 }
 
@@ -1219,6 +1236,7 @@ export default {
   flex-direction: column;
   height: 100%;
   width: 100%;
+  overflow: hidden;
 }
 
 .mind-map-toolbar {
@@ -1239,8 +1257,10 @@ export default {
 
 .model-info {
   padding: 20px;
+  display: flex;
+  flex-direction: column;
   height: 100%;
-  overflow-y: auto;
+  overflow: hidden;
   box-sizing: border-box;
 }
 
@@ -1250,6 +1270,11 @@ export default {
   border-radius: 8px;
   padding: 15px;
   background: #fff;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .model-view-mode {
@@ -1258,11 +1283,34 @@ export default {
   align-items: center;
 }
 
+.model-content-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.model-content-body ::v-deep .el-tabs {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.model-content-body ::v-deep .el-tabs__content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
 .model-mind-map-wrapper {
   border: 1px solid #ebeef5;
   border-radius: 8px;
   overflow: hidden;
-  height: 520px;
+  flex: 1;
+  min-height: 400px;
 }
 
 .tree-title {
