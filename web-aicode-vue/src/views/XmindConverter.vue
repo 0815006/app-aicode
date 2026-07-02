@@ -2,23 +2,35 @@
   <div class="xmind-converter-page">
     <div class="converter-container">
       <!-- 左侧：上传与预览区域 -->
-      <div class="upload-section card">
+      <div :class="['upload-section', 'card', { 'fullscreen-preview': isFullscreen }]">
         <div class="section-header">
           <h3><i class="el-icon-upload"></i> XMind 管理与预览</h3>
-          <el-button 
-            v-if="uploadedFiles.length > 0" 
-            type="text" 
-            icon="el-icon-delete" 
-            @click="clearFiles"
-            style="color: #f56c6c"
-          >
-            清空列表
-          </el-button>
+          <div class="section-header-actions">
+            <el-button
+              v-if="isFullscreen"
+              icon="el-icon-close"
+              size="mini"
+              circle
+              type="text"
+              title="退出全屏"
+              @click="exitFullscreen"
+              style="color: #e6a23c;"
+            />
+            <el-button
+              v-if="uploadedFiles.length > 0 && !isFullscreen"
+              type="text"
+              icon="el-icon-delete"
+              @click="clearFiles"
+              style="color: #f56c6c"
+            >
+              清空列表
+            </el-button>
+          </div>
         </div>
         
         <div class="upload-content">
           <!-- 上方：上传按钮与文件列表 -->
-          <div class="upload-top-bar">
+          <div v-show="!isFullscreen" class="upload-top-bar">
             <div class="upload-btn-wrapper">
               <el-upload
                 action=""
@@ -50,7 +62,7 @@
           </div>
 
           <!-- 中间：操作区 -->
-          <div class="action-bar">
+          <div v-show="!isFullscreen" class="action-bar">
             <el-button 
               type="info" 
               size="small" 
@@ -74,8 +86,19 @@
           <!-- 下方：XMind 内容预览 -->
           <div class="preview-container">
             <div class="preview-header">
-              <span><i class="el-icon-view"></i> 内容预览 ({{ previewModeName }})</span>
-              <span v-if="selectedFile" class="current-file-tag">{{ selectedFile.name }}</span>
+              <span class="preview-title"><i class="el-icon-view"></i> 内容预览 ({{ previewModeName }})</span>
+              <div v-if="selectedFile && previewMode" class="preview-header-right">
+                <span class="current-file-tag">{{ selectedFile.name }}</span>
+                <el-button
+                  v-if="!isFullscreen"
+                  icon="el-icon-full-screen"
+                  size="mini"
+                  circle
+                  type="text"
+                  title="全屏预览"
+                  @click="enterFullscreen"
+                />
+              </div>
             </div>
             <div class="preview-body">
               <!-- Tree 预览 (默认) -->
@@ -324,7 +347,7 @@
       </div>
 
       <!-- 右侧：转换控制与 JSON 输出区 -->
-      <div class="output-section card">
+      <div v-show="!isFullscreen" class="output-section card">
         <div class="section-header">
           <h3><i class="el-icon-document"></i> 转换与输出</h3>
           <el-button 
@@ -411,6 +434,7 @@ export default {
       modelTreeData: null,
       workbookSheets: [],
       activeSheetIndex: '0',
+      isFullscreen: false,
       showRawModel: false,
       modelViewMode: 'tree',
       rawModelData: null,
@@ -912,6 +936,22 @@ export default {
         this.mindMapInstance.execCommand(command, ...args);
       }
     },
+    enterFullscreen() {
+      this.isFullscreen = true;
+      this.$nextTick(() => {
+        if (this.mindMapInstance && this.mindMapInstance.view) {
+          this.mindMapInstance.view.fit();
+        }
+      });
+    },
+    exitFullscreen() {
+      this.isFullscreen = false;
+      this.$nextTick(() => {
+        if (this.mindMapInstance && this.mindMapInstance.view) {
+          this.mindMapInstance.view.fit();
+        }
+      });
+    },
     async saveMindMapData() {
       if (this.mindMapInstance) {
         const data = this.mindMapInstance.getData();
@@ -1094,6 +1134,23 @@ export default {
   border-bottom: 1px solid #f0f4f8;
 }
 
+.upload-section.fullscreen-preview {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999;
+  border-radius: 0;
+  margin: 0;
+}
+
+.section-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .preview-container {
   flex: 1;
   display: flex;
@@ -1110,6 +1167,19 @@ export default {
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid #e4e7ed;
+  flex-wrap: nowrap;
+}
+
+.preview-title {
+  flex-shrink: 0;
+}
+
+.preview-header-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .current-file-tag {
