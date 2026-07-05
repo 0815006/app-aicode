@@ -60,6 +60,7 @@ public class ParkingBookController {
             record.setPassHash(dto.getPassHash()); // 前端已加密
             record.setAutoBook(dto.getAutoBook());
             record.setNextAutoBookDate(dto.getNextAutoBookDate());
+            record.setBookWeekdays(dto.getBookWeekdays() != null ? dto.getBookWeekdays() : "1,2,3,4,5");
             record.setEmailEnabled(dto.getEmailEnabled() != null ? dto.getEmailEnabled() : 0);
             record.setEmailUser(dto.getEmailUser());
             record.setEmailPassword(dto.getEmailPassword());
@@ -85,6 +86,9 @@ public class ParkingBookController {
             existing.setUsername(dto.getUsername());
             existing.setAutoBook(dto.getAutoBook());
             existing.setNextAutoBookDate(dto.getNextAutoBookDate());
+            if (dto.getBookWeekdays() != null && !dto.getBookWeekdays().isEmpty()) {
+                existing.setBookWeekdays(dto.getBookWeekdays());
+            }
             if (dto.getPassHash() != null && !dto.getPassHash().isEmpty()) {
                 existing.setPassHash(dto.getPassHash());
             }

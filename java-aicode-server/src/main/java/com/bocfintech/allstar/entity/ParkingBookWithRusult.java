@@ -23,6 +23,8 @@ public class ParkingBookWithRusult {
 
     private String nextAutoBookDate; // 下次自动开启预约日期 (yyyy-mm-dd)
 
+    private String bookWeekdays;     // 预约星期，逗号分隔 1=周一~7=周日
+
     private Integer emailEnabled;    // 是否开启邮件通知（0=关闭，1=开启）
 
     private String emailUser;        // 发送邮件账号用户名（7位工号格式）

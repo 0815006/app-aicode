@@ -250,6 +250,16 @@
           />
           <div class="empno-tip">到达此日期早晨8点，系统将自动为您重新开启预约</div>
         </el-form-item>
+        <el-form-item v-if="form.autoBook === 1" label="预约星期" prop="bookWeekdays">
+          <el-checkbox-group v-model="form.bookWeekdays">
+            <el-checkbox-button label="1">周一</el-checkbox-button>
+            <el-checkbox-button label="2">周二</el-checkbox-button>
+            <el-checkbox-button label="3">周三</el-checkbox-button>
+            <el-checkbox-button label="4">周四</el-checkbox-button>
+            <el-checkbox-button label="5">周五</el-checkbox-button>
+          </el-checkbox-group>
+          <div class="empno-tip">仅在工作日内生效，节假日和周末不预约。默认周一~周五全部勾选</div>
+        </el-form-item>
         <el-divider content-position="left">邮件通知设置</el-divider>
         <el-form-item label="邮件通知" prop="emailEnabled">
           <el-switch
@@ -365,6 +375,7 @@ export default {
         password: '',
         autoBook: 0,
         nextAutoBookDate: '',
+        bookWeekdays: ['1', '2', '3', '4', '5'],
         emailEnabled: 0,
         emailUser: '',
         emailPassword: '',
@@ -617,7 +628,7 @@ export default {
 
     handleAdd() {
       this.formTitle = '新增车位预约'
-      this.form = { empNo: '', username: '', password: '', autoBook: 0, nextAutoBookDate: '', emailEnabled: 0, emailUser: '', emailPassword: '', emailRecipient: '' }
+      this.form = { empNo: '', username: '', password: '', autoBook: 0, nextAutoBookDate: '', bookWeekdays: ['1', '2', '3', '4', '5'], emailEnabled: 0, emailUser: '', emailPassword: '', emailRecipient: '' }
       this.isEditing = false
       this.formVisible = true
     },
@@ -630,7 +641,8 @@ export default {
         emailPassword: '',   // 邮箱密码不回显，修改时可留空
         emailUser: row.empNo || row.emailUser || '',  // 邮箱账号取工号
         emailEnabled: row.emailEnabled || 0,
-        emailRecipient: row.emailRecipient || ''
+        emailRecipient: row.emailRecipient || '',
+        bookWeekdays: row.bookWeekdays ? row.bookWeekdays.split(',') : ['1', '2', '3', '4', '5']
       }
       this.isEditing = true
       this.formVisible = true
@@ -660,11 +672,11 @@ export default {
         if (!valid) return
 
         this.submitLoading = true
-        const { empNo, username, password, autoBook, nextAutoBookDate, emailEnabled, emailUser, emailPassword, emailRecipient } = this.form
+        const { empNo, username, password, autoBook, nextAutoBookDate, bookWeekdays, emailEnabled, emailUser, emailPassword, emailRecipient } = this.form
         const passHash = this.encryptPassword(password)
         const encEmailPassword = this.encryptPassword(emailPassword)
 
-        const data = { empNo, username, autoBook, nextAutoBookDate, emailEnabled, emailUser, emailRecipient }
+        const data = { empNo, username, autoBook, nextAutoBookDate, bookWeekdays: bookWeekdays.join(','), emailEnabled, emailUser, emailRecipient }
         if (passHash) data.passHash = passHash
         if (encEmailPassword) data.emailPassword = encEmailPassword
 

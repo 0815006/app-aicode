@@ -16,6 +16,7 @@ public interface ParkingBookMapper extends BaseMapper<ParkingBook> {
             "    pb.username, \n" +
             "    pb.auto_book, \n" +
             "    pb.next_auto_book_date, \n" +
+            "    pb.book_weekdays, \n" +
             "    pb.email_enabled, \n" +
             "    pb.email_user, \n" +
             "    pb.email_recipient, \n" +
