@@ -104,7 +104,7 @@ public class ParkBookTask {
             if (weekdays == null || weekdays.isEmpty()) {
                 weekdays = "1,2,3,4,5"; // 兼容老数据，默认全部工作日
             }
-            if (!weekdays.contains(String.valueOf(todayWeekday))) {
+            if (!java.util.Arrays.asList(weekdays.split(",")).contains(String.valueOf(todayWeekday))) {
                 continue; // 今天不在用户选择的星期内，跳过
             }
             executeParkTasks(book.getEmpNo(),book.getPassHash());
@@ -152,7 +152,7 @@ public class ParkBookTask {
                 if (weekdays == null || weekdays.isEmpty()) {
                     weekdays = "1,2,3,4,5"; // 兼容老数据，默认全部工作日
                 }
-                if (!weekdays.contains(String.valueOf(todayWeekday))) {
+                if (!java.util.Arrays.asList(weekdays.split(",")).contains(String.valueOf(todayWeekday))) {
                     continue; // 今天不在用户选择的星期内，跳过
                 }
                 checkParkingBook(config);
