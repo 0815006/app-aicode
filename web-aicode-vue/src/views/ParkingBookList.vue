@@ -316,6 +316,19 @@
           </div>
 
           <div class="guide-item">
+            <div class="guide-title">☆ 预约星期设置说明</div>
+            <div class="guide-desc">
+              支持<strong>按星期几选择性预约</strong>，您可根据实际入园需求灵活勾选。<br/>
+              例如：若您只在<strong>周一、周二</strong>开车入园，则仅勾选「周一」「周二」即可，其余工作日不会触发预约。<br/><br/>
+              <span style="color:#E6A23C;">⚠ 重要：</span>系统预约的是<strong>下一个工作日</strong>入园。定时任务在每天 <strong>8:30</strong> 执行，为当天勾选的星期进行预约，但实际预约的入园日期为<strong>次日</strong>。<br/>
+              因此，定时需设置为<strong>停车前一个工作日</strong>：<br/>
+              <span style="color:#409EFF;">●</span> 若<strong>周三</strong>停车 → 需勾选<strong>周二</strong>（周二预约 → 周三入园）<br/>
+              <span style="color:#409EFF;">●</span> 若<strong>周一</strong>停车 → 需勾选<strong>周五</strong>（周五预约 → 下周一入园，周末不执行）<br/>
+              <span style="color:#909399;">简单记：预约提前一个工作日，勾选停车日前一天对应的星期即可。</span>
+            </div>
+          </div>
+
+          <div class="guide-item">
             <div class="guide-title">☆ 恢复预约设置技巧</div>
             <div class="guide-desc">
               恢复日期当天<strong>上午 8:00</strong> 系统会自动重新开启预约，<strong>8:30</strong> 执行预约。
@@ -343,10 +356,6 @@
             <div class="guide-desc">
               邮箱密码为<strong>登录邮箱的密码</strong>，不是域密码。填域密码无法发送邮件，且不会有报错提示。
             </div>
-          </div>
-          <div class="guide-item" style="color: #F56C6C; font-weight: bold; margin-top: 12px; line-height: 1.8; font-size: 15px;">
-            ☆ 特别遗憾：<br/>
-            原车位管理系统，没有「申请当天」和「取消当天」的功能。
           </div>
         </div>
       </div>
