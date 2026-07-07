@@ -1,7 +1,7 @@
 <template>
   <div class="diff-summary-panel" :class="{ collapsed: isCollapsed }">
     <!-- 折叠/展开按钮 -->
-    <div class="panel-toggle" @click="isCollapsed = !isCollapsed">
+    <div class="panel-toggle" @click="toggleCollapse">
       <i :class="isCollapsed ? 'el-icon-arrow-left' : 'el-icon-arrow-right'"></i>
     </div>
     <div v-show="!isCollapsed" class="panel-content">
@@ -134,6 +134,10 @@ export default {
     }
   },
   methods: {
+    toggleCollapse: function () {
+      this.isCollapsed = !this.isCollapsed
+      this.$emit('toggle', this.isCollapsed)
+    },
     typeLabel: function (type) {
       var map = {
         added: '新增',

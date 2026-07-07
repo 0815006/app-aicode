@@ -96,69 +96,92 @@
 
     <!-- ==================== 主内容区 ==================== -->
     <div class="main-content">
-      <!-- 文件信息头 -->
-      <div class="file-headers">
-        <div class="file-header file-header-left">
-          <span class="file-label">📄 参照文件（只读）</span>
-          <span v-if="leftFileName" class="file-name" :title="leftFileName">{{ leftFileName }}</span>
-          <span v-else class="file-placeholder">点击或拖拽加载文件</span>
-          <el-tag v-if="leftLineEnding" size="mini" effect="plain">{{ leftLineEnding }}</el-tag>
-        </div>
-        <div class="file-header-gutter"></div>
-        <div class="file-header file-header-right">
-          <span class="file-label">📝 目标文件（可编辑）</span>
-          <span v-if="rightFileName" class="file-name" :title="rightFileName">{{ rightFileName }}</span>
-          <span v-else class="file-placeholder">点击或拖拽加载文件</span>
-          <el-tag v-if="rightLineEnding" size="mini" effect="plain">{{ rightLineEnding }}</el-tag>
-          <el-tag v-if="isModified" size="mini" type="warning" effect="dark">已修改</el-tag>
-        </div>
-        <div class="file-header-minimap"></div>
-        <!-- <div class="file-header-summary"></div> -->
-      </div>
-
       <!-- 比对视图区域 -->
       <div class="diff-body">
-        <!-- 左侧拖拽区 / 空状态 -->
-        <div
-          v-if="!leftContent"
-          class="drop-zone drop-zone-left"
-          :class="{ 'drop-active': leftDropActive }"
-          @dragenter.prevent="leftDropActive = true"
-          @dragover.prevent="leftDropActive = true"
-          @dragleave.prevent="leftDropActive = false"
-          @drop.prevent="handleDropLeft"
-          @click="triggerFileInput('left')"
-        >
-          <div class="drop-hint">
-            <i class="el-icon-upload" style="font-size: 48px; color: #c0c4cc;"></i>
-            <p>拖拽参照文件到此处</p>
-            <p class="drop-sub">或点击选择文件</p>
-            <p class="drop-sub">支持 .properties, .yml, .json, .md 等</p>
+        <!-- 单侧已加载 / 拖拽区（两个文件未全部加载时，保持双栏布局） -->
+        <template v-if="!leftContent || !rightContent">
+          <!-- 左侧：未加载时显示拖拽区，已加载时显示占位卡片 -->
+          <div
+            v-if="!leftContent"
+            class="drop-zone drop-zone-left"
+            :class="{ 'drop-active': leftDropActive }"
+            @dragenter.prevent="leftDropActive = true"
+            @dragover.prevent="leftDropActive = true"
+            @dragleave.prevent="leftDropActive = false"
+            @drop.prevent="handleDropLeft"
+            @click="triggerFileInput('left')"
+          >
+            <div class="drop-hint">
+              <i class="el-icon-upload" style="font-size: 48px; color: #c0c4cc;"></i>
+              <p>拖拽参照文件到此处</p>
+              <p class="drop-sub">或点击选择文件</p>
+              <p class="drop-sub">支持 .properties, .yml, .json, .md 等</p>
+            </div>
           </div>
-        </div>
+          <div
+            v-else
+            class="loaded-zone loaded-zone-left"
+            @dragenter.prevent="leftDropActive = true"
+            @dragover.prevent="leftDropActive = true"
+            @dragleave.prevent="leftDropActive = false"
+            @drop.prevent="handleDropLeft"
+            @click="triggerFileInput('left')"
+          >
+            <div class="loaded-card">
+              <i class="el-icon-document-checked loaded-icon"></i>
+              <p class="loaded-title">参照文件已加载</p>
+              <p class="loaded-filename" :title="leftFileName">{{ leftFileName }}</p>
+              <p class="loaded-meta">
+                <el-tag v-if="leftFileType" size="mini" effect="plain">{{ leftFileType.toUpperCase() }}</el-tag>
+                <span v-if="leftFileSize" class="loaded-size">{{ formatFileSize(leftFileSize) }}</span>
+              </p>
+              <p class="loaded-hint">拖拽或点击可替换文件</p>
+            </div>
+          </div>
 
-        <!-- 右侧拖拽区 / 空状态 -->
-        <div
-          v-if="!rightContent"
-          class="drop-zone drop-zone-right"
-          :class="{ 'drop-active': rightDropActive }"
-          @dragenter.prevent="rightDropActive = true"
-          @dragover.prevent="rightDropActive = true"
-          @dragleave.prevent="rightDropActive = false"
-          @drop.prevent="handleDropRight"
-          @click="triggerFileInput('right')"
-        >
-          <div class="drop-hint">
-            <i class="el-icon-upload" style="font-size: 48px; color: #c0c4cc;"></i>
-            <p>拖拽目标文件到此处</p>
-            <p class="drop-sub">或点击选择文件</p>
-            <p class="drop-sub">支持 .properties, .yml, .json, .md 等</p>
+          <!-- 右侧：未加载时显示拖拽区，已加载时显示占位卡片 -->
+          <div
+            v-if="!rightContent"
+            class="drop-zone drop-zone-right"
+            :class="{ 'drop-active': rightDropActive }"
+            @dragenter.prevent="rightDropActive = true"
+            @dragover.prevent="rightDropActive = true"
+            @dragleave.prevent="rightDropActive = false"
+            @drop.prevent="handleDropRight"
+            @click="triggerFileInput('right')"
+          >
+            <div class="drop-hint">
+              <i class="el-icon-upload" style="font-size: 48px; color: #c0c4cc;"></i>
+              <p>拖拽目标文件到此处</p>
+              <p class="drop-sub">或点击选择文件</p>
+              <p class="drop-sub">支持 .properties, .yml, .json, .md 等</p>
+            </div>
           </div>
-        </div>
+          <div
+            v-else
+            class="loaded-zone loaded-zone-right"
+            @dragenter.prevent="rightDropActive = true"
+            @dragover.prevent="rightDropActive = true"
+            @dragleave.prevent="rightDropActive = false"
+            @drop.prevent="handleDropRight"
+            @click="triggerFileInput('right')"
+          >
+            <div class="loaded-card">
+              <i class="el-icon-document-checked loaded-icon"></i>
+              <p class="loaded-title">目标文件已加载</p>
+              <p class="loaded-filename" :title="rightFileName">{{ rightFileName }}</p>
+              <p class="loaded-meta">
+                <el-tag v-if="rightFileType" size="mini" effect="plain">{{ rightFileType.toUpperCase() }}</el-tag>
+                <span v-if="rightFileSize" class="loaded-size">{{ formatFileSize(rightFileSize) }}</span>
+              </p>
+              <p class="loaded-hint">拖拽或点击可替换文件</p>
+            </div>
+          </div>
+        </template>
 
         <!-- 比对内容区（两个文件都加载后显示） -->
         <template v-if="leftContent && rightContent">
-          <!-- 整体视口 - 单一滚动容器（确保左右+中间按钮完全同步） -->
+          <!-- 竖向滚动视口（统一纵向滚动） -->
           <div
             class="diff-viewport"
             ref="viewport"
@@ -168,67 +191,91 @@
             @dragleave.prevent="handleViewportDragLeave"
             @drop.prevent="handleViewportDrop"
           >
-            <div class="diff-table" :style="{ minWidth: '100%' }">
+            <!-- 固定表头行（复制上方 file-headers，sticky 在视口顶部） -->
+            <div class="sticky-header-row">
+              <div class="sticky-header-left">
+                <span class="file-label">📄 参照文件（只读）</span>
+                <span v-if="leftFileName" class="file-name" :title="leftFileName">{{ leftFileName }}</span>
+                <span v-else class="file-placeholder">—</span>
+                <el-tag v-if="leftLineEnding" size="mini" effect="plain">{{ leftLineEnding }}</el-tag>
+              </div>
+              <div class="sticky-header-gutter"></div>
+              <div class="sticky-header-right">
+                <span class="file-label">📝 目标文件（可编辑）</span>
+                <span v-if="rightFileName" class="file-name" :title="rightFileName">{{ rightFileName }}</span>
+                <span v-else class="file-placeholder">—</span>
+                <el-tag v-if="rightLineEnding" size="mini" effect="plain">{{ rightLineEnding }}</el-tag>
+                <el-tag v-if="isModified" size="mini" type="warning" effect="dark">已修改</el-tag>
+              </div>
+            </div>
+
+            <div class="diff-panels-wrapper">
+              <!-- ========== 左侧面板（独立横向滚动） ========== -->
               <div
-                v-for="(row, idx) in displayLines"
-                :key="'row-' + idx"
-                class="diff-row"
-                :class="[
-                  'diff-row-' + row.type,
-                  { 'diff-row-highlight': highlightRowIdx === idx },
-                  { 'diff-row-semantic-order': row.semanticOrderDiff && diffMode === 'semantic' }
-                ]"
-                :data-index="idx"
+                class="diff-panel-scroll diff-panel-scroll-left"
+                ref="leftScrollPanel"
+                @scroll="onLeftPanelScroll"
               >
-                <!-- 左侧行号 -->
-                <div class="line-num line-num-left" :class="{ 'line-num-diff': row.type !== 'equal' }">
-                  <span v-if="row.leftLine">{{ row.leftLine.number }}</span>
+                <div class="diff-panel-inner">
+                  <div
+                    v-for="(row, idx) in displayLines"
+                    :key="'lp-' + idx"
+                    class="diff-panel-row"
+                    :class="[
+                      'diff-row-' + row.type,
+                      { 'diff-row-highlight': highlightRowIdx === idx },
+                      { 'diff-row-semantic-order': row.semanticOrderDiff && diffMode === 'semantic' }
+                    ]"
+                    :data-index="idx"
+                  >
+                    <div class="line-num line-num-left" :class="{ 'line-num-diff': row.type !== 'equal' }">
+                      <span v-if="row.leftLine">{{ row.leftLine.number }}</span>
+                    </div>
+                    <div
+                      class="line-content line-content-left"
+                      :class="lineContentClass(row, 'left')"
+                    >
+                      <template v-if="row.leftLine">
+                        <template v-if="row.type === 'modified' && row.charDiffs">
+                          <span
+                            v-for="(seg, sIdx) in leftCharSegments(row)"
+                            :key="'lc-' + sIdx"
+                            :class="charSegClass(seg, 'left')"
+                          >{{ maskLine(seg.value) }}</span>
+                        </template>
+                        <template v-else>
+                          <span>{{ maskLine(row.leftLine.content) }}</span>
+                        </template>
+                      </template>
+                      <template v-else>
+                        <span class="placeholder-line">&nbsp;</span>
+                      </template>
+                    </div>
+                  </div>
                 </div>
+              </div>
 
-                <!-- 左侧内容 -->
+              <!-- ========== 中间操作栏（固定不滚动） ========== -->
+              <div class="diff-gutter-fixed">
                 <div
-                  class="line-content line-content-left"
-                  :class="lineContentClass(row, 'left')"
+                  v-for="(row, idx) in displayLines"
+                  :key="'gtr-' + idx"
+                  class="gutter-row"
+                  :class="[
+                    { 'diff-row-highlight': highlightRowIdx === idx }
+                  ]"
                 >
-                  <!-- 有内容行 -->
-                  <template v-if="row.leftLine">
-                    <template v-if="row.type === 'modified' && row.charDiffs">
-                      <span
-                        v-for="(seg, sIdx) in leftCharSegments(row)"
-                        :key="'lc-' + sIdx"
-                        :class="charSegClass(seg, 'left')"
-                      >{{ maskLine(seg.value) }}</span>
-                    </template>
-                    <template v-else>
-                      <span>{{ maskLine(row.leftLine.content) }}</span>
-                    </template>
-                  </template>
-                  <!-- 不存在行占位 -->
-                  <template v-else>
-                    <span class="placeholder-line">&nbsp;</span>
-                  </template>
-                </div>
-
-                <!-- 中间操作栏 -->
-                <div class="gutter-actions">
-                  <!-- 行差异指示器 -->
                   <span v-if="row.type !== 'equal'" class="diff-indicator" :class="'indicator-' + row.type"></span>
-
-                  <!-- 左有右无：复制到右侧 -->
                   <el-tooltip v-if="row.type === 'added'" content="复制此行到右侧" placement="top">
                     <button class="gutter-btn gutter-btn-copy" @click="copyLineToRight(idx)">
                       <i class="el-icon-arrow-right"></i>
                     </button>
                   </el-tooltip>
-
-                  <!-- 左有右有但不同：用左侧覆盖右侧 -->
                   <el-tooltip v-if="row.type === 'modified'" content="用左侧整行覆盖右侧" placement="top">
                     <button class="gutter-btn gutter-btn-replace" @click="replaceRightLine(idx)">
                       <i class="el-icon-arrow-right"></i>
                     </button>
                   </el-tooltip>
-
-                  <!-- 语义模式下位置不同提示 -->
                   <el-tooltip
                     v-if="row.semanticOrderDiff && diffMode === 'semantic'"
                     placement="top"
@@ -245,67 +292,85 @@
                     </button>
                   </el-tooltip>
                 </div>
+              </div>
 
-                <!-- 右侧行号 -->
-                <div class="line-num line-num-right" :class="{ 'line-num-diff': row.type !== 'equal' }">
-                  <span v-if="row.rightLine">{{ row.rightLine.number }}</span>
-                </div>
-
-                <!-- 右侧内容 -->
-                <div
-                  class="line-content line-content-right"
-                  :class="lineContentClass(row, 'right')"
-                  @dblclick="startEditLine(idx)"
-                >
-                  <!-- 删除按钮（左无右有） -->
-                  <button
-                    v-if="row.type === 'deleted'"
-                    class="delete-line-btn"
-                    title="删除此行"
-                    @click.stop="deleteRightLine(idx)"
+              <!-- ========== 右侧面板（独立横向滚动） ========== -->
+              <div
+                class="diff-panel-scroll diff-panel-scroll-right"
+                ref="rightScrollPanel"
+                @scroll="onRightPanelScroll"
+              >
+                <div class="diff-panel-inner">
+                  <div
+                    v-for="(row, idx) in displayLines"
+                    :key="'rp-' + idx"
+                    class="diff-panel-row"
+                    :class="[
+                      'diff-row-' + row.type,
+                      { 'diff-row-highlight': highlightRowIdx === idx },
+                      { 'diff-row-semantic-order': row.semanticOrderDiff && diffMode === 'semantic' }
+                    ]"
+                    :data-index="idx"
                   >
-                    <i class="el-icon-close"></i>
-                  </button>
-
-                  <!-- 编辑模式 -->
-                  <template v-if="editingLineIdx === idx">
-                    <input
-                      ref="lineEditor"
-                      class="line-editor"
-                      :value="getEditableContent(row)"
-                      @input="onLineEdit(idx, $event)"
-                      @blur="finishEditLine"
-                      @keydown.enter="finishEditLine"
-                      @keydown.esc="cancelEditLine"
-                    />
-                  </template>
-                  <!-- 显示模式 -->
-                  <template v-else>
-                    <template v-if="row.rightLine">
-                      <template v-if="row.type === 'modified' && row.charDiffs">
-                        <span
-                          v-for="(seg, sIdx) in rightCharSegments(row)"
-                          :key="'rc-' + sIdx"
-                          :class="charSegClass(seg, 'right')"
-                          :title="seg.type === 'added' ? '双击可片段替换' : ''"
-                          @dblclick.stop="fragmentReplace(idx, row, sIdx)"
-                        >{{ maskLine(seg.value) }}</span>
+                    <div class="line-num line-num-right" :class="{ 'line-num-diff': row.type !== 'equal' }">
+                      <span v-if="row.rightLine">{{ row.rightLine.number }}</span>
+                    </div>
+                    <div
+                      class="line-content line-content-right"
+                      :class="lineContentClass(row, 'right')"
+                      @dblclick="startEditLine(idx)"
+                    >
+                      <button
+                        v-if="row.type === 'deleted'"
+                        class="delete-line-btn"
+                        title="删除此行"
+                        @click.stop="deleteRightLine(idx)"
+                      >
+                        <i class="el-icon-close"></i>
+                      </button>
+                      <template v-if="editingLineIdx === idx">
+                        <input
+                          ref="lineEditor"
+                          class="line-editor"
+                          :value="getEditableContent(row)"
+                          @input="onLineEdit(idx, $event)"
+                          @blur="finishEditLine"
+                          @keydown.enter="finishEditLine"
+                          @keydown.esc="cancelEditLine"
+                        />
                       </template>
                       <template v-else>
-                        <span>{{ maskLine(row.rightLine.content) }}</span>
+                        <template v-if="row.rightLine">
+                          <template v-if="row.type === 'modified' && row.charDiffs">
+                            <span
+                              v-for="(seg, sIdx) in rightCharSegments(row)"
+                              :key="'rc-' + sIdx"
+                              :class="charSegClass(seg, 'right')"
+                              :title="seg.type === 'added' ? '双击可片段替换' : ''"
+                              @dblclick.stop="fragmentReplace(idx, row, sIdx)"
+                            >{{ maskLine(seg.value) }}</span>
+                          </template>
+                          <template v-else>
+                            <span>{{ maskLine(row.rightLine.content) }}</span>
+                          </template>
+                        </template>
+                        <template v-else>
+                          <span
+                            class="placeholder-line placeholder-editable"
+                            @dblclick.stop="startAddLine(idx)"
+                            title="双击此处可添加新行"
+                          >&nbsp;</span>
+                        </template>
                       </template>
-                    </template>
-                    <!-- 不存在行占位（可输入新增） -->
-                    <template v-else>
-                      <span
-                        class="placeholder-line placeholder-editable"
-                        @dblclick.stop="startAddLine(idx)"
-                        title="双击此处可添加新行"
-                      >&nbsp;</span>
-                    </template>
-                  </template>
+                    </div>
+                  </div>
                 </div>
               </div>
+            </div>
+
+            <!-- 固定在底部的横向滚动条（不随上下滚动移动） -->
+            <div class="hscroll-sticky" ref="hscrollSticky" @scroll="onHScrollSticky">
+              <div class="hscroll-spacer" ref="hscrollSpacer"></div>
             </div>
           </div>
 
@@ -330,6 +395,7 @@
           :remaining-diffs="remainingDiffList"
           @locate-diff="scrollToLine"
           @clear-changes="clearChangeLog"
+          @toggle="onSummaryToggle"
         />
       </div>
     </div>
@@ -476,6 +542,7 @@ export default {
       visibleStart: 0,
       visibleCount: 30,
       currentDiffIdx: -1,
+      summaryCollapsed: false,
 
       // ---- 选项 ----
       diffMode: 'line',
@@ -577,6 +644,14 @@ export default {
     if (this.recomputeTimer) clearTimeout(this.recomputeTimer)
   },
   methods: {
+    // ==================== 工具方法 ====================
+    formatFileSize: function (bytes) {
+      if (!bytes) return ''
+      if (bytes < 1024) return bytes + ' B'
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+      return (bytes / (1024 * 1024)).toFixed(2) + ' MB'
+    },
+
     // ==================== 文件加载 ====================
     triggerFileInput: function (side) {
       if (side === 'left') {
@@ -729,6 +804,9 @@ export default {
 
       // 语法检查
       this.checkSyntax()
+
+      // 更新底部 sticky 横向滚动条 spacer 宽度
+      this.updateHScrollSpacer()
     },
     buildDiffList: function (aligned) {
       var list = []
@@ -1125,7 +1203,7 @@ export default {
     onViewportScroll: function () {
       if (!this.$refs.viewport) return
       var scrollTop = this.$refs.viewport.scrollTop
-      var rowHeight = 24 // 每行高度
+      var rowHeight = 24
       this.visibleStart = Math.floor(scrollTop / rowHeight)
       this.visibleCount = Math.ceil(this.$refs.viewport.clientHeight / rowHeight)
     },
@@ -1134,6 +1212,64 @@ export default {
       var rowHeight = 24
       this.$refs.viewport.scrollTop = lineIndex * rowHeight
       this.flashRow(lineIndex)
+    },
+    onLeftPanelScroll: function () {
+      if (this._syncScrolling) return
+      this._syncScrolling = true
+      if (this.$refs.rightScrollPanel) {
+        this.$refs.rightScrollPanel.scrollLeft = this.$refs.leftScrollPanel.scrollLeft
+      }
+      // 同步 sticky 滚动条
+      if (this.$refs.hscrollSticky) {
+        this.$refs.hscrollSticky.scrollLeft = this.$refs.leftScrollPanel.scrollLeft
+      }
+      var self = this
+      this.$nextTick(function () {
+        self._syncScrolling = false
+      })
+    },
+    onRightPanelScroll: function () {
+      if (this._syncScrolling) return
+      this._syncScrolling = true
+      if (this.$refs.leftScrollPanel) {
+        this.$refs.leftScrollPanel.scrollLeft = this.$refs.rightScrollPanel.scrollLeft
+      }
+      // 同步 sticky 滚动条
+      if (this.$refs.hscrollSticky) {
+        this.$refs.hscrollSticky.scrollLeft = this.$refs.rightScrollPanel.scrollLeft
+      }
+      var self = this
+      this.$nextTick(function () {
+        self._syncScrolling = false
+      })
+    },
+    onHScrollSticky: function () {
+      // 底部 sticky 滚动条驱动左右面板同步
+      if (this._syncScrolling) return
+      this._syncScrolling = true
+      var sl = this.$refs.hscrollSticky.scrollLeft
+      if (this.$refs.leftScrollPanel) {
+        this.$refs.leftScrollPanel.scrollLeft = sl
+      }
+      if (this.$refs.rightScrollPanel) {
+        this.$refs.rightScrollPanel.scrollLeft = sl
+      }
+      var self = this
+      this.$nextTick(function () {
+        self._syncScrolling = false
+      })
+    },
+    updateHScrollSpacer: function () {
+      var self = this
+      this.$nextTick(function () {
+        var leftPanel = self.$refs.leftScrollPanel
+        if (leftPanel) {
+          var inner = leftPanel.querySelector('.diff-panel-inner')
+          if (inner) {
+            self.$refs.hscrollSpacer.style.width = inner.scrollWidth + 'px'
+          }
+        }
+      })
     },
     navigateDiff: function (direction) {
       if (this.diffIndices.length === 0) return
@@ -1187,6 +1323,9 @@ export default {
     },
     clearChangeLog: function () {
       this.changeLog = []
+    },
+    onSummaryToggle: function (collapsed) {
+      this.summaryCollapsed = collapsed
     },
     handleDiffModeChange: function () {
       this.recompute()
@@ -1331,6 +1470,44 @@ export default {
   font-style: italic;
 }
 
+/* ==================== Sticky 表头行（diff-viewport 内，固定不随滚动移动） ==================== */
+.sticky-header-row {
+  position: sticky;
+  top: 0;
+  display: flex;
+  background: #fafafa;
+  border-bottom: 1px solid #dcdfe6;
+  z-index: 6;
+  flex-shrink: 0;
+}
+.sticky-header-left {
+  flex: 1;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.sticky-header-right {
+  flex: 1;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  border-left: 1px solid #ebeef5;
+}
+.sticky-header-gutter {
+  width: 48px;
+  flex-shrink: 0;
+  background: #f0f2f5;
+}
+.sticky-header-minimap {
+  width: 40px;
+  flex-shrink: 0;
+  background: #f5f5f5;
+}
+
 /* ==================== Diff 主体 ==================== */
 .diff-body {
   flex: 1;
@@ -1376,29 +1553,171 @@ export default {
   color: #c0c4cc !important;
 }
 
-/* ==================== 视口（单一滚动容器） ==================== */
+/* ==================== 已加载占位区 ==================== */
+.loaded-zone {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed #e1f3d8;
+  margin: 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+  background: #f0f9eb;
+}
+.loaded-zone:hover {
+  border-color: #67c23a;
+  background: #ecf8e5;
+}
+.loaded-zone-left {
+  margin-right: 8px;
+}
+.loaded-zone-right {
+  margin-left: 8px;
+}
+.loaded-card {
+  text-align: center;
+}
+.loaded-icon {
+  font-size: 40px;
+  color: #67c23a;
+}
+.loaded-title {
+  margin: 8px 0 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #303133;
+}
+.loaded-filename {
+  margin: 4px 0;
+  font-size: 13px;
+  color: #409eff;
+  font-family: 'Consolas', 'Monaco', monospace;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.loaded-meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 6px 0;
+}
+.loaded-size {
+  font-size: 12px;
+  color: #909399;
+}
+.loaded-hint {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #c0c4cc;
+  font-style: italic;
+}
+
+/* ==================== 视口（仅纵向滚动） ==================== */
 .diff-viewport {
   flex: 1;
   overflow-y: auto;
-  overflow-x: auto;
+  overflow-x: hidden;
   background: #fff;
   position: relative;
 }
-.diff-table {
-  display: table;
-  width: 100%;
-  border-collapse: collapse;
+
+/* ==================== 三栏面板布局 ==================== */
+.diff-panels-wrapper {
+  display: flex;
+  min-height: 100%;
 }
 
-/* ==================== Diff 行 ==================== */
-.diff-row {
+/* 左/右面板（独立横向滚动） */
+.diff-panel-scroll {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
+  min-width: 0;
+  /* 隐藏原生滚动条，改用底部 sticky 滚动条 */
+  scrollbar-width: none;          /* Firefox */
+  -ms-overflow-style: none;       /* IE/Edge */
+}
+.diff-panel-scroll::-webkit-scrollbar {
+  display: none;                  /* Chrome/Safari */
+}
+.diff-panel-scroll-left {
+  margin-right: 0;
+}
+.diff-panel-scroll-right {
+  margin-left: 0;
+}
+.diff-panel-inner {
+  display: inline-block;
+  min-width: 100%;
+}
+
+/* ==================== 中间操作栏（固定不滚动） ==================== */
+.diff-gutter-fixed {
+  width: 48px;
+  min-width: 48px;
+  max-width: 48px;
+  flex-shrink: 0;
+  background: #f0f2f5;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.gutter-row {
+  min-height: 24px;
+  line-height: 24px;
+  border-bottom: 1px solid #f2f6fc;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+/* ==================== 底部 sticky 横向滚动条 ==================== */
+.hscroll-sticky {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: #f5f5f5;
+  border-top: 1px solid #e0e0e0;
+  z-index: 3;
+}
+.hscroll-sticky::-webkit-scrollbar {
+  height: 8px;
+}
+.hscroll-sticky::-webkit-scrollbar-thumb {
+  background: #c0c4cc;
+  border-radius: 4px;
+}
+.hscroll-sticky::-webkit-scrollbar-thumb:hover {
+  background: #909399;
+}
+.hscroll-sticky::-webkit-scrollbar-track {
+  background: transparent;
+}
+.hscroll-spacer {
+  height: 1px;          /* 不可见，仅撑开 scrollWidth */
+  pointer-events: none;
+}
+
+/* ==================== 面板行 ==================== */
+.diff-panel-row {
   display: flex;
   min-height: 24px;
   line-height: 24px;
   border-bottom: 1px solid #f2f6fc;
   transition: background 0.15s;
 }
-.diff-row:hover {
+.diff-panel-row:hover {
   background: rgba(64, 158, 255, 0.03);
 }
 .diff-row-highlight {
@@ -1541,19 +1860,7 @@ export default {
   pointer-events: none;
 }
 
-/* ==================== 中间操作栏 ==================== */
-.gutter-actions {
-  width: 48px;
-  min-width: 48px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: #f0f2f5;
-  flex-shrink: 0;
-  gap: 2px;
-  position: relative;
-}
+/* ==================== 中间操作栏按钮 ==================== */
 .diff-indicator {
   width: 8px;
   height: 8px;

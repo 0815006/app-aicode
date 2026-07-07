@@ -10,7 +10,7 @@
         <div class="marquee-wrap">
           <div class="marquee-track">
             <span class="marquee-text"><span class="highlight">温馨提示：</span>点击右侧工号，可切换到自己工号，查看个人车位预约状态和预约记录  👉</span>
-            <span class="marquee-text marquee-clone"><span class="highlight">温馨提示：</span>点击右侧工号，可切换到自己工号，查看个人车位预约状态和预约记录  👉</span>
+            <span class="marquee-text marquee-clone"><span class="highlight">温馨提示：</span>新服http://22.188.9.15:8082 旧服27.79择期关闭  👉</span>
           </div>
         </div>
       </div>
