@@ -65,10 +65,11 @@
         <span slot="title">文本比对</span>
       </el-menu-item>
 
-      <el-menu-item index="/media-crawl">
+      <!-- ✅ 媒体抓取功能保留，暂不开启 -->
+      <!-- <el-menu-item index="/media-crawl">
         <i class="el-icon-download"></i>
         <span slot="title">媒体抓取</span>
-      </el-menu-item>
+      </el-menu-item> -->
 
       <!-- ✅ 新增：造数引擎 -->
       <el-menu-item index="/meta-gen">
