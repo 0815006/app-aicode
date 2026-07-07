@@ -4,6 +4,12 @@
     <div class="logo">
       <h3>赛博车间工具箱</h3>
       <p>Workspace Portal</p>
+      <div class="miniapp-float" title="微信小程序" @click="showMiniapp = true">
+        <svg class="miniapp-icon" viewBox="0 0 24 24" width="22" height="22">
+          <circle cx="12" cy="12" r="11" fill="none" stroke="currentColor" stroke-width="1.5"/>
+          <text x="12" y="17" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" font-style="italic">S</text>
+        </svg>
+      </div>
     </div>
     <el-menu
       :default-active="$route.path"
@@ -99,12 +105,35 @@
       </el-menu-item>
 
     </el-menu>
+
+    <!-- 小程序码弹窗 -->
+    <el-dialog
+      :visible.sync="showMiniapp"
+      title="微信小程序"
+      width="360px"
+      :close-on-click-modal="true"
+      center
+    >
+      <div class="miniapp-dialog-body">
+        <img
+          src="/miniapp.png"
+          alt="食堂菜单小程序码"
+          class="miniapp-qr-img"
+        />
+        <p class="miniapp-tip">微信扫一扫，查看今日食堂菜单</p>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script>
 export default {
-  name: 'Sidebar'
+  name: 'Sidebar',
+  data() {
+    return {
+      showMiniapp: false
+    }
+  }
 }
 </script>
 
@@ -155,5 +184,67 @@ export default {
 .el-menu-item.is-active {
   background: linear-gradient(90deg, #2f8ff0 0%, #4aa8ff 100%) !important;
   box-shadow: 0 6px 14px rgba(46, 145, 255, 0.32);
+}
+
+/* ========== 小程序码悬浮入口 ========== */
+.logo {
+  position: relative;
+}
+
+.miniapp-float {
+  position: absolute;
+  right: 16px;
+  bottom: 4px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: transparent;
+  border-radius: 6px;
+  transition: background 0.25s, opacity 0.25s, transform 0.25s;
+  z-index: 1;
+}
+
+.miniapp-float:hover {
+  background: rgba(255, 255, 255, 0.12);
+  transform: scale(1.15);
+}
+
+.miniapp-float:active {
+  transform: scale(0.95);
+}
+
+.miniapp-icon {
+  color: rgba(255, 255, 255, 0.45);
+  transition: color 0.25s;
+  display: block;
+}
+
+.miniapp-float:hover .miniapp-icon {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* ========== 弹窗样式 ========== */
+.miniapp-dialog-body {
+  text-align: center;
+  padding: 10px 0;
+}
+
+.miniapp-qr-img {
+  width: 200px;
+  height: 200px;
+  display: block;
+  margin: 0 auto 16px;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+}
+
+.miniapp-tip {
+  margin: 0;
+  color: #606266;
+  font-size: 14px;
+  line-height: 1.6;
 }
 </style>
