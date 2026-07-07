@@ -27,7 +27,13 @@
         <i class="el-icon-monitor"></i>
         <span slot="title">停车大屏</span>
       </el-menu-item>
-    
+
+          <!-- ✅ 新增：文件共享 -->
+      <el-menu-item index="/file-share">
+        <i class="el-icon-folder-opened"></i>
+        <span slot="title">文件共享</span>
+      </el-menu-item>
+
       <!-- ✅ 新增：聊天大厅 -->
       <el-menu-item index="/chat">
         <i class="el-icon-chat-line-round"></i>

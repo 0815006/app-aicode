@@ -66,6 +66,8 @@ text-extract:
   upload-path: "${app.data-root}/uploads/text-extract/"
 chat:
   upload-path: "${app.data-root}/uploads/chat/"
+file-share:
+  root-path: "${app.data-root}/file-share/"
 performance:
   template-path: "${app.data-root}/uploads/performance/templates/"
   doc-path: "${app.data-root}/uploads/performance/docs/"

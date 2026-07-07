@@ -17,6 +17,7 @@ import MetaGen from '@/views/MetaGen.vue'
 import FormatJson from '@/views/FormatJson.vue'
 import FormatXml from '@/views/FormatXml.vue'
 import TextExtract from '@/views/TextExtract.vue'
+import FileShare from '@/views/FileShare.vue'
 
 Vue.use(Router)
 
@@ -116,6 +117,12 @@ export default new Router({
           name: 'TextExtract',
           component: TextExtract,
           meta: { title: '文本提取' }
+        },
+        {
+          path: 'file-share',
+          name: 'FileShare',
+          component: FileShare,
+          meta: { title: '文件共享' }
         }
       ]
     }
