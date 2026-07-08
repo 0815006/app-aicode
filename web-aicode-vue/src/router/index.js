@@ -18,6 +18,7 @@ import FormatJson from '@/views/FormatJson.vue'
 import FormatXml from '@/views/FormatXml.vue'
 import FormatSql from '@/views/FormatSql.vue'
 import EncodeTool from '@/views/EncodeTool.vue'
+import EncryptTool from '@/views/EncryptTool.vue'
 import TextExtract from '@/views/TextExtract.vue'
 import FileShare from '@/views/FileShare.vue'
 
@@ -125,6 +126,12 @@ export default new Router({
           name: 'EncodeTool',
           component: EncodeTool,
           meta: { title: '编码解码' }
+        },
+        {
+          path: 'encrypt-tool',
+          name: 'EncryptTool',
+          component: EncryptTool,
+          meta: { title: '加密解密' }
         },
         {
           path: 'text-extract',

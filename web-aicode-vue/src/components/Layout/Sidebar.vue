@@ -95,23 +95,28 @@
       </el-menu-item>
 
       <el-menu-item index="/format-json">
-        <i class="el-icon-document"></i>
+        <i class="el-icon-s-data"></i>
         <span slot="title">格式化JSON</span>
       </el-menu-item>
 
       <el-menu-item index="/format-xml">
-        <i class="el-icon-document"></i>
+        <i class="el-icon-s-order"></i>
         <span slot="title">格式化XML</span>
       </el-menu-item>
 
       <el-menu-item index="/format-sql">
-        <i class="el-icon-document"></i>
+        <i class="el-icon-s-tools"></i>
         <span slot="title">格式化SQL</span>
       </el-menu-item>
 
       <el-menu-item index="/encode-decode">
-        <i class="el-icon-document"></i>
+        <i class="el-icon-refresh"></i>
         <span slot="title">编码解码</span>
+      </el-menu-item>
+
+      <el-menu-item index="/encrypt-tool">
+        <i class="el-icon-key"></i>
+        <span slot="title">加密解密</span>
       </el-menu-item>
 
     </el-menu>

@@ -21,7 +21,7 @@
       <!-- 右侧：输出区域 -->
       <div class="output-section card">
         <div class="section-header">
-          <h3><i class="el-icon-document"></i> 格式化结果</h3>
+          <h3><i class="el-icon-s-data"></i> 格式化结果</h3>
           <div class="header-actions">
             <el-button
               type="primary"

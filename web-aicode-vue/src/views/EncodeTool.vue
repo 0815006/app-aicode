@@ -44,7 +44,7 @@
       <!-- 右侧：输出区域 -->
       <div class="output-section card">
         <div class="section-header">
-          <h3><i class="el-icon-document"></i> 结果</h3>
+          <h3><i class="el-icon-refresh"></i> 结果</h3>
           <div class="header-actions">
             <el-select
               v-model="encodeType"
@@ -84,19 +84,19 @@
     <div class="action-bar">
       <el-button
         type="primary"
-        icon="el-icon-bottom"
+        icon="el-icon-lock"
         @click="doEncode"
         :disabled="!canEncode"
       >
-        编码 &#8595;
+        编码
       </el-button>
       <el-button
         type="warning"
-        icon="el-icon-top"
+        icon="el-icon-key"
         @click="doDecode"
         :disabled="!canDecode"
       >
-        解码 &#8593;
+        解码
       </el-button>
       <el-button
         type="success"
