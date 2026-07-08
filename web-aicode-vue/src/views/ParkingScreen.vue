@@ -767,7 +767,7 @@ export default {
             { x: 195, y: 55, dir: 'vh', count: 3, dept: '开发一部', prefix: 'C', startNo: 74, numberStep: -1 },
             { x: 284, y: 55, dir: 'vh', count: 4, dept: '开发一部', prefix: 'C', startNo: 48, numberStep: -1 },
             { x: 406, y: 55, dir: 'vh', count: 2, dept: '技术平台研发部', prefix: 'C', startNo: 44, numberStep: -1 },
-            { x: 467, y: 55, dir: 'vh', count: 4, dept: '技术平台研发部', prefix: 'C', startNo: 108, numberStep: -1 },
+            { x: 467, y: 55, dir: 'vh', count: 4, dept: '技术平台研发部', prefix: 'C', startNo: 18, numberStep: -1 },
             { x: 609, y: 55, dir: 'vh', count: 3, dept: '技术平台研发部', prefix: 'B', startNo: 170, numberStep: -1 },
             { x: 723, y: 55, dir: 'vh', count: 1, dept: '技术平台研发部', prefix: 'B', startNo: 167 },
             { x: 756, y: 55, dir: 'vh', count: 12, dept: '技术平台研发部', prefix: 'B', startNo: 166, numberStep: -1 },
@@ -794,8 +794,8 @@ export default {
             // C001(测试) 右侧对齐车道3正中，柱+C002(综合,vh)
             { x: 473, y: 636, dir: 'hv', count: 1, dept: '测试部', prefix: 'C', startNo: 1 },
             { x: 536, y: 636, dir: 'vh', count: 1, dept: '综合管理部', prefix: 'C', startNo: 2 },
-            // B102-B103(综合)+B14(综合,vh)，B103居中车道4
-            { x: 615, y: 636, dir: 'vh', count: 2, dept: '综合管理部', prefix: 'B', startNo: 102 },
+            // B012-B013(综合)+B14(综合,vh)，B013居中车道4
+            { x: 615, y: 636, dir: 'vh', count: 2, dept: '综合管理部', prefix: 'B', startNo: 12 },
             { x: 671, y: 636, dir: 'vh', count: 1, dept: '综合管理部', prefix: 'B', startNo: 14 },
             // B15-B18(vh,综合管理部 B014-B019)
             { x: 718, y: 636, dir: 'vh', count: 1, dept: '综合管理部', prefix: 'B', startNo: 15 },
@@ -874,10 +874,10 @@ export default {
           ],
           description: '5号楼B1层，上北下南。车道宽81px，柱→3→柱→3网格。横向：北车道y=110-191、南车道y=555-636。纵向6条车道(y=191-636)紧贴5岛互不重叠：左1(95-176)→岛1(176/236)→左2(291-372)→岛2(372/432)→车道3(487-568)→岛3(568)→车道4→出口/入口(623-704)→岛4(704)→车道5(759-840)→岛5(840/900)→车道6(955-1036)。车道4为错层双向通道：45°斜线分割，上方出口(红色)南行→地面，下方B2入口(绿色)北行→地库。地面入口：整体绕小长方形左下角(291,636)逆时针旋转90°→西行2车道长(162px, x:129~291)。岛1左临5+占位11/右临6+开发三部11；岛2左临4+C002+开发三部10/右开发三部12；岛3技术平台2+开发三部10；岛4开发三部12；岛5左占位2+B014-B022综合9(从右墙挪入)/右B030技术1+B025-B035综合11。北侧靠墙行贴左：开发一部8+占位12+技术平台4+占位5+技术平台15。右侧靠墙列仅B012-B013占位2。南墙行(C080-C096/C097-C099)、右墙B044-B065/B097-B105均已删除。',
           allocations: [
-            { dept: '综合管理部', count: 29, spaces: 'B014-B019、B102-B103、B038-B043、B020-B029、B044-B047、C002' },
+            { dept: '综合管理部', count: 29, spaces: 'B014-B019、B012-B013、B038-B043、B020-B029、B044-B047、C002' },
             { dept: '开发一部', count: 12, spaces: 'C045-C048、C072-C079' },
             { dept: '开发三部', count: 58, spaces: 'B001-B011、C003-C014、C019-C042、C049-C059' },
-            { dept: '技术平台研发部', count: 24, spaces: 'B156-B170、C043-C044、C105-C108、B030-B031' },
+            { dept: '技术平台研发部', count: 24, spaces: 'B156-B170、C043-C044、C015-C018、B030-B031' },
             { dept: '测试部', count: 1, spaces: 'C001' }
           ]
         },
