@@ -16,6 +16,7 @@ import MediaCrawl from '@/views/MediaCrawl.vue'
 import MetaGen from '@/views/MetaGen.vue'
 import FormatJson from '@/views/FormatJson.vue'
 import FormatXml from '@/views/FormatXml.vue'
+import FormatSql from '@/views/FormatSql.vue'
 import TextExtract from '@/views/TextExtract.vue'
 import FileShare from '@/views/FileShare.vue'
 
@@ -111,6 +112,12 @@ export default new Router({
           name: 'FormatXml',
           component: FormatXml,
           meta: { title: '格式化XML' }
+        },
+        {
+          path: 'format-sql',
+          name: 'FormatSql',
+          component: FormatSql,
+          meta: { title: '格式化SQL' }
         },
         {
           path: 'text-extract',
