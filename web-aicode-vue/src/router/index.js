@@ -17,6 +17,7 @@ import MetaGen from '@/views/MetaGen.vue'
 import FormatJson from '@/views/FormatJson.vue'
 import FormatXml from '@/views/FormatXml.vue'
 import FormatSql from '@/views/FormatSql.vue'
+import EncodeTool from '@/views/EncodeTool.vue'
 import TextExtract from '@/views/TextExtract.vue'
 import FileShare from '@/views/FileShare.vue'
 
@@ -118,6 +119,12 @@ export default new Router({
           name: 'FormatSql',
           component: FormatSql,
           meta: { title: '格式化SQL' }
+        },
+        {
+          path: 'encode-decode',
+          name: 'EncodeTool',
+          component: EncodeTool,
+          meta: { title: '编码解码' }
         },
         {
           path: 'text-extract',

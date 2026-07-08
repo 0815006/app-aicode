@@ -67,14 +67,14 @@
         <span slot="title">思维导图</span>
       </el-menu-item>
 
-      <el-menu-item index="/performance">
-        <i class="el-icon-s-opportunity"></i>
-        <span slot="title">性能测试</span>
-      </el-menu-item>
-
       <el-menu-item index="/text-comparison">
         <i class="el-icon-document"></i>
         <span slot="title">文本比对</span>
+      </el-menu-item>
+
+      <el-menu-item index="/text-extract">
+        <i class="el-icon-reading"></i>
+        <span slot="title">文本提取</span>
       </el-menu-item>
 
       <!-- ✅ 媒体抓取功能保留，暂不开启 -->
@@ -82,6 +82,11 @@
         <i class="el-icon-download"></i>
         <span slot="title">媒体抓取</span>
       </el-menu-item> -->
+
+      <el-menu-item index="/performance">
+        <i class="el-icon-s-opportunity"></i>
+        <span slot="title">性能测试</span>
+      </el-menu-item>
 
       <!-- ✅ 新增：造数引擎 -->
       <el-menu-item index="/meta-gen">
@@ -104,9 +109,9 @@
         <span slot="title">格式化SQL</span>
       </el-menu-item>
 
-      <el-menu-item index="/text-extract">
-        <i class="el-icon-reading"></i>
-        <span slot="title">文本提取</span>
+      <el-menu-item index="/encode-decode">
+        <i class="el-icon-document"></i>
+        <span slot="title">编码解码</span>
       </el-menu-item>
 
     </el-menu>

@@ -146,11 +146,14 @@ export default {
 }
 
 .section-header {
-  padding: 16px 20px;
+  padding: 18px 20px;
+  height: 68px;
+  flex-shrink: 0;
   border-bottom: 1px solid #f0f4f8;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  box-sizing: border-box;
 }
 
 .section-header h3 {
