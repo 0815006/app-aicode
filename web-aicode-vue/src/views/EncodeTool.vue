@@ -118,6 +118,8 @@
 </template>
 
 <script>
+import copyToClipboard from '@/utils/clipboard'
+
 export default {
   name: 'EncodeTool',
   data() {
@@ -396,13 +398,10 @@ export default {
         this.$message.warning('没有可复制的内容')
         return
       }
-      navigator.clipboard.writeText(this.outputText)
-        .then(() => {
-          this.$message.success('复制成功')
-        })
-        .catch(() => {
-          this.$message.error('复制失败')
-        })
+      var self = this
+      copyToClipboard(this.outputText)
+        .then(function () { self.$message.success('复制成功') })
+        .catch(function () { self.$message.error('复制失败') })
     },
     clearAll() {
       this.inputText = ''

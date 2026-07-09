@@ -1,5 +1,14 @@
+const path = require('path')
+
 // vue.config.js
 module.exports = {
+    configureWebpack: {
+      resolve: {
+        alias: {
+          async_hooks: path.resolve(__dirname, 'src/polyfills/empty.js')
+        }
+      }
+    },
     devServer: {
       // 前端开发服务启动端口
       port: 8082,

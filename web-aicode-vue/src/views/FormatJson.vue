@@ -58,6 +58,8 @@
 </template>
 
 <script>
+import copyToClipboard from '@/utils/clipboard'
+
 export default {
   name: 'FormatJson',
   data() {
@@ -91,13 +93,10 @@ export default {
         return
       }
 
-      navigator.clipboard.writeText(this.formattedJson)
-        .then(() => {
-          this.$message.success('复制成功')
-        })
-        .catch(() => {
-          this.$message.error('复制失败')
-        })
+      var self = this
+      copyToClipboard(this.formattedJson)
+        .then(function () { self.$message.success('复制成功') })
+        .catch(function () { self.$message.error('复制失败') })
     }
   }
 }
@@ -202,6 +201,7 @@ export default {
   font-size: 13px;
   line-height: 1.5;
   box-sizing: border-box;
+  min-height: 100%;
 }
 
 .json-display pre {

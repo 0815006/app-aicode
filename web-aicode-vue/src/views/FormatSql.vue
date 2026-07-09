@@ -59,6 +59,7 @@
 
 <script>
 import { format } from 'sql-formatter'
+import copyToClipboard from '@/utils/clipboard'
 
 export default {
   name: 'FormatSql',
@@ -96,14 +97,10 @@ export default {
         this.$message.warning('没有可复制的内容')
         return
       }
-
-      navigator.clipboard.writeText(this.formattedSql)
-        .then(() => {
-          this.$message.success('复制成功')
-        })
-        .catch(() => {
-          this.$message.error('复制失败')
-        })
+      var self = this
+      copyToClipboard(this.formattedSql)
+        .then(function () { self.$message.success('复制成功') })
+        .catch(function () { self.$message.error('复制失败') })
     }
   }
 }
@@ -208,6 +205,7 @@ export default {
   font-size: 13px;
   line-height: 1.5;
   box-sizing: border-box;
+  min-height: 100%;
 }
 
 .sql-display pre {

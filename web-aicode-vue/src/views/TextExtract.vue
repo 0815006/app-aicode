@@ -125,6 +125,7 @@ import axios from 'axios';
 let XLSX = null;
 let mammoth = null;
 let TurndownService = null;
+import copyToClipboard from '@/utils/clipboard'
 
 export default {
   name: 'TextExtract',
@@ -401,13 +402,10 @@ export default {
         this.$message.warning('没有可复制的内容');
         return;
       }
-      navigator.clipboard.writeText(this.extractedContent)
-        .then(() => {
-          this.$message.success('复制成功');
-        })
-        .catch(() => {
-          this.$message.error('复制失败，请手动选择复制');
-        });
+      var self = this
+      copyToClipboard(this.extractedContent)
+        .then(function () { self.$message.success('复制成功'); })
+        .catch(function () { self.$message.error('复制失败，请手动选择复制'); });
     },
 
     // ==================== 工具函数 ====================

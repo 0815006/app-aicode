@@ -148,6 +148,8 @@
 
 <script>
 import CryptoJS from 'crypto-js'
+import JSEncrypt from 'jsencrypt'
+import copyToClipboard from '@/utils/clipboard'
 
 export default {
   name: 'EncryptTool',
@@ -254,9 +256,10 @@ export default {
     onInputChange() { this.outputText = '' },
     copyOutput() {
       if (!this.outputText) return this.$message.warning('没有可复制的内容')
-      navigator.clipboard.writeText(this.outputText)
-        .then(() => this.$message.success('复制成功'))
-        .catch(() => this.$message.error('复制失败'))
+      var self = this
+      copyToClipboard(this.outputText)
+        .then(function () { self.$message.success('复制成功') })
+        .catch(function () { self.$message.error('复制失败') })
     },
 
     // ============ 对称加密 ============
@@ -348,97 +351,108 @@ export default {
       }
     },
 
-    // ============ 非对称加密 RSA ============
+    // ============ 非对称加密 RSA（Web Crypto 优先，jsencrypt 降级） ============
     onRsaParamChange() { this.outputText = '' },
-    _pemToArrayBuffer(pem) {
-      const b64 = pem.replace(/-----[^-]+-----/g, '').replace(/\s+/g, '')
-      const binary = atob(b64)
-      const bytes = new Uint8Array(binary.length)
-      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
-      return bytes.buffer
-    },
-    _arrayBufferToPem(buffer, label) {
-      const bytes = new Uint8Array(buffer)
-      let binary = ''
-      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
-      const b64 = btoa(binary)
-      const lines = b64.match(/.{1,64}/g) || []
-      return '-----BEGIN ' + label + '-----\n' + lines.join('\n') + '\n-----END ' + label + '-----'
-    },
-    _stringToBytes(str) { return new TextEncoder().encode(str) },
-    _bytesToString(bytes) { return new TextDecoder().decode(bytes) },
 
-    async generateRSAKeyPair() {
+    generateRSAKeyPair() {
       this.rsaGenerating = true
+      // 优先使用 Web Crypto API（HTTPS/localhost，毫秒级）
+      if (window.crypto && window.crypto.subtle) {
+        this._generateWithWebCrypto()
+      } else {
+        // 降级：HTTP 环境使用 jsencrypt（纯 JS，需 2~15 秒）
+        this._generateWithJsEncrypt()
+      }
+    },
+
+    async _generateWithWebCrypto() {
       try {
-        const keyPair = await window.crypto.subtle.generateKey(
+        var self = this
+        var keyPair = await window.crypto.subtle.generateKey(
           { name: 'RSA-OAEP', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
           true, ['encrypt', 'decrypt']
         )
-        const pubBuf = await window.crypto.subtle.exportKey('spki', keyPair.publicKey)
-        const privBuf = await window.crypto.subtle.exportKey('pkcs8', keyPair.privateKey)
-        this.rsaPublicKey = this._arrayBufferToPem(pubBuf, 'PUBLIC KEY')
-        this.rsaPrivateKey = this._arrayBufferToPem(privBuf, 'PRIVATE KEY')
-        this._rsaKeyPair = keyPair
-        this.outputText = ''
-        this.$message.success('密钥对生成成功（RSA-OAEP 2048 位）')
+        var pubBuf = await window.crypto.subtle.exportKey('spki', keyPair.publicKey)
+        var privBuf = await window.crypto.subtle.exportKey('pkcs8', keyPair.privateKey)
+        self.rsaPublicKey = self._arrayBufferToPem(pubBuf, 'PUBLIC KEY')
+        self.rsaPrivateKey = self._arrayBufferToPem(privBuf, 'PRIVATE KEY')
+        self._rsaKeyPair = keyPair
+        self.outputText = ''
+        self.$message.success('密钥对生成成功（RSA 2048 位，Web Crypto）')
       } catch (e) {
-        this.$message.error('密钥生成失败: ' + e.message)
-      } finally { this.rsaGenerating = false }
+        // Web Crypto 失败时降级到 jsencrypt
+        this._generateWithJsEncrypt()
+      } finally {
+        this.rsaGenerating = false
+      }
     },
 
-    async _importRsaPublicKey() {
-      const pem = this.rsaPublicKey.trim()
-      if (!pem) throw new Error('请提供公钥')
-      const buf = this._pemToArrayBuffer(pem)
-      return window.crypto.subtle.importKey('spki', buf, { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['encrypt'])
-    },
-    async _importRsaPrivateKey() {
-      const pem = this.rsaPrivateKey.trim()
-      if (!pem) throw new Error('请提供私钥')
-      const buf = this._pemToArrayBuffer(pem)
-      return window.crypto.subtle.importKey('pkcs8', buf, { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['decrypt'])
+    _generateWithJsEncrypt() {
+      var self = this
+      this.$message.info('正在生成 RSA 密钥对（纯 JS 计算，约需 2-15 秒）...')
+      var crypt = new JSEncrypt({ default_key_size: 2048 })
+      crypt.getKey(function () {
+        try {
+          self.rsaPublicKey = crypt.getPublicKey()
+          self.rsaPrivateKey = crypt.getPrivateKey()
+          self._rsaKeyPair = crypt
+          self.outputText = ''
+          self.$message.success('密钥对生成成功（RSA 2048 位）')
+        } catch (e) {
+          self.$message.error('密钥生成失败: ' + e.message)
+        } finally {
+          self.rsaGenerating = false
+        }
+      })
     },
 
-    async doRsaEncrypt() {
+    _arrayBufferToPem(buffer, label) {
+      var bytes = new Uint8Array(buffer)
+      var binary = ''
+      for (var i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
+      var b64 = btoa(binary)
+      var lines = b64.match(/.{1,64}/g) || []
+      return '-----BEGIN ' + label + '-----\n' + lines.join('\n') + '\n-----END ' + label + '-----'
+    },
+
+    doRsaEncrypt() {
       if (!this.rsaPublicKey.trim()) return this.$message.warning('请填写或生成公钥')
       if (!this.inputText.trim()) return this.$message.warning('请输入明文')
       try {
-        const key = await this._importRsaPublicKey()
-        const data = this._stringToBytes(this.inputText)
-        const encrypted = await window.crypto.subtle.encrypt({ name: 'RSA-OAEP' }, key, data)
-        this.outputText = this._arrayBufferToBase64(encrypted)
-        this.$message.success('公钥加密成功')
+        var encrypt = new JSEncrypt()
+        encrypt.setPublicKey(this.rsaPublicKey.trim())
+        var result = encrypt.encrypt(this.inputText)
+        if (result === false) {
+          this.$message.error('加密失败：公钥无效或明文过长（RSA-2048 最多 190 字节）')
+          this.outputText = ''
+        } else {
+          this.outputText = result
+          this.$message.success('公钥加密成功')
+        }
       } catch (e) {
         this.$message.error('加密失败: ' + (e.message || '请检查密钥和输入'))
         this.outputText = ''
       }
     },
-    async doRsaDecrypt() {
+
+    doRsaDecrypt() {
       if (!this.rsaPrivateKey.trim()) return this.$message.warning('请填写或生成私钥')
       if (!this.inputText.trim()) return this.$message.warning('请输入密文')
       try {
-        const key = await this._importRsaPrivateKey()
-        const data = this._base64ToArrayBuffer(this.inputText)
-        const decrypted = await window.crypto.subtle.decrypt({ name: 'RSA-OAEP' }, key, data)
-        this.outputText = this._bytesToString(new Uint8Array(decrypted))
-        this.$message.success('私钥解密成功')
+        var decrypt = new JSEncrypt()
+        decrypt.setPrivateKey(this.rsaPrivateKey.trim())
+        var result = decrypt.decrypt(this.inputText.trim())
+        if (result === false || result === null) {
+          this.$message.error('解密失败：私钥不正确或密文已损坏')
+          this.outputText = ''
+        } else {
+          this.outputText = result
+          this.$message.success('私钥解密成功')
+        }
       } catch (e) {
         this.$message.error('解密失败: ' + (e.message || '请检查密钥和密文'))
         this.outputText = ''
       }
-    },
-    _arrayBufferToBase64(buffer) {
-      const bytes = new Uint8Array(buffer)
-      let binary = ''
-      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
-      return btoa(binary)
-    },
-    _base64ToArrayBuffer(base64) {
-      const binary = atob(base64.replace(/\s+/g, ''))
-      const bytes = new Uint8Array(binary.length)
-      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
-      return bytes.buffer
     },
 
     // ============ 哈希摘要 ============
