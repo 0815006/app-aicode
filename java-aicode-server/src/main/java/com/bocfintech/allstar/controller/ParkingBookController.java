@@ -234,33 +234,35 @@ public class ParkingBookController {
     }
 
     /**
-     * 【测试用】直接给用户 2036377 发一封带车位截图的测试邮件。
-     * GET /api/parking/book/testSendMail
+     * 【测试用】给指定工号的用户发一封带车位截图的测试邮件。
+     * GET /api/parking/book/testSendMail?empNo=2036377
+     *
+     * @param empNo 工号（可选，默认 2036377）
      */
     @GetMapping("/testSendMail")
-    public ResultBean testSendMail() {
+    public ResultBean testSendMail(@RequestParam(required = false, defaultValue = "2036377") String empNo) {
         try {
-            // 1. 查 2036377 的配置
-            ParkingBook config = parkingBookService.getById("2036377");
+            // 1. 查配置
+            ParkingBook config = parkingBookService.getById(empNo);
             if (config == null) {
-                return ResultBean.error("用户 2036377 未配置 ParkingBook");
+                return ResultBean.error("用户 " + empNo + " 未配置 ParkingBook");
             }
 
-            // 2. 查 2036377 最新一条预约记录（按 id 倒序取第一条）
+            // 2. 查最新一条预约记录（按 id 倒序取第一条）
             ParkingRecord latestRecord = parkingRecordService.getOne(
                 new LambdaQueryWrapper<ParkingRecord>()
-                    .eq(ParkingRecord::getEmpNo, "2036377")
+                    .eq(ParkingRecord::getEmpNo, empNo)
                     .orderByDesc(ParkingRecord::getId)
                     .last("LIMIT 1")
             );
             if (latestRecord == null) {
-                return ResultBean.error("用户 2036377 没有任何预约记录");
+                return ResultBean.error("用户 " + empNo + " 没有任何预约记录");
             }
 
             // 3. 发送邮件（异步，含截图）
             bankEmailPlaywrightService.sendParkingNotification(config, latestRecord);
 
-            log.info("测试邮件已触发：empNo=2036377, recordId={}", latestRecord.getId());
+            log.info("测试邮件已触发：empNo={}, recordId={}", empNo, latestRecord.getId());
             return ResultBean.success("测试邮件已触发，subject=" + latestRecord.getResult()
                 + " " + latestRecord.getAppointmentDate()
                 + " 位置：" + latestRecord.getParkingPosition());

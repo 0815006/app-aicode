@@ -320,7 +320,8 @@ public class BankEmailPlaywrightService {
                 toField.click();                   // 聚焦输入框
                 toField.fill(recipient);           // 填入收件人地址
                 toField.press("Tab");              // 触发格式校验
-                page.waitForTimeout(1000);         // 等待 JS 校验完成
+                page.waitForTimeout(3000);         // 等待 JS 校验完成（含 LDAP 查询，延至3秒）
+                log.info("邮件通知：【诊断】收件人 {} 校验等待完成", recipient);
 
                 /*
                  * ==== 步骤6：填写主题 ====
@@ -366,8 +367,33 @@ if (screenshotPath != null) {
                  *
                  * 点击后等待页面响应完成。
                  */
+                // ---- 发送前诊断：检查发送按钮状态 ----
+                Locator sendBtn = composeFrame.locator(SEND_BTN_ID);
+                log.info("邮件通知：【诊断】发送前 按钮可见={}, 按钮可用={}", sendBtn.isVisible(), sendBtn.isEnabled());
+
                 log.info("邮件通知：点击发送...");
-                composeFrame.locator(SEND_BTN_ID).click();
+                sendBtn.click();
+
+                // ---- 发送后诊断：等待并检查页面反馈 ----
+                page.waitForTimeout(2000);
+                String pageText = page.textContent("body");
+                boolean hasSuccess = pageText.contains("发送成功") || pageText.contains("已发送") || pageText.contains("投递成功");
+                boolean hasError = pageText.contains("失败") || pageText.contains("错误") || pageText.contains("不存在") || pageText.contains("超限");
+                log.info("邮件通知：【诊断】发送后 页面含成功关键词={}, 含失败关键词={}", hasSuccess, hasError);
+                if (hasError) {
+                    int idx = pageText.indexOf("失败");
+                    if (idx == -1) idx = pageText.indexOf("错误");
+                    if (idx == -1) idx = pageText.indexOf("不存在");
+                    if (idx == -1) idx = pageText.indexOf("超限");
+                    String snippet = idx > 0 ? pageText.substring(Math.max(0, idx - 50), Math.min(pageText.length(), idx + 100)) : "未定位";
+                    log.warn("邮件通知：【诊断】发送疑似失败！页面反馈片段: {}", snippet);
+                }
+
+                // 截图留存，便于对比正常/异常
+                page.screenshot(new Page.ScreenshotOptions()
+                        .setPath(Paths.get("email_diag_" + config.getEmpNo() + ".png")));
+                log.info("邮件通知：【诊断】发送后截图已保存 email_diag_{}.png", config.getEmpNo());
+
                 page.waitForLoadState(LoadState.NETWORKIDLE);
 
                 log.info("邮件通知：发送成功！用户={}, 收件人={}", config.getEmpNo(), recipient);
