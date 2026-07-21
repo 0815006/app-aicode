@@ -60,8 +60,8 @@ public class VoteController {
             List<VoteOption> options = null;
             if (params.get("options") != null) {
                 // 这里简化处理，实际可能需要更复杂的转换
-                options = com.alibaba.fastjson.JSON.parseArray(
-                        com.alibaba.fastjson.JSON.toJSONString(params.get("options")), 
+                options = com.alibaba.fastjson2.JSON.parseArray(
+                        com.alibaba.fastjson2.JSON.toJSONString(params.get("options")),
                         VoteOption.class
                 );
             }

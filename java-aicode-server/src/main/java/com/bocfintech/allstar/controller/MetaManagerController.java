@@ -631,7 +631,7 @@ public class MetaManagerController {
     private String extractConfigDisplay(String ruleType, String configJson) {
         if (configJson == null || configJson.isEmpty()) return "";
         try {
-            com.alibaba.fastjson.JSONObject cfg = com.alibaba.fastjson.JSONObject.parseObject(configJson);
+            com.alibaba.fastjson2.JSONObject cfg = com.alibaba.fastjson2.JSONObject.parseObject(configJson);
             switch (ruleType) {
                 case "FIXED": return cfg.getString("value");
                 case "DATE": return cfg.getString("format");
@@ -723,12 +723,12 @@ public class MetaManagerController {
         // 先尝试作为合法 JSON 解析
         if (trimmed.startsWith("{")) {
             try {
-                com.alibaba.fastjson.JSONObject.parseObject(trimmed);
+                com.alibaba.fastjson2.JSONObject.parseObject(trimmed);
                 return trimmed; // 合法 JSON，直接返回
             } catch (Exception ignored) { /* 解析失败，继续兼容转换 */ }
         }
         // 旧格式兼容转换
-        com.alibaba.fastjson.JSONObject obj = new com.alibaba.fastjson.JSONObject();
+        com.alibaba.fastjson2.JSONObject obj = new com.alibaba.fastjson2.JSONObject();
         try {
             switch (ruleType) {
                 case "FIXED":

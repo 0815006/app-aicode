@@ -1,8 +1,8 @@
 package com.bocfintech.allstar.controller;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONArray;
-import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONArray;
+import com.alibaba.fastjson2.JSONObject;
 import com.bocfintech.allstar.bean.ResultBean;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
