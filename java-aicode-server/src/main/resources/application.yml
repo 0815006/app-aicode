@@ -1,3 +1,15 @@
+# =============================================
+# Actuator / Prometheus 监控端点配置
+# =============================================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: prometheus,health,info
+  metrics:
+    tags:
+      application: ${spring.application.name:aicode-server}
+
 server:
   port: ${SERVER_PORT:8092}
   tomcat:

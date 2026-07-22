@@ -33,7 +33,7 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
 <!--            <exclusions>-->
-<!--                &lt;!&ndash; 排除Spring Boot内嵌Tomcat &ndash;&gt;-->
+<!--                <!&ndash; 排除Spring Boot内嵌Tomcat &ndash;>-->
 <!--                <exclusion>-->
 <!--                    <groupId>org.springframework.boot</groupId>-->
 <!--                    <artifactId>spring-boot-starter-tomcat</artifactId>-->
@@ -262,6 +262,16 @@
             <groupId>com.microsoft.playwright</groupId>
             <artifactId>playwright</artifactId>
             <version>1.41.0</version>
+        </dependency>
+
+        <!-- 监控: Actuator + Prometheus -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
         </dependency>
 
     </dependencies>
