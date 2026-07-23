@@ -273,4 +273,42 @@ public class ParkingBookController {
         }
     }
 
+    /**
+     * 【Postman兜底】手动批量触发定时任务（当定时任务因故未执行时使用）
+     * POST /api/parking/book/triggerSchedule?type=autoEnable|execute|check
+     *
+     * @param type autoEnable - 批量恢复自动预约 / execute - 批量执行预约 / check - 批量核查当天记录
+     */
+    @PostMapping("/triggerSchedule")
+    public ResultBean triggerSchedule(@RequestParam String type) {
+        if (!StringUtils.hasText(type)) {
+            return ResultBean.error("参数 type 不能为空，可选值：autoEnable / execute / check");
+        }
+
+        try {
+            switch (type) {
+                case "autoEnable":
+                    log.info("【Postman手动触发】批量恢复自动预约");
+                    parkBookTask.autoEnableSchedule();
+                    return ResultBean.success("批量恢复自动预约执行完成");
+
+                case "execute":
+                    log.info("【Postman手动触发】批量执行预约");
+                    parkBookTask.executeSchedule();
+                    return ResultBean.success("批量执行预约完成");
+
+                case "check":
+                    log.info("【Postman手动触发】批量核查当天记录");
+                    parkBookTask.checkSchedule();
+                    return ResultBean.success("批量核查当天记录执行完成");
+
+                default:
+                    return ResultBean.error("不支持的任务类型：" + type + "，可选值：autoEnable / execute / check");
+            }
+        } catch (Exception e) {
+            log.error("【Postman手动触发】批量任务执行失败 type={}", type, e);
+            return ResultBean.error("批量任务执行失败: " + e.getMessage());
+        }
+    }
+
 }
