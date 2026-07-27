@@ -104,8 +104,8 @@ public class BankEmailPlaywrightService {
     /** 主题输入框（在 iframe 内） — {@code <input id="txtsubject">} */
     private static final String SUBJECT_ID = "#txtsubject";
 
-    /** 正文编辑区（在 iframe 内） — {@code <textarea id="txtContent">} */
-    private static final String BODY_ID = "#txtContent";
+    /** 正文编辑区（在 iframe 内） — {@code <body id="editor-body">} */
+    private static final String BODY_ID = "#editor-body";
 
     /** 发送按钮（在 iframe 内） — {@code <button id="btnSend">} */
     private static final String SEND_BTN_ID = "#btnSend";
@@ -191,7 +191,7 @@ public class BankEmailPlaywrightService {
         String parkingPosition = nvl(record.getParkingPosition(), "暂无");
         String statusText = nvl(record.getResult(), "状态未知");
         String subject = "车辆预约-" + statusText + " " + appointmentDate + " 位置：" + parkingPosition;
-        String content = subject; // 正文和主题一致
+        String content = "温馨提示：新服务器地址：http://22.188.9.15:8082/#/parking-list 旧服27.79已下线 \n"; 
 
         log.info("邮件通知：开始发送 → 用户={}, 收件人={}, 主题={}", config.getEmpNo(), recipient, subject);
 
@@ -334,33 +334,34 @@ public class BankEmailPlaywrightService {
                  */
                 log.info("邮件通知：输入主题 {}", subject);
                 composeFrame.locator(SUBJECT_ID).fill(subject);
-/*
- * ==== 步骤7：上传附件 ====
- *
- * 页面元素（iframe 内）：
- *   input[type="file"][name="file"]  ← 附件上传控件
- *
- * 通过 Playwright CDP 的 DOM.setFileInputFiles 直接上传，
- * 零 AWT 依赖，不经过系统剪贴板。
- */
-if (screenshotPath != null) {
-    Path attachFile = Paths.get(screenshotPath);
-    composeFrame.locator(ATTACH_FILE_INPUT).setInputFiles(attachFile);
-    log.info("邮件通知：附件已上传 → {}", screenshotPath);
-    page.waitForTimeout(2000);  // 等附件上传完成
-}
+                /*
+                * ==== 步骤7：上传附件 ====
+                *
+                * 页面元素（iframe 内）：
+                *   input[type="file"][name="file"]  ← 附件上传控件
+                *
+                * 通过 Playwright CDP 的 DOM.setFileInputFiles 直接上传，
+                * 零 AWT 依赖，不经过系统剪贴板。
+                */
+                if (screenshotPath != null) {
+                    Path attachFile = Paths.get(screenshotPath);
+                    composeFrame.locator(ATTACH_FILE_INPUT).setInputFiles(attachFile);
+                    log.info("邮件通知：附件已上传 → {}", screenshotPath);
+                    page.waitForTimeout(2000);  // 等附件上传完成
+                }
 
-/*
- * ==== 步骤8：填写正文 ====
- *
- * 页面元素（iframe 内）：
- *   #txtContent  ← 邮件正文
- */
-// ---- 正文输入暂时注释 ----
-// composeFrame.locator(BODY_ID).fill(content);
+                /*
+                * ==== 步骤8：填写正文 ====
+                *
+                * 页面元素（iframe 内）：
+                *   #txtContent  ← 邮件正文
+                */
 
-/*
- * ==== 步骤9：点击发送 ====
+                FrameLocator innerFrame = composeFrame.frameLocator("iframe[src*='editor_blank']");
+                innerFrame.locator(BODY_ID).fill(content);
+
+                /*
+                * ==== 步骤9：点击发送 ====
                  *
                  * 页面元素（iframe 内）：
                  *   #btnSend → <button id="btnSend">发送</button>
