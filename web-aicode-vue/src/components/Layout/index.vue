@@ -1,8 +1,8 @@
 <!-- src/components/Layout/index.vue -->
 <template>
-  <div class="layout-wrapper">
-    <aside class="sidebar">
-      <Sidebar />
+  <div class="layout-wrapper" :style="{ gridTemplateColumns: sidebarCollapsed ? '64px 1fr' : '240px 1fr' }">
+    <aside class="sidebar" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
+      <Sidebar @collapse-change="onCollapseChange" />
     </aside>
 
     <header class="header">
@@ -36,7 +36,8 @@ export default {
     return {
       currentTime: '',
       clientIp: '',
-      clockTimer: null
+      clockTimer: null,
+      sidebarCollapsed: false
     }
   },
   mounted() {
@@ -51,6 +52,9 @@ export default {
     }
   },
   methods: {
+    onCollapseChange(collapsed) {
+      this.sidebarCollapsed = collapsed
+    },
     updateCurrentTime() {
       const now = new Date()
       this.currentTime = now.toLocaleString()
@@ -79,6 +83,8 @@ export default {
   width: 100%;
   background: #eef2f8;
   overflow: hidden;
+  transition: grid-template-columns 0.25s ease;
+  will-change: grid-template-columns;
 }
 
 .sidebar {

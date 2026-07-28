@@ -1,10 +1,13 @@
 <!-- src/components/Layout/Sidebar.vue -->
 <template>
-  <div class="sidebar-container">
-    <div class="logo">
-      <h3>赛博车间工具箱</h3>
-      <p>Workspace Portal</p>
-      <div class="miniapp-float" title="微信小程序" @click="showMiniapp = true">
+  <div class="sidebar-container" :class="{ 'sidebar-collapsed': collapsed }">
+    <div class="logo" :class="{ 'logo-collapsed': collapsed }">
+      <div class="logo-title">
+        <img src="/toolbox-favicon.svg" class="logo-icon" alt="toolbox" />
+        <h3 v-show="!collapsed">赛博车间</h3>
+      </div>
+      <p v-show="!collapsed">Workspace Portal</p>
+      <div v-show="!collapsed" class="miniapp-float" title="微信小程序" @click="showMiniapp = true">
         <svg class="miniapp-icon" viewBox="0 0 24 24" width="22" height="22">
           <circle cx="12" cy="12" r="11" fill="none" stroke="currentColor" stroke-width="1.5"/>
           <text x="12" y="17" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" font-style="italic">S</text>
@@ -17,6 +20,7 @@
       text-color="#c7d8ee"
       active-text-color="#ffffff"
       router
+      :collapse="collapsed"
     >
       <el-menu-item index="/resource-check">
         <i class="el-icon-document"></i>
@@ -57,10 +61,11 @@
         <span slot="title">数据迁移</span>
       </el-menu-item>
 
-      <el-menu-item index="/vote">
+      <!-- ✅ 投票功能保留，暂不开启 -->
+      <!-- <el-menu-item index="/vote">
         <i class="el-icon-star-off"></i>
         <span slot="title">投票功能</span>
-      </el-menu-item>
+      </el-menu-item> -->
 
       <el-menu-item index="/xmind-converter">
         <i class="el-icon-refresh"></i>
@@ -126,6 +131,13 @@
 
     </el-menu>
 
+    <!-- 折叠/展开切换按钮 -->
+    <div class="collapse-toggle" @click="toggleCollapse" :title="collapsed ? '展开菜单' : '折叠菜单'">
+      <svg viewBox="0 0 24 24" width="18" height="18" class="toggle-arrow" :class="{ 'arrow-collapsed': collapsed }">
+        <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" fill="currentColor"/>
+      </svg>
+    </div>
+
     <!-- 小程序码弹窗 -->
     <el-dialog
       :visible.sync="showMiniapp"
@@ -151,7 +163,14 @@ export default {
   name: 'Sidebar',
   data() {
     return {
-      showMiniapp: false
+      showMiniapp: false,
+      collapsed: false
+    }
+  },
+  methods: {
+    toggleCollapse() {
+      this.collapsed = !this.collapsed
+      this.$emit('collapse-change', this.collapsed)
     }
   }
 }
@@ -163,11 +182,57 @@ export default {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: relative;
+}
+
+/* 折叠态：logo 仅显示图标并居中 */
+.logo-collapsed {
+  padding: 14px 0 10px !important;
+  display: flex;
+  justify-content: center;
+}
+
+.logo-collapsed .logo-title {
+  justify-content: center;
+  gap: 0;
+}
+
+.logo-collapsed .logo-icon {
+  margin: 0;
+}
+
+/* 折叠态：菜单图标居中 */
+.sidebar-collapsed .el-menu {
+  padding: 10px 0;
+}
+
+.sidebar-collapsed ::v-deep .el-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 !important;
+}
+
+.sidebar-collapsed ::v-deep .el-menu-item i {
+  margin-right: 0 !important;
 }
 
 .logo {
   padding: 18px 14px 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.logo-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.logo-icon {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
 }
 
 .logo h3 {
@@ -266,5 +331,48 @@ export default {
   color: #606266;
   font-size: 14px;
   line-height: 1.6;
+}
+
+/* ========== 折叠切换按钮 ========== */
+.collapse-toggle {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: background 0.25s, border-color 0.25s, right 0.3s;
+  z-index: 10;
+}
+
+.collapse-toggle:hover {
+  background: rgba(94, 170, 255, 0.25);
+  border-color: rgba(94, 170, 255, 0.45);
+}
+
+.toggle-arrow {
+  color: rgba(255, 255, 255, 0.5);
+  transition: color 0.25s, transform 0.3s;
+}
+
+.collapse-toggle:hover .toggle-arrow {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* 折叠态：箭头翻转 */
+.arrow-collapsed {
+  transform: rotate(180deg);
+}
+
+/* 折叠态：按钮居中 */
+.sidebar-collapsed .collapse-toggle {
+  right: 50%;
+  transform: translateX(50%);
 }
 </style>

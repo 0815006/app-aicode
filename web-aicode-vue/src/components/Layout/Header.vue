@@ -7,10 +7,22 @@
 
     <div class="header-container">
       <div class="title">
-        <div class="marquee-wrap">
-          <div class="marquee-track">
-            <span class="marquee-text"><span class="highlight">温馨提示：</span>点击右侧工号，可切换到自己工号，查看个人车位预约状态和预约记录  👉</span>
-            <span class="marquee-text marquee-clone"><span class="highlight">温馨提示：</span>新服http://22.188.9.15:8082 旧服27.79择期关闭  👉</span>
+        <div
+          class="marquee-wrap"
+          @mouseenter="marqueePaused = true"
+          @mouseleave="marqueePaused = false"
+        >
+          <div class="marquee-track" :class="{ paused: marqueePaused }">
+            <!-- 第一组 -->
+            <span v-for="(tip, i) in tips" :key="i" class="marquee-text">
+              <span class="highlight">温馨提示：</span>{{ tip }}
+              <span class="marquee-sep">·</span>
+            </span>
+            <!-- 复制一组实现无缝循环 -->
+            <span v-for="(tip, i) in tips" :key="'dup'+i" class="marquee-text">
+              <span class="highlight">温馨提示：</span>{{ tip }}
+              <span class="marquee-sep">·</span>
+            </span>
           </div>
         </div>
       </div>
@@ -43,6 +55,12 @@ export default {
   name: 'Header',
   data() {
     return {
+      tips: [
+        '点击右侧工号，可切换到自己工号，查看个人车位预约状态和预约记录',
+        '新服 http://22.188.9.15:8082  旧服 27.79 已关闭',
+        '邮箱密码填错或者邮箱容量超过80%，均会导致无法发送邮件'
+      ],
+      marqueePaused: false,
       empNo: getCurrentEmpNo(),
       editingEmpNo: '',
       editing: false
@@ -89,6 +107,7 @@ export default {
   border-bottom: 1px solid rgba(255, 255, 255, 0.15);
 }
 
+/* ========== 主头部 ========== */
 .header-container {
   display: flex;
   justify-content: space-between;
@@ -109,13 +128,26 @@ export default {
 }
 
 .marquee-wrap {
+  position: relative;
+  width: 100%;
+  height: 22px;
   overflow: hidden;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 5%, #000 95%, transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0%, #000 5%, #000 95%, transparent 100%);
 }
 
 .marquee-track {
+  position: absolute;
+  top: 0;
+  left: 0;
   display: flex;
-  width: fit-content;
-  animation: marquee-scroll 30s linear infinite;
+  width: max-content;
+  animation: marquee-scroll 25s linear infinite;
+  will-change: transform;
+}
+
+.marquee-track.paused {
+  animation-play-state: paused;
 }
 
 .marquee-text {
@@ -124,12 +156,13 @@ export default {
   font-size: 14px;
   font-weight: 500;
   color: #e8f3ff;
-  padding-right: 60px;
+  padding-right: 50px;
   flex-shrink: 0;
 }
 
-.marquee-clone {
-  padding-right: 0;
+.marquee-sep {
+  margin-left: 50px;
+  color: rgba(255, 255, 255, 0.3);
 }
 
 .marquee-text .highlight {
@@ -142,6 +175,7 @@ export default {
   100% { transform: translateX(-50%); }
 }
 
+/* ========== 用户信息区 ========== */
 .user-info {
   display: flex;
   align-items: center;
