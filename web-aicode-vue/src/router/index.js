@@ -16,6 +16,7 @@ import MediaCrawl from '@/views/MediaCrawl.vue'
 import MetaGen from '@/views/MetaGen.vue'
 import FormatJson from '@/views/FormatJson.vue'
 import FormatXml from '@/views/FormatXml.vue'
+import FormatHtml from '@/views/FormatHtml.vue'
 import FormatSql from '@/views/FormatSql.vue'
 import EncodeTool from '@/views/EncodeTool.vue'
 import EncryptTool from '@/views/EncryptTool.vue'
@@ -114,6 +115,12 @@ export default new Router({
           name: 'FormatXml',
           component: FormatXml,
           meta: { title: '格式化XML' }
+        },
+        {
+          path: 'format-html',
+          name: 'FormatHtml',
+          component: FormatHtml,
+          meta: { title: '格式化HTML' }
         },
         {
           path: 'format-sql',

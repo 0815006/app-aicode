@@ -104,6 +104,11 @@
         <span slot="title">格式化XML</span>
       </el-menu-item>
 
+      <el-menu-item index="/format-html">
+        <i class="el-icon-s-grid"></i>
+        <span slot="title">格式化HTML</span>
+      </el-menu-item>
+
       <el-menu-item index="/format-sql">
         <i class="el-icon-s-tools"></i>
         <span slot="title">格式化SQL</span>

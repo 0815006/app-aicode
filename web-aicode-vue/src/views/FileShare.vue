@@ -358,8 +358,8 @@ export default {
 
 /* 卡片 — 参照聊天大厅文件共享面板样式 */
 .directory-card {
-  min-width: 320px;
-  max-width: 400px;
+  min-width: 640px;
+  max-width: 800px;
   flex-shrink: 0;
   height: 100%;
   display: flex;
