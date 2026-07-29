@@ -2,16 +2,21 @@
 <template>
   <div class="sidebar-container" :class="{ 'sidebar-collapsed': collapsed }">
     <div class="logo" :class="{ 'logo-collapsed': collapsed }">
+      <!-- 折叠/展开切换按钮 -->
+      <div class="collapse-toggle" @click="toggleCollapse" :title="collapsed ? '展开菜单' : '折叠菜单'">
+        <svg viewBox="0 0 24 24" width="18" height="18" class="toggle-arrow" :class="{ 'arrow-collapsed': collapsed }">
+          <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" fill="currentColor"/>
+        </svg>
+      </div>
       <div class="logo-title">
         <img src="/toolbox-favicon.svg" class="logo-icon" alt="toolbox" />
         <h3 v-show="!collapsed">赛博车间</h3>
-      </div>
-      <p v-show="!collapsed">Workspace Portal</p>
-      <div v-show="!collapsed" class="miniapp-float" title="微信小程序" @click="showMiniapp = true">
-        <svg class="miniapp-icon" viewBox="0 0 24 24" width="22" height="22">
-          <circle cx="12" cy="12" r="11" fill="none" stroke="currentColor" stroke-width="1.5"/>
-          <text x="12" y="17" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" font-style="italic">S</text>
-        </svg>
+        <div v-show="!collapsed" class="miniapp-float" title="微信小程序" @click="showMiniapp = true">
+          <svg class="miniapp-icon" viewBox="0 0 24 24" width="16" height="16">
+            <circle cx="12" cy="12" r="11" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            <text x="12" y="17" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" font-style="italic">S</text>
+          </svg>
+        </div>
       </div>
     </div>
     <el-menu
@@ -22,10 +27,10 @@
       router
       :collapse="collapsed"
     >
-      <el-menu-item index="/resource-check">
+      <!-- <el-menu-item index="/resource-check">
         <i class="el-icon-document"></i>
         <span slot="title">资源核查</span>
-      </el-menu-item>
+      </el-menu-item> -->
 
       <el-menu-item index="/parking-list">
         <i class="el-icon-truck"></i>
@@ -88,16 +93,16 @@
         <span slot="title">媒体抓取</span>
       </el-menu-item> -->
 
-      <el-menu-item index="/performance">
+      <!-- <el-menu-item index="/performance">
         <i class="el-icon-s-opportunity"></i>
         <span slot="title">性能测试</span>
-      </el-menu-item>
+      </el-menu-item> -->
 
       <!-- ✅ 新增：造数引擎 -->
-      <el-menu-item index="/meta-gen">
+      <!-- <el-menu-item index="/meta-gen">
         <i class="el-icon-s-marketing"></i>
         <span slot="title">造数引擎</span>
-      </el-menu-item>
+      </el-menu-item> -->
 
       <el-menu-item index="/format-json">
         <i class="el-icon-s-data"></i>
@@ -130,13 +135,6 @@
       </el-menu-item>
 
     </el-menu>
-
-    <!-- 折叠/展开切换按钮 -->
-    <div class="collapse-toggle" @click="toggleCollapse" :title="collapsed ? '展开菜单' : '折叠菜单'">
-      <svg viewBox="0 0 24 24" width="18" height="18" class="toggle-arrow" :class="{ 'arrow-collapsed': collapsed }">
-        <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" fill="currentColor"/>
-      </svg>
-    </div>
 
     <!-- 小程序码弹窗 -->
     <el-dialog
@@ -185,10 +183,12 @@ export default {
   position: relative;
 }
 
-/* 折叠态：logo 仅显示图标并居中 */
+/* 折叠态：logo 固定高度，图标居中 */
 .logo-collapsed {
-  padding: 14px 0 10px !important;
+  height: 76px;
+  padding: 0 !important;
   display: flex;
+  align-items: center;
   justify-content: center;
 }
 
@@ -218,8 +218,14 @@ export default {
 }
 
 .logo {
-  padding: 18px 14px 12px;
+  height: 76px;
+  padding: 10px 14px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-sizing: border-box;
+  position: relative;
 }
 
 .logo-title {
@@ -241,13 +247,6 @@ export default {
   color: #f2f7ff;
   font-size: 18px;
   font-weight: 700;
-}
-
-.logo p {
-  margin: 6px 0 0;
-  text-align: center;
-  color: #9fb4cf;
-  font-size: 12px;
 }
 
 .el-menu {
@@ -272,24 +271,17 @@ export default {
 }
 
 /* ========== 小程序码悬浮入口 ========== */
-.logo {
-  position: relative;
-}
-
 .miniapp-float {
-  position: absolute;
-  right: 16px;
-  bottom: 4px;
-  width: 28px;
-  height: 28px;
+  width: 16px;
+  height: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   background: transparent;
-  border-radius: 6px;
+  border-radius: 4px;
   transition: background 0.25s, opacity 0.25s, transform 0.25s;
-  z-index: 1;
+  flex-shrink: 0;
 }
 
 .miniapp-float:hover {
@@ -336,8 +328,9 @@ export default {
 /* ========== 折叠切换按钮 ========== */
 .collapse-toggle {
   position: absolute;
-  bottom: 10px;
-  right: 10px;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
   width: 28px;
   height: 28px;
   display: flex;
@@ -345,15 +338,15 @@ export default {
   justify-content: center;
   cursor: pointer;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: background 0.25s, border-color 0.25s, right 0.3s;
+  background: transparent;
+  border: none;
+  transition: background 0.25s, border-color 0.25s, opacity 0.25s, visibility 0.25s;
   z-index: 10;
 }
 
 .collapse-toggle:hover {
   background: rgba(94, 170, 255, 0.25);
-  border-color: rgba(94, 170, 255, 0.45);
+  border: 1px solid rgba(94, 170, 255, 0.45);
 }
 
 .toggle-arrow {
@@ -370,9 +363,31 @@ export default {
   transform: rotate(180deg);
 }
 
-/* 折叠态：按钮居中 */
-.sidebar-collapsed .collapse-toggle {
-  right: 50%;
-  transform: translateX(50%);
+/* 折叠态：按钮默认隐藏，绝对居中覆盖顶部图标 */
+.logo-collapsed .collapse-toggle {
+  top: 50%;
+  left: 50%;
+  right: auto;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  width: 40px;
+  height: 40px;
+  background: #304156;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+/* 折叠态：鼠标悬停 logo 区域时出现按钮，覆盖图标 */
+.logo-collapsed:hover .collapse-toggle {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.logo-collapsed .collapse-toggle:hover {
+  border-color: rgba(94, 170, 255, 0.6);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
 }
 </style>
