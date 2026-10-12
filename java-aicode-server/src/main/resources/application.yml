@@ -83,6 +83,9 @@ file-share:
 performance:
   template-path: "${app.data-root}/uploads/performance/templates/"
   doc-path: "${app.data-root}/uploads/performance/docs/"
+# XMind 编辑器（按工号分子目录存储，不走数据库）
+xmind-edit:
+  root-path: "${app.data-root}/xmind/"
 
 # 造数引擎
 meta:

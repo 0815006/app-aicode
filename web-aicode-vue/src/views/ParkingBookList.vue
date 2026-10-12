@@ -38,11 +38,31 @@
       <el-table-column prop="username" label="姓名" width="120" />
       <el-table-column label="自动预约" width="120">
         <template slot-scope="scope">
-          <el-tag :type="scope.row.autoBook === 1 ? 'success' : 'info'">
-            {{ scope.row.autoBook === 1 ? '开启' : '关闭' }}
-          </el-tag>
-          <div v-if="scope.row.autoBook === 0 && scope.row.nextAutoBookDate" style="font-size: 10px; color: #909399; margin-top: 4px;">
-            恢复: {{ scope.row.nextAutoBookDate }}
+          <div class="auto-book-cell">
+            <el-tag :type="scope.row.autoBook === 1 ? 'success' : 'info'">
+              {{ scope.row.autoBook === 1 ? '开启' : '关闭' }}
+            </el-tag>
+            <el-popover
+              v-if="scope.row.autoBook === 0 && scope.row.nextAutoBookDate"
+              placement="top"
+              width="240"
+              trigger="click"
+            >
+              <div class="restore-tip">
+                <div class="restore-tip__row">
+                  恢复日期：<span class="restore-tip__date">{{ scope.row.nextAutoBookDate }}</span>
+                </div>
+                <div class="restore-tip__row">
+                  恢复时间：<span class="restore-tip__date">当天早晨 08:00</span>
+                </div>
+                <div class="restore-tip__desc">到达此时间，系统将自动为您重新开启预约</div>
+              </div>
+              <i
+                slot="reference"
+                class="el-icon-warning-outline restore-tip__icon"
+                title="点击查看恢复时间"
+              ></i>
+            </el-popover>
           </div>
         </template>
       </el-table-column>
@@ -878,6 +898,43 @@ export default {
   font-size: 12px;
   color: #8a96aa;
   margin-top: 5px;
+}
+
+/* 自动预约列：标签与恢复提示图标同行显示 */
+.auto-book-cell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.restore-tip__icon {
+  color: #E6A23C;
+  font-size: 16px;
+  cursor: pointer;
+  line-height: 1;
+  transition: color 0.2s ease;
+}
+
+.restore-tip__icon:hover {
+  color: #F56C6C;
+}
+
+.restore-tip__row {
+  font-size: 13px;
+  color: #303133;
+  line-height: 1.8;
+}
+
+.restore-tip__date {
+  color: #409EFF;
+  font-weight: 600;
+}
+
+.restore-tip__desc {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #909399;
+  line-height: 1.5;
 }
 
 ::v-deep .el-table {
