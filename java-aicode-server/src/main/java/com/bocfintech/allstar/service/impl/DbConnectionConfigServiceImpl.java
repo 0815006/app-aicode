@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -252,6 +253,14 @@ public class DbConnectionConfigServiceImpl
              PreparedStatement insertPs = tgtConn.prepareStatement(insertSql);
              ResultSet rs = selectPs.executeQuery()) {
 
+            // 读取目标表列类型，用于值类型自适应（跨方言下布尔/数值差异）
+            Map<String, String> targetTypes = new HashMap<>();
+            try (ResultSet colRs = tgtConn.getMetaData().getColumns(targetConfig.getDatabaseName(), null, tableName, null)) {
+                while (colRs.next()) {
+                    targetTypes.put(colRs.getString("COLUMN_NAME").toLowerCase(), colRs.getString("TYPE_NAME"));
+                }
+            }
+
             tgtConn.setAutoCommit(false);
             int count = 0;
             int batchSize = 1000;
@@ -259,7 +268,18 @@ public class DbConnectionConfigServiceImpl
 
             while (rs.next()) {
                 for (int i = 1; i <= columnCount; i++) {
-                    insertPs.setObject(i, rs.getObject(i));
+                    String colName = columns.get(i - 1);
+                    String tgtType = targetTypes.get(colName.toLowerCase());
+                    Object val = rs.getObject(i);
+                    if (isJsonType(tgtType)) {
+                        // PostgreSQL 不会把 varchar 隐式转换为 jsonb，需以 unknown 类型发送字符串
+                        insertPs.setObject(i, val == null ? null : val.toString(), Types.OTHER);
+                    } else if (isBitType(tgtType)) {
+                        // PG bit 类型不接受 byte[]/boolean，需以位串字符串按 unknown 类型发送
+                        insertPs.setObject(i, toBitString(val), Types.OTHER);
+                    } else {
+                        insertPs.setObject(i, adaptValue(val, tgtType));
+                    }
                 }
                 insertPs.addBatch();
                 count++;
@@ -276,6 +296,104 @@ public class DbConnectionConfigServiceImpl
             log.error("数据流转异常", e);
             throw new RuntimeException("数据迁移执行失败：" + e.getMessage(), e);
         }
+    }
+
+    /**
+     * 依据目标列类型对值做自适应转换，解决跨方言下布尔/数值类型不兼容问题。
+     *
+     * <p>典型场景：MySQL {@code tinyint(1)} 列被 Connector/J 读为 {@link Boolean}，
+     * 而目标 PostgreSQL 列（由中立模型 SMALLINT 生成）为 {@code smallint}，
+     * 直接写入布尔会报 "column is of type smallint but expression is of type boolean"。
+     */
+    private Object adaptValue(Object val, String targetType) {
+        if (val == null || targetType == null) {
+            return val;
+        }
+        String t = targetType.toLowerCase();
+        boolean tgtBoolean = t.equals("bool") || t.equals("boolean");
+        boolean tgtNumeric = t.equals("tinyint") || t.equals("smallint") || t.equals("mediumint")
+                || t.equals("int") || t.equals("integer") || t.equals("bigint")
+                || t.equals("int2") || t.equals("int4") || t.equals("int8")
+                || t.equals("numeric") || t.equals("decimal") || t.equals("number")
+                || t.equals("float") || t.equals("double") || t.equals("real")
+                || t.equals("float4") || t.equals("float8") || t.equals("serial");
+
+        if (val instanceof Boolean) {
+            // 目标为数值列时，布尔转 1/0
+            if (tgtNumeric) {
+                return ((Boolean) val) ? 1 : 0;
+            }
+            return val;
+        }
+        if (val instanceof Number) {
+            // 目标为布尔列时，非 0 转 true
+            if (tgtBoolean) {
+                return ((Number) val).intValue() != 0;
+            }
+            return val;
+        }
+        if (val instanceof java.util.Date) {
+            // YEAR 等读回 Date，但目标列映射为数值类型时取其年份
+            if (tgtNumeric) {
+                java.util.Calendar c = java.util.Calendar.getInstance();
+                c.setTime((java.util.Date) val);
+                return c.get(java.util.Calendar.YEAR);
+            }
+            return val;
+        }
+        return val;
+    }
+
+    /**
+     * 判断目标列类型是否为 JSON 类型（PostgreSQL json/jsonb、MySQL json）
+     */
+    private boolean isJsonType(String targetType) {
+        if (targetType == null) {
+            return false;
+        }
+        String t = targetType.toLowerCase();
+        return t.equals("json") || t.equals("jsonb");
+    }
+
+    /**
+     * 判断目标列类型是否为位类型（PostgreSQL bit/bit varying、MySQL bit）
+     */
+    private boolean isBitType(String targetType) {
+        if (targetType == null) {
+            return false;
+        }
+        String t = targetType.toLowerCase();
+        return t.equals("bit") || t.equals("varbit") || t.startsWith("bit(") || t.startsWith("bit varying");
+    }
+
+    /**
+     * 将值转换为 PostgreSQL 位串字面量（如 "1"、"101"）
+     */
+    private String toBitString(Object val) {
+        if (val == null) {
+            return null;
+        }
+        if (val instanceof Boolean) {
+            return ((Boolean) val) ? "1" : "0";
+        }
+        if (val instanceof Number) {
+            return Long.toBinaryString(((Number) val).longValue());
+        }
+        if (val instanceof byte[]) {
+            byte[] bytes = (byte[]) val;
+            StringBuilder sb = new StringBuilder();
+            for (int k = 0; k < bytes.length; k++) {
+                String b = Integer.toBinaryString(bytes[k] & 0xFF);
+                if (k > 0) {
+                    while (b.length() < 8) {
+                        b = "0" + b;
+                    }
+                }
+                sb.append(b);
+            }
+            return sb.length() == 0 ? "0" : sb.toString();
+        }
+        return val.toString();
     }
 
     private List<String> getColumnNames(DbConnectionConfig config, DatabaseDialect dialect, String tableName) {

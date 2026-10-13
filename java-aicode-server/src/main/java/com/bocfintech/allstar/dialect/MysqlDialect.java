@@ -25,7 +25,7 @@ public class MysqlDialect implements DatabaseDialect {
     @Override
     public String buildJdbcUrl(DbConnectionConfig config) {
         return String.format(
-                "jdbc:mysql://%s:%d/%s?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&allowMultiQueries=true",
+                "jdbc:mysql://%s:%d/%s?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&allowMultiQueries=true&zeroDateTimeBehavior=convertToNull",
                 config.getHost(), config.getPort(), config.getDatabaseName()
         );
     }
