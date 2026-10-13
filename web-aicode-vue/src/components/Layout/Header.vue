@@ -57,7 +57,7 @@ export default {
     return {
       tips: [
         '点击右侧工号，可切换到自己工号，查看个人车位预约状态和预约记录',
-        '新服 http://22.188.9.15:8082  旧服 27.79 已关闭',
+        '数据迁移，新增Gaussdb和Postgresql方言支持',
         '邮箱密码填错或者邮箱容量超过80%，均会导致无法发送邮件'
       ],
       marqueePaused: false,

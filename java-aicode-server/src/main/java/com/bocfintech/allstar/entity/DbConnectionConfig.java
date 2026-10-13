@@ -13,7 +13,7 @@ public class DbConnectionConfig {
     private Long id;
 
     private String configName;
-    private String dbType;        // MySQL / TDSQL
+    private String dbType;        // MySQL / TDSQL / GaussDB / PostgreSQL
     private String host;
     private Integer port;
     private String username;

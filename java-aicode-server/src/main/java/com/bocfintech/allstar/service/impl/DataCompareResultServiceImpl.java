@@ -2,7 +2,6 @@ package com.bocfintech.allstar.service.impl;
 
 import com.bocfintech.allstar.dialect.DatabaseDialect;
 import com.bocfintech.allstar.dialect.DialectFactory;
-import com.bocfintech.allstar.dialect.GaussDbDialect;
 import com.bocfintech.allstar.entity.*;
 import com.bocfintech.allstar.service.DataCompareResultService;
 import lombok.extern.slf4j.Slf4j;
@@ -258,15 +257,8 @@ public class DataCompareResultServiceImpl implements DataCompareResultService {
      * 获取第一个字段作为排序依据
      */
     private String getFirstColumn(DbConnectionConfig config, DatabaseDialect dialect, String tableName) {
-        // 简单起见，这里仍然使用 information_schema，或者可以扩展方言
-        String sql = "SELECT COLUMN_NAME FROM information_schema.COLUMNS " +
-                     "WHERE TABLE_SCHEMA = '" + config.getDatabaseName() + "' AND TABLE_NAME = '" + tableName + "' " +
-                     "ORDER BY ORDINAL_POSITION LIMIT 1";
-        if (dialect instanceof GaussDbDialect) {
-            sql = "SELECT column_name FROM information_schema.columns " +
-                  "WHERE table_catalog = '" + config.getDatabaseName() + "' AND table_name = '" + tableName + "' " +
-                  "ORDER BY ordinal_position LIMIT 1";
-        }
+        // 由方言提供"取第一个字段"的 SQL，避免 instanceof 硬编码
+        String sql = dialect.getFirstColumnSql(config.getDatabaseName(), tableName);
         return getColumnBySql(config, dialect, sql);
     }
 

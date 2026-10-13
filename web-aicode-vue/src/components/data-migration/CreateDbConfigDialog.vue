@@ -33,6 +33,7 @@
           <el-option label="MySQL" value="MySQL" />
           <el-option label="TDSQL" value="TDSQL" />
           <el-option label="GaussDB" value="GaussDB" />
+          <el-option label="PostgreSQL" value="PostgreSQL" />
         </el-select>
       </el-form-item>
       <el-form-item label="主机地址" prop="host">
@@ -191,6 +192,8 @@ export default {
     handleDbTypeChange(val) {
       if (val === 'GaussDB') {
         this.form.port = 8000
+      } else if (val === 'PostgreSQL') {
+        this.form.port = 5432
       } else {
         this.form.port = 3306
       }

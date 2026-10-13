@@ -126,7 +126,7 @@ DROP TABLE IF EXISTS `db_connection_config`;
 CREATE TABLE `db_connection_config` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键',
   `config_name` varchar(100) NOT NULL COMMENT '配置名称，如：生产库-MySQL',
-  `db_type` enum('MySQL','TDSQL') NOT NULL COMMENT '数据库类型',
+  `db_type` enum('MySQL','TDSQL','GaussDB','PostgreSQL') NOT NULL COMMENT '数据库类型',
   `host` varchar(100) NOT NULL COMMENT '主机地址',
   `port` int(11) NOT NULL DEFAULT '3306' COMMENT '端口',
   `username` varchar(50) NOT NULL COMMENT '登录用户名',

@@ -3,6 +3,7 @@ package com.bocfintech.allstar.service.impl;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.bocfintech.allstar.dialect.DatabaseDialect;
 import com.bocfintech.allstar.dialect.DialectFactory;
+import com.bocfintech.allstar.dialect.model.TableDefinition;
 import com.bocfintech.allstar.entity.DbConnectionConfig;
 import com.bocfintech.allstar.entity.TableInfo;
 import com.bocfintech.allstar.mapper.DbConnectionConfigMapper;
@@ -153,17 +154,25 @@ public class DbConnectionConfigServiceImpl
         DatabaseDialect srcDialect = DialectFactory.getDialect(sourceConfig);
         DatabaseDialect tgtDialect = DialectFactory.getDialect(targetConfig);
 
-        // 1. 从源库获取建表语句
-        String createSql = getCreateTableSql(sourceConfig, srcDialect, tableName);
-        if (createSql == null || createSql.isEmpty()) {
-            throw new IllegalArgumentException("无法获取源表结构：" + tableName);
-        }
-
-        // 2. 在目标库先删除表（如果存在）
+        // 1. 在目标库先删除表（如果存在）
         executeSqlOnConfig(targetConfig, tgtDialect, tgtDialect.getDropTableSql(tableName));
 
-        // 3. 在目标库执行建表
-        executeSqlOnConfig(targetConfig, tgtDialect, createSql);
+        // 2. 生成并执行建表语句（同构走原始 DDL，异构走中立模型转换）
+        if (srcDialect.getCompatibilityGroup().equals(tgtDialect.getCompatibilityGroup())) {
+            String createSql = getCreateTableSql(sourceConfig, srcDialect, tableName);
+            if (createSql == null || createSql.isEmpty()) {
+                throw new IllegalArgumentException("无法获取源表结构：" + tableName);
+            }
+            executeSqlOnConfig(targetConfig, tgtDialect, createSql);
+        } else {
+            TableDefinition def = readTableDefinition(sourceConfig, srcDialect, tableName);
+            if (def == null || def.getColumns().isEmpty()) {
+                throw new IllegalArgumentException("无法读取源表结构：" + tableName);
+            }
+            def.setTableName(tableName);
+            List<String> statements = tgtDialect.buildCreateTableStatements(def);
+            executeStatementsOnConfig(targetConfig, tgtDialect, statements);
+        }
     }
 
     /**
@@ -342,6 +351,39 @@ public class DbConnectionConfigServiceImpl
         } catch (SQLException e) {
             log.error("执行SQL失败: {}", sql, e);
             throw new RuntimeException("执行失败：" + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 读取表结构为中立模型（异构迁移用）
+     */
+    private TableDefinition readTableDefinition(DbConnectionConfig config, DatabaseDialect dialect, String tableName) {
+        String jdbcUrl = dialect.buildJdbcUrl(config);
+        try (Connection conn = DriverManager.getConnection(jdbcUrl, config.getUsername(), decryptPassword(config.getPassword()))) {
+            return dialect.readTableDefinition(conn, config.getDatabaseName(), tableName);
+        } catch (SQLException e) {
+            log.error("读取表结构失败: {}", tableName, e);
+            throw new RuntimeException("读取表结构失败：" + tableName + "。" + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 在目标库按顺序执行多条语句（异构迁移的建表、注释、索引）
+     */
+    private void executeStatementsOnConfig(DbConnectionConfig config, DatabaseDialect dialect, List<String> statements) {
+        if (statements == null || statements.isEmpty()) {
+            throw new RuntimeException("未能生成目标建库语句");
+        }
+        String jdbcUrl = dialect.buildJdbcUrl(config);
+        try (Connection conn = DriverManager.getConnection(jdbcUrl, config.getUsername(), decryptPassword(config.getPassword()));
+             Statement stmt = conn.createStatement()) {
+            for (String sql : statements) {
+                stmt.execute(sql);
+                log.info("执行SQL成功: {}", sql);
+            }
+        } catch (SQLException e) {
+            log.error("建表失败", e);
+            throw new RuntimeException("建表失败：" + e.getMessage(), e);
         }
     }
 }
