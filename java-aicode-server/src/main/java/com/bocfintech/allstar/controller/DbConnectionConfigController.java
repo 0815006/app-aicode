@@ -84,8 +84,8 @@ public class DbConnectionConfigController {
             }
 
             // 保留原密码，除非新传了
-            if (config.getPassword() == null || config.getPassword().isEmpty()) {
-                config.setPassword(existing.getPassword());
+            if (config.getDbPass() == null || config.getDbPass().isEmpty()) {
+                config.setDbPass(existing.getDbPass());
             }
 
             config.setCreatedBy(empNo); // 防篡改

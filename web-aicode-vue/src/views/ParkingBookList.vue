@@ -294,8 +294,8 @@
           <el-input v-model="form.emailUser" placeholder="自动取工号作为邮箱账号" disabled />
           <div class="empno-tip">发件邮箱账号与工号一致，无需手动填写</div>
         </el-form-item>
-        <el-form-item v-if="form.emailEnabled === 1" label="邮箱密码" prop="emailPassword">
-          <el-input v-model="form.emailPassword" type="password" placeholder="请输入邮箱密码（明文）" />
+        <el-form-item v-if="form.emailEnabled === 1" label="邮箱密码" prop="emailPass">
+          <el-input v-model="form.emailPass" type="password" placeholder="请输入邮箱密码（明文）" />
         </el-form-item>
         <el-form-item v-if="form.emailEnabled === 1" label="收件人邮箱" prop="emailRecipient">
           <el-input v-model="form.emailRecipient" placeholder="xxxxxxx@bank-of-china.com" />
@@ -407,7 +407,7 @@ export default {
         bookWeekdays: ['1', '2', '3', '4', '5'],
         emailEnabled: 0,
         emailUser: '',
-        emailPassword: '',
+        emailPass: '',
         emailRecipient: ''
       },
       rules: {
@@ -657,7 +657,7 @@ export default {
 
     handleAdd() {
       this.formTitle = '新增车位预约'
-      this.form = { empNo: '', username: '', password: '', autoBook: 0, nextAutoBookDate: '', bookWeekdays: ['1', '2', '3', '4', '5'], emailEnabled: 0, emailUser: '', emailPassword: '', emailRecipient: '' }
+      this.form = { empNo: '', username: '', password: '', autoBook: 0, nextAutoBookDate: '', bookWeekdays: ['1', '2', '3', '4', '5'], emailEnabled: 0, emailUser: '', emailPass: '', emailRecipient: '' }
       this.isEditing = false
       this.formVisible = true
     },
@@ -667,7 +667,7 @@ export default {
       this.form = {
         ...row,
         password: '',        // 密码不回显，修改时可留空
-        emailPassword: '',   // 邮箱密码不回显，修改时可留空
+        emailPass: '',   // 邮箱密码不回显，修改时可留空
         emailUser: row.empNo || row.emailUser || '',  // 邮箱账号取工号
         emailEnabled: row.emailEnabled || 0,
         emailRecipient: row.emailRecipient || '',
@@ -701,13 +701,13 @@ export default {
         if (!valid) return
 
         this.submitLoading = true
-        const { empNo, username, password, autoBook, nextAutoBookDate, bookWeekdays, emailEnabled, emailUser, emailPassword, emailRecipient } = this.form
+        const { empNo, username, password, autoBook, nextAutoBookDate, bookWeekdays, emailEnabled, emailUser, emailPass, emailRecipient } = this.form
         const passHash = this.encryptPassword(password)
-        const encEmailPassword = this.encryptPassword(emailPassword)
+        const encEmailPass = this.encryptPassword(emailPass)
 
         const data = { empNo, username, autoBook, nextAutoBookDate, bookWeekdays: bookWeekdays.join(','), emailEnabled, emailUser, emailRecipient }
         if (passHash) data.passHash = passHash
-        if (encEmailPassword) data.emailPassword = encEmailPassword
+        if (encEmailPass) data.emailPass = encEmailPass
 
         try {
         const res = await saveOrUpdateParking(data)  // ✅ 接收响应

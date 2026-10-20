@@ -38,7 +38,7 @@ public interface DbConnectionConfigService extends IService<DbConnectionConfig> 
 
     /**
      * 测试数据库连接是否可用
-     * @param config 数据库配置（含 host、port、username、password、databaseName）
+     * @param config 数据库配置（含 host、port、dbUser、dbPass、databaseName）
      * @return true 连接成功，false 连接失败
      */
     boolean testConnection(DbConnectionConfig config);

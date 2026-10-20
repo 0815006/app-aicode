@@ -36,7 +36,7 @@ public class ParkingBookController {
     private BankEmailPlaywrightService bankEmailPlaywrightService;
 
     /**
-     * 查询所有车位预约记录（不返回密码哈希）
+     * 查询所有车位预约记录（列表视图 ParkingBookWithRusult；SQL 未查 pass_hash / email_pass，这两个字段固定为 null）
      */
     @GetMapping("/list")
     public ResultBean<List<ParkingBookWithRusult>> listAll() {
@@ -63,7 +63,7 @@ public class ParkingBookController {
             record.setBookWeekdays(dto.getBookWeekdays() != null ? dto.getBookWeekdays() : "1,2,3,4,5");
             record.setEmailEnabled(dto.getEmailEnabled() != null ? dto.getEmailEnabled() : 0);
             record.setEmailUser(dto.getEmailUser());
-            record.setEmailPassword(dto.getEmailPassword());
+            record.setEmailPass(dto.getEmailPass());
             record.setEmailRecipient(dto.getEmailRecipient());
             parkingBookService.save(record);
             return ResultBean.success("新增成功");
@@ -94,8 +94,8 @@ public class ParkingBookController {
             }
             existing.setEmailEnabled(dto.getEmailEnabled() != null ? dto.getEmailEnabled() : 0);
             existing.setEmailUser(dto.getEmailUser());
-            if (dto.getEmailPassword() != null && !dto.getEmailPassword().isEmpty()) {
-                existing.setEmailPassword(dto.getEmailPassword());
+            if (dto.getEmailPass() != null && !dto.getEmailPass().isEmpty()) {
+                existing.setEmailPass(dto.getEmailPass());
             }
             existing.setEmailRecipient(dto.getEmailRecipient());
             parkingBookService.updateById(existing);
@@ -126,8 +126,8 @@ public class ParkingBookController {
 
     /**
      * 2. 修改本人配置 (使用密码校验)
-     * 前端传入 emp_no, username, passwordHash, autoBook
-     * 后端强制密码是否正确
+     * 前端传入 empNo、username（用户中文姓名）、passHash、autoBook
+     * 后端强制校验 passHash 是否正确
      */
     @PostMapping("/saveOrUpdate")
     public ResultBean saveOrUpdate(@RequestBody ParkingBook config) {

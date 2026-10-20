@@ -66,8 +66,8 @@ public class DbConnectionConfigServiceImpl
         }
 
         // 保留原密码，除非新传了非空密码
-        if (config.getPassword() == null || config.getPassword().isEmpty()) {
-            config.setPassword(existing.getPassword());
+        if (config.getDbPass() == null || config.getDbPass().isEmpty()) {
+            config.setDbPass(existing.getDbPass());
         }
 
         config.setUpdatedTime(LocalDateTime.now());
@@ -81,10 +81,10 @@ public class DbConnectionConfigServiceImpl
     public boolean testConnection(DbConnectionConfig config) {
         DatabaseDialect dialect = DialectFactory.getDialect(config);
         String jdbcUrl = dialect.buildJdbcUrl(config);
-        String username = config.getUsername();
-        String password = decryptPassword(config.getPassword());
+        String username = config.getDbUser();
+        String password = decryptPassword(config.getDbPass());
 
-        log.info("测试连接: {}@{}:{}/{}", config.getUsername(), config.getHost(), config.getPort(), config.getDatabaseName());
+        log.info("测试连接: {}@{}:{}/{}", config.getDbUser(), config.getHost(), config.getPort(), config.getDatabaseName());
         try (Connection conn = DriverManager.getConnection(jdbcUrl, username, password)) {
             return !conn.isClosed();
         } catch (Exception e) {
@@ -100,8 +100,8 @@ public class DbConnectionConfigServiceImpl
     public List<TableInfo> getTableInfoList(DbConnectionConfig config) {
         DatabaseDialect dialect = DialectFactory.getDialect(config);
         String jdbcUrl = dialect.buildJdbcUrl(config);
-        String username = config.getUsername();
-        String password = decryptPassword(config.getPassword());
+        String username = config.getDbUser();
+        String password = decryptPassword(config.getDbPass());
         String databaseName = config.getDatabaseName();
 
         List<TableInfo> result = new ArrayList<>();
@@ -247,8 +247,8 @@ public class DbConnectionConfigServiceImpl
 
         log.info("开始迁移数据: {} -> {}", sourceConfig.getDatabaseName(), targetConfig.getDatabaseName());
 
-        try (Connection srcConn = DriverManager.getConnection(sourceJdbcUrl, sourceConfig.getUsername(), decryptPassword(sourceConfig.getPassword()));
-             Connection tgtConn = DriverManager.getConnection(targetJdbcUrl, targetConfig.getUsername(), decryptPassword(targetConfig.getPassword()));
+        try (Connection srcConn = DriverManager.getConnection(sourceJdbcUrl, sourceConfig.getDbUser(), decryptPassword(sourceConfig.getDbPass()));
+             Connection tgtConn = DriverManager.getConnection(targetJdbcUrl, targetConfig.getDbUser(), decryptPassword(targetConfig.getDbPass()));
              PreparedStatement selectPs = srcConn.prepareStatement(selectSql);
              PreparedStatement insertPs = tgtConn.prepareStatement(insertSql);
              ResultSet rs = selectPs.executeQuery()) {
@@ -398,8 +398,8 @@ public class DbConnectionConfigServiceImpl
 
     private List<String> getColumnNames(DbConnectionConfig config, DatabaseDialect dialect, String tableName) {
         String jdbcUrl = dialect.buildJdbcUrl(config);
-        String username = config.getUsername();
-        String password = decryptPassword(config.getPassword());
+        String username = config.getDbUser();
+        String password = decryptPassword(config.getDbPass());
         List<String> columns = new ArrayList<>();
         
         Set<String> seenNames = new HashSet<>();
@@ -445,8 +445,8 @@ public class DbConnectionConfigServiceImpl
 
     private String getCreateTableSql(DbConnectionConfig config, DatabaseDialect dialect, String tableName) {
         String jdbcUrl = dialect.buildJdbcUrl(config);
-        String username = config.getUsername();
-        String password = decryptPassword(config.getPassword());
+        String username = config.getDbUser();
+        String password = decryptPassword(config.getDbPass());
 
         try (Connection conn = DriverManager.getConnection(jdbcUrl, username, password)) {
             return dialect.getCreateTableSql(conn, config.getDatabaseName(), tableName);
@@ -458,8 +458,8 @@ public class DbConnectionConfigServiceImpl
 
     private void executeSqlOnConfig(DbConnectionConfig config, DatabaseDialect dialect, String sql) {
         String jdbcUrl = dialect.buildJdbcUrl(config);
-        String username = config.getUsername();
-        String password = decryptPassword(config.getPassword());
+        String username = config.getDbUser();
+        String password = decryptPassword(config.getDbPass());
 
         try (Connection conn = DriverManager.getConnection(jdbcUrl, username, password);
              Statement stmt = conn.createStatement()) {
@@ -477,7 +477,7 @@ public class DbConnectionConfigServiceImpl
      */
     private TableDefinition readTableDefinition(DbConnectionConfig config, DatabaseDialect dialect, String tableName) {
         String jdbcUrl = dialect.buildJdbcUrl(config);
-        try (Connection conn = DriverManager.getConnection(jdbcUrl, config.getUsername(), decryptPassword(config.getPassword()))) {
+        try (Connection conn = DriverManager.getConnection(jdbcUrl, config.getDbUser(), decryptPassword(config.getDbPass()))) {
             return dialect.readTableDefinition(conn, config.getDatabaseName(), tableName);
         } catch (SQLException e) {
             log.error("读取表结构失败: {}", tableName, e);
@@ -493,7 +493,7 @@ public class DbConnectionConfigServiceImpl
             throw new RuntimeException("未能生成目标建库语句");
         }
         String jdbcUrl = dialect.buildJdbcUrl(config);
-        try (Connection conn = DriverManager.getConnection(jdbcUrl, config.getUsername(), decryptPassword(config.getPassword()));
+        try (Connection conn = DriverManager.getConnection(jdbcUrl, config.getDbUser(), decryptPassword(config.getDbPass()));
              Statement stmt = conn.createStatement()) {
             for (String sql : statements) {
                 stmt.execute(sql);

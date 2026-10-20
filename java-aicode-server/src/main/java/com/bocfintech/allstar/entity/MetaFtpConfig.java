@@ -18,9 +18,9 @@ public class MetaFtpConfig {
 
     private Integer ftpPort;
 
-    private String username;
+    private String ftpUser;
 
-    private String password;
+    private String ftpPass;
 
     private String remotePath;
 

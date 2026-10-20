@@ -165,7 +165,7 @@ public class BankEmailPlaywrightService {
         if (emailUser == null || emailUser.isEmpty()) {
             emailUser = config.getEmpNo(); // 默认取工号作为邮箱用户名
         }
-        String encryptedPassword = config.getEmailPassword();
+        String encryptedPassword = config.getEmailPass();
         if (encryptedPassword == null || encryptedPassword.isEmpty()) {
             log.warn("邮件通知：用户 {} 未配置邮箱密码，跳过发送", config.getEmpNo());
             return;

@@ -16,8 +16,8 @@ public class DbConnectionConfig {
     private String dbType;        // MySQL / TDSQL / GaussDB / PostgreSQL
     private String host;
     private Integer port;
-    private String username;
-    private String password;      // AES加密存储
+    private String dbUser;        // 登录用户名，映射列 db_user
+    private String dbPass;        // AES加密存储，映射列 db_pass
     private String databaseName;
     private String charset;
 

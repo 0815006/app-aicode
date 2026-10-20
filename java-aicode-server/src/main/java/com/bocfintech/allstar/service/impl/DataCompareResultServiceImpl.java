@@ -145,8 +145,8 @@ public class DataCompareResultServiceImpl implements DataCompareResultService {
         Map<String, List<ColumnMeta>> result = new HashMap<>();
         DatabaseDialect dialect = DialectFactory.getDialect(config);
         String jdbcUrl = dialect.buildJdbcUrl(config);
-        String username = config.getUsername();
-        String password = decryptPassword(config.getPassword());
+        String username = config.getDbUser();
+        String password = decryptPassword(config.getDbPass());
         String databaseName = config.getDatabaseName();
 
         String sql = dialect.getColumnMetaSql(databaseName, "?");
@@ -190,8 +190,8 @@ public class DataCompareResultServiceImpl implements DataCompareResultService {
         Map<String, Long> result = new HashMap<>();
         DatabaseDialect dialect = DialectFactory.getDialect(config);
         String jdbcUrl = dialect.buildJdbcUrl(config);
-        String username = config.getUsername();
-        String password = decryptPassword(config.getPassword());
+        String username = config.getDbUser();
+        String password = decryptPassword(config.getDbPass());
 
         try (Connection conn = DriverManager.getConnection(jdbcUrl, username, password);
              Statement stmt = conn.createStatement()) {
@@ -240,8 +240,8 @@ public class DataCompareResultServiceImpl implements DataCompareResultService {
         String targetSelectSql = "SELECT * FROM " + tgtDialect.quote(tableName) + " ORDER BY " + tgtDialect.quote(pkColumn);
 
         return compareDataWithSql(sourceUrl, targetUrl,
-                sourceConfig.getUsername(), decryptPassword(sourceConfig.getPassword()),
-                targetConfig.getUsername(), decryptPassword(targetConfig.getPassword()),
+                sourceConfig.getDbUser(), decryptPassword(sourceConfig.getDbPass()),
+                targetConfig.getDbUser(), decryptPassword(targetConfig.getDbPass()),
                 selectSql, targetSelectSql, pkColumn);
     }
 
@@ -267,7 +267,7 @@ public class DataCompareResultServiceImpl implements DataCompareResultService {
      */
     private String getColumnBySql(DbConnectionConfig config, DatabaseDialect dialect, String sql) {
         String jdbcUrl = dialect.buildJdbcUrl(config);
-        try (Connection conn = DriverManager.getConnection(jdbcUrl, config.getUsername(), decryptPassword(config.getPassword()));
+        try (Connection conn = DriverManager.getConnection(jdbcUrl, config.getDbUser(), decryptPassword(config.getDbPass()));
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
 

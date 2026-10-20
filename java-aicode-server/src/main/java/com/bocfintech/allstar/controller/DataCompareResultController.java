@@ -161,10 +161,10 @@ public class DataCompareResultController {
         if (config.getPort() == null || config.getPort() <= 0) {
             throw new IllegalArgumentException(prefix + "端口必须大于0");
         }
-        if (!StringUtils.hasText(config.getUsername())) {
+        if (!StringUtils.hasText(config.getDbUser())) {
             throw new IllegalArgumentException(prefix + "用户名不能为空");
         }
-        if (!StringUtils.hasText(config.getPassword())) {
+        if (!StringUtils.hasText(config.getDbPass())) {
             throw new IllegalArgumentException(prefix + "密码不能为空");
         }
         if (!StringUtils.hasText(config.getDatabaseName())) {

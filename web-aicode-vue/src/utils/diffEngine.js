@@ -484,6 +484,9 @@ var SENSITIVE_PATTERNS = [
   { regex: /(passwd\s*[=:]\s*)(\S+)/gi, group: 2 },
   { regex: /("password"\s*:\s*")([^"]+)(")/gi, group: 2 },
   { regex: /(password:\s+)(\S+)/gi, group: 2 },
+  // 重命名后的密码字段（dbPass / ftpPass / emailPass / userPass / passHash，含下划线形式）
+  { regex: /((?:db|ftp|email|user)[_-]?pass|pass[_-]?(?:hash|wd))(\s*[=:]\s*)(\S+)/gi, group: 3 },
+  { regex: /("(?:db|ftp|email|user)[_-]?pass|"pass[_-]?(?:hash|wd)")(\s*:\s*")([^"]+)(")/gi, group: 3 },
   // token / secret / key
   { regex: /(token\s*[=:]\s*)(\S+)/gi, group: 2 },
   { regex: /(secret\s*[=:]\s*)(\S+)/gi, group: 2 },
@@ -592,7 +595,9 @@ export function isLargeFile(size) {
  */
 export function splitLines(content) {
   if (!content) return []
-  return content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n')
+  var LF = String.fromCharCode(10)
+  var CR = String.fromCharCode(13)
+  return content.split(CR + LF).join(LF).split(CR).join(LF).split(LF)
 }
 
 /**

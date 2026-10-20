@@ -42,11 +42,11 @@
       <el-form-item label="端口" prop="port">
         <el-input-number v-model="form.port" :min="1" :max="65535" placeholder="请输入端口" />
       </el-form-item>
-      <el-form-item label="登录用户名" prop="username">
-        <el-input v-model="form.username" placeholder="请输入用户名" />
+      <el-form-item label="登录用户名" prop="dbUser">
+        <el-input v-model="form.dbUser" placeholder="请输入用户名" />
       </el-form-item>
-      <el-form-item label="密码" prop="password">
-        <el-input v-model="form.password" type="password" placeholder="请输入密码" show-password />
+      <el-form-item label="密码" prop="dbPass">
+        <el-input v-model="form.dbPass" type="password" placeholder="请输入密码" show-password />
       </el-form-item>
       <el-form-item label="数据库名" prop="databaseName">
         <el-input v-model="form.databaseName" placeholder="请输入数据库名" />
@@ -101,8 +101,8 @@ export default {
         dbType: '',
         host: '',
         port: 3306,
-        username: '',
-        password: '',
+        dbUser: '',
+        dbPass: '',
         databaseName: '',
         charset: 'utf8mb4'
       },
@@ -119,10 +119,10 @@ export default {
         port: [
           { required: true, message: '端口不能为空', trigger: 'blur' }
         ],
-        username: [
+        dbUser: [
           { required: true, message: '用户名不能为空', trigger: 'blur' }
         ],
-        password: [
+        dbPass: [
           { required: true, message: '密码不能为空', trigger: 'blur' }
         ],
         databaseName: [
@@ -146,8 +146,8 @@ export default {
           dbType: '',
           host: '',
           port: 3306,
-          username: '',
-          password: '',
+          dbUser: '',
+          dbPass: '',
           databaseName: '',
           charset: 'utf8mb4'
         }
@@ -182,8 +182,8 @@ export default {
           dbType: '',
           host: '',
           port: 3306,
-          username: '',
-          password: '',
+          dbUser: '',
+          dbPass: '',
           databaseName: '',
           charset: 'utf8mb4'
         }
@@ -208,8 +208,8 @@ export default {
           dbType: selected.dbType,
           host: selected.host,
           port: selected.port,
-          username: selected.username,
-          password: selected.password,
+          dbUser: selected.dbUser,
+          dbPass: selected.dbPass,
           databaseName: selected.databaseName,
           charset: selected.charset
         }
@@ -225,8 +225,8 @@ export default {
             dbType: this.form.dbType,
             host: this.form.host,
             port: this.form.port,
-            username: this.form.username,
-            password: this.form.password,
+            dbUser: this.form.dbUser,
+            dbPass: this.form.dbPass,
             databaseName: this.form.databaseName,
             charset: this.form.charset
           }

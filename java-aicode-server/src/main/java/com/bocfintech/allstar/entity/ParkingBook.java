@@ -30,7 +30,7 @@ public class ParkingBook {
 
     private String emailUser;        // 发送邮件账号用户名（7位工号格式）
 
-    private String emailPassword;    // 发送邮件账号密码（加密存储）
+    private String emailPass;        // 发送邮件账号密码（加密存储），映射列 email_pass
 
     private String emailRecipient;   // 收件人邮箱地址
 

@@ -206,7 +206,7 @@
         <el-table-column prop="name" label="名称" min-width="100"></el-table-column>
         <el-table-column prop="ftpIp" label="FTP IP" width="130"></el-table-column>
         <el-table-column prop="ftpPort" label="端口" width="60"></el-table-column>
-        <el-table-column prop="username" label="用户名" width="100"></el-table-column>
+        <el-table-column prop="ftpUser" label="用户名" width="100"></el-table-column>
         <el-table-column prop="remotePath" label="远程路径" min-width="140" show-overflow-tooltip></el-table-column>
         <el-table-column prop="updateTime" label="最后修改" width="160"></el-table-column>
         <el-table-column label="操作" width="120">
@@ -239,15 +239,15 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="用户名" prop="username">
-              <el-input v-model="ftpForm.username" placeholder="FTP用户名"></el-input>
+            <el-form-item label="用户名" prop="ftpUser">
+              <el-input v-model="ftpForm.ftpUser" placeholder="FTP用户名"></el-input>
             </el-form-item>
           </el-col>
         </el-row>
         <el-row :gutter="16">
           <el-col :span="12">
-            <el-form-item label="密码" prop="password">
-              <el-input v-model="ftpForm.password" type="password" show-password placeholder="FTP密码"></el-input>
+            <el-form-item label="密码" prop="ftpPass">
+              <el-input v-model="ftpForm.ftpPass" type="password" show-password placeholder="FTP密码"></el-input>
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -363,15 +363,15 @@ export default {
         name: '',
         ftpIp: '',
         ftpPort: 21,
-        username: '',
-        password: '',
+        ftpUser: '',
+        ftpPass: '',
         remotePath: ''
       },
       ftpRules: {
         name: [{ required: true, message: '请输入名称', trigger: 'blur' }],
         ftpIp: [{ required: true, message: '请输入FTP IP', trigger: 'blur' }],
-        username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-        password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
+        ftpUser: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
+        ftpPass: [{ required: true, message: '请输入密码', trigger: 'blur' }],
         remotePath: [{ required: true, message: '请输入远程路径', trigger: 'blur' }]
       }
     }
@@ -673,14 +673,14 @@ export default {
         name: row.name,
         ftpIp: row.ftpIp,
         ftpPort: row.ftpPort || 21,
-        username: row.username,
-        password: row.password,
+        ftpUser: row.ftpUser,
+        ftpPass: row.ftpPass,
         remotePath: row.remotePath
       }
     },
     resetFtpForm() {
       this.ftpFormMode = 'create'
-      this.ftpForm = { id: null, name: '', ftpIp: '', ftpPort: 21, username: '', password: '', remotePath: '' }
+      this.ftpForm = { id: null, name: '', ftpIp: '', ftpPort: 21, ftpUser: '', ftpPass: '', remotePath: '' }
       if (this.$refs.ftpFormRef) {
         this.$refs.ftpFormRef.resetFields()
       }
