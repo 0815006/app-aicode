@@ -25,7 +25,7 @@ import java.util.List;
  * 实现机制：
  * Playwright 通过 Chrome DevTools Protocol (CDP) 驱动 Chromium 浏览器。
  * 每次调用 launch() 启动一个独立 Chromium 进程，操作完成后关闭。
- * 和 {@code Mail163Test} 共享同一份 Chromium 安装：
+ * 使用的 Chromium 安装路径：
  * {@code %LOCALAPPDATA%\ms-playwright\chromium-1097\chrome.exe}
  * <p>
  * 页面结构（与163邮箱的关键区别）：
