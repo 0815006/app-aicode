@@ -9,7 +9,7 @@
 --   邮箱  密码  emailPass -> email_pass
 --   数据库用户名 dbUser    -> db_user
 --   FTP  用户名  ftpUser   -> ftp_user
---   用户密码哈希 passHash -> pass_hash（原样保留，无需调整）
+--   用户密码哈希 passHash -> pass_hash（2026-10-21 再更名为 userPass / user_pass，见第 6 条）
 -- 说明  ：CHANGE COLUMN 只改列名，数据与索引不受影响；本次涉及的 5 个列均无索引依赖
 -- 执行  ：仅需执行一次（增量打版本，历史脚本不重复执行）
 -- =============================================================
@@ -34,6 +34,10 @@ ALTER TABLE `db_connection_config`
 ALTER TABLE `meta_ftp_config`
     CHANGE COLUMN `username` `ftp_user` VARCHAR(100) NOT NULL COMMENT 'FTP用户名';
 
+-- 6. 车位预约表：pass_hash -> user_pass（仅改列名，加密方式与业务逻辑不变）
+ALTER TABLE `parking_book`
+    CHANGE COLUMN `pass_hash` `user_pass` varchar(255) NOT NULL COMMENT '用户密码（AES加密存储）';
+
 
 -- =============================================================
 -- 回滚语句（如需还原，按需单独执行）
@@ -48,3 +52,5 @@ ALTER TABLE `meta_ftp_config`
 --     CHANGE COLUMN `db_user` `username` varchar(50) NOT NULL COMMENT '登录用户名';
 -- ALTER TABLE `meta_ftp_config`
 --     CHANGE COLUMN `ftp_user` `username` VARCHAR(100) NOT NULL COMMENT 'FTP用户名';
+-- ALTER TABLE `parking_book`
+--     CHANGE COLUMN `user_pass` `pass_hash` varchar(255) NOT NULL COMMENT '用户密码哈希（加密存储）';

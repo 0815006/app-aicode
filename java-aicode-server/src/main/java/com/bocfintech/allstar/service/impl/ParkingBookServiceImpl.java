@@ -28,9 +28,9 @@ public class ParkingBookServiceImpl extends ServiceImpl<ParkingBookMapper, Parki
     public boolean updateMyConfig(ParkingBook config) {
 
         // 验证密码正确性
-        if (config.getPassHash() != null && !config.getPassHash().isEmpty()) {
+        if (config.getUserPass() != null && !config.getUserPass().isEmpty()) {
             // 调用登录接口验证密码
-            boolean passwordValid = validatePassword(config.getEmpNo(), config.getPassHash());
+            boolean passwordValid = validatePassword(config.getEmpNo(), config.getUserPass());
             if (!passwordValid) {
                 return false;
             }

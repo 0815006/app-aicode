@@ -107,7 +107,7 @@ public class ParkBookTask {
             if (!java.util.Arrays.asList(weekdays.split(",")).contains(String.valueOf(todayWeekday))) {
                 continue; // 今天不在用户选择的星期内，跳过
             }
-            executeParkTasks(book.getEmpNo(),book.getPassHash());
+            executeParkTasks(book.getEmpNo(),book.getUserPass());
         }
     }
 
@@ -248,11 +248,11 @@ public class ParkBookTask {
     public void checkParkingBook(ParkingBook config) {
 
             String userId = config.getEmpNo();
-            String passHash =config.getPassHash();
+            String userPass =config.getUserPass();
             try {
 
                 // 1. 调用登录接口
-                String token = login(userId, passHash);
+                String token = login(userId, userPass);
                 if (token == null || token.isEmpty()) {
                     log.error("登录失败，无法获取token");
                     return;

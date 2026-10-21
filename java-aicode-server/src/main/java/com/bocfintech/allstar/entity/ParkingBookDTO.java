@@ -8,7 +8,7 @@ import lombok.Data;
 public class ParkingBookDTO {
     private String empNo;
     private String username;
-    private String passHash;  // 前端加密后传入
+    private String userPass;  // 前端加密后传入，映射列 user_pass
     private Integer autoBook;
     private String nextAutoBookDate; // 下次自动开启预约日期 (yyyy-mm-dd)
 

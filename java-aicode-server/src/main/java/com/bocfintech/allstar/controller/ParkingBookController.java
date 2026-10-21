@@ -36,7 +36,7 @@ public class ParkingBookController {
     private BankEmailPlaywrightService bankEmailPlaywrightService;
 
     /**
-     * 查询所有车位预约记录（列表视图 ParkingBookWithRusult；SQL 未查 pass_hash / email_pass，这两个字段固定为 null）
+     * 查询所有车位预约记录（列表视图 ParkingBookWithRusult；SQL 未查 user_pass / email_pass，这两个字段固定为 null）
      */
     @GetMapping("/list")
     public ResultBean<List<ParkingBookWithRusult>> listAll() {
@@ -57,7 +57,7 @@ public class ParkingBookController {
             ParkingBook record = new ParkingBook();
             record.setEmpNo(dto.getEmpNo());
             record.setUsername(dto.getUsername());
-            record.setPassHash(dto.getPassHash()); // 前端已加密
+            record.setUserPass(dto.getUserPass()); // 前端已加密
             record.setAutoBook(dto.getAutoBook());
             record.setNextAutoBookDate(dto.getNextAutoBookDate());
             record.setBookWeekdays(dto.getBookWeekdays() != null ? dto.getBookWeekdays() : "1,2,3,4,5");
@@ -89,8 +89,8 @@ public class ParkingBookController {
             if (dto.getBookWeekdays() != null && !dto.getBookWeekdays().isEmpty()) {
                 existing.setBookWeekdays(dto.getBookWeekdays());
             }
-            if (dto.getPassHash() != null && !dto.getPassHash().isEmpty()) {
-                existing.setPassHash(dto.getPassHash());
+            if (dto.getUserPass() != null && !dto.getUserPass().isEmpty()) {
+                existing.setUserPass(dto.getUserPass());
             }
             existing.setEmailEnabled(dto.getEmailEnabled() != null ? dto.getEmailEnabled() : 0);
             existing.setEmailUser(dto.getEmailUser());
@@ -126,12 +126,12 @@ public class ParkingBookController {
 
     /**
      * 2. 修改本人配置 (使用密码校验)
-     * 前端传入 empNo、username（用户中文姓名）、passHash、autoBook
-     * 后端强制校验 passHash 是否正确
+     * 前端传入 empNo、username（用户中文姓名）、userPass、autoBook
+     * 后端强制校验 userPass 是否正确
      */
     @PostMapping("/saveOrUpdate")
     public ResultBean saveOrUpdate(@RequestBody ParkingBook config) {
-        if (!StringUtils.hasText(config.getPassHash())) {
+        if (!StringUtils.hasText(config.getUserPass())) {
             return ResultBean.error(ErrorEnum.参数异常, "修改配置信息需要校验密码！");
         }        
         if (!StringUtils.hasText(config.getNextAutoBookDate())) {
@@ -171,7 +171,7 @@ public class ParkingBookController {
         }
         try {
             log.info("手动触发预约");
-            parkBookTask.executeParkTasks(config.getEmpNo(),config.getPassHash());
+            parkBookTask.executeParkTasks(config.getEmpNo(),config.getUserPass());
 
         } catch (Exception e) {
             log.error("手动触发预约失败", e);
@@ -223,7 +223,7 @@ public class ParkingBookController {
         }
         try {
             log.info("手动触发取消预约");
-            parkBookTask.executeCancelParkTasks(config.getEmpNo(),config.getPassHash());
+            parkBookTask.executeCancelParkTasks(config.getEmpNo(),config.getUserPass());
 
         } catch (Exception e) {
             log.error("手动触发取消预约失败", e);

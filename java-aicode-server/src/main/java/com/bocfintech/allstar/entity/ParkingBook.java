@@ -17,7 +17,7 @@ public class ParkingBook {
 
     private String username;       // 用户中文名称
 
-    private String passHash;   // 密码哈希
+    private String userPass;   // 用户密码（AES加密存储），映射列 user_pass
 
     private Integer autoBook;      // 0:关闭, 1:开启
     

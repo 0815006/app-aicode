@@ -702,11 +702,11 @@ export default {
 
         this.submitLoading = true
         const { empNo, username, password, autoBook, nextAutoBookDate, bookWeekdays, emailEnabled, emailUser, emailPass, emailRecipient } = this.form
-        const passHash = this.encryptPassword(password)
+        const userPass = this.encryptPassword(password)
         const encEmailPass = this.encryptPassword(emailPass)
 
         const data = { empNo, username, autoBook, nextAutoBookDate, bookWeekdays: bookWeekdays.join(','), emailEnabled, emailUser, emailRecipient }
-        if (passHash) data.passHash = passHash
+        if (userPass) data.userPass = userPass
         if (encEmailPass) data.emailPass = encEmailPass
 
         try {
