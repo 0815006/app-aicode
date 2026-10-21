@@ -57,7 +57,7 @@ export default {
     return {
       tips: [
         '点击右侧工号可切换到自己工号，查看个人车位预约状态和预约记录',
-        '数据迁移，新增Gaussdb和Postgresql方言支持',
+        '本系统已加固防护措施，但仍提示用户：禁止使用弱密码',
         '邮箱密码填错或者邮箱容量超过80%，均会导致无法发送邮件'
       ],
       marqueePaused: false,
