@@ -84,15 +84,6 @@ file-share:
 xmind-edit:
   root-path: "${app.data-root}/xmind/"
 
-# 造数引擎
-meta:
-  max-file-lines: 2000
-  storage:
-    preview: "${app.data-root}/meta/preview/"
-    formal: "${app.data-root}/meta/normal/"
-  template-path: "${app.data-root}/meta/templates/"
-  ref-file-path: "${app.data-root}/meta/ref-files/"
-
 # Playwright / Chrome 配置
 # 内网桌面环境使用系统 Chrome + CDP；Docker 环境由 Playwright 自行管理浏览器
 chrome:

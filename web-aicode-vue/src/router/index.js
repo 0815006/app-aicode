@@ -13,7 +13,6 @@ import XmindConverter from '@/views/XmindConverter.vue'
 import XmindEdit from '@/views/XmindEdit.vue'
 import TextComparison from '@/views/TextComparison.vue'
 import MediaCrawl from '@/views/MediaCrawl.vue'
-import MetaGen from '@/views/MetaGen.vue'
 import FormatJson from '@/views/FormatJson.vue'
 import FormatXml from '@/views/FormatXml.vue'
 import FormatHtml from '@/views/FormatHtml.vue'
@@ -97,12 +96,6 @@ export default new Router({
           name: 'MediaCrawl',
           component: MediaCrawl,
           meta: { title: '媒体抓取' }
-        },
-        {
-          path: 'meta-gen',
-          name: 'MetaGen',
-          component: MetaGen,
-          meta: { title: '造数引擎' }
         },
         {
           path: 'format-json',

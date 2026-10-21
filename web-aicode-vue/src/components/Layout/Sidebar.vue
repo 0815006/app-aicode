@@ -98,12 +98,6 @@
         <span slot="title">媒体抓取</span>
       </el-menu-item> -->
 
-      <!-- ✅ 新增：造数引擎 -->
-      <!-- <el-menu-item index="/meta-gen">
-        <i class="el-icon-s-marketing"></i>
-        <span slot="title">造数引擎</span>
-      </el-menu-item> -->
-
       <el-menu-item index="/format-json">
         <i class="el-icon-s-data"></i>
         <span slot="title">格式化JSON</span>
