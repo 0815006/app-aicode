@@ -61,12 +61,6 @@
         <span slot="title">数据迁移</span>
       </el-menu-item>
 
-      <!-- ✅ 投票功能保留，暂不开启 -->
-      <!-- <el-menu-item index="/vote">
-        <i class="el-icon-star-off"></i>
-        <span slot="title">投票功能</span>
-      </el-menu-item> -->
-
       <el-menu-item index="/xmind-converter">
         <i class="el-icon-refresh"></i>
         <span slot="title">思维导图</span>

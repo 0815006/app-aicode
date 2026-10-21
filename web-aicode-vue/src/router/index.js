@@ -7,7 +7,6 @@ import ParkingScreen from '@/views/ParkingScreen.vue' // 停车大屏
 import ChatHall from '@/views/ChatHall.vue' // 新增
 import ChatRoom from '@/views/ChatRoom.vue' // 聊天房间
 import DataMigration from '@/views/DataMigration.vue'
-import VoteManagement from '@/views/VoteManagement.vue'
 import XmindConverter from '@/views/XmindConverter.vue'
 import XmindEdit from '@/views/XmindEdit.vue'
 import TextComparison from '@/views/TextComparison.vue'
@@ -29,12 +28,6 @@ export default new Router({
       component: Home,
       redirect: '/chat',
       children: [
-        {
-          path: 'vote',
-          name: 'VoteManagement',
-          component: VoteManagement,
-          meta: { title: '投票功能' }
-        },
         {
           path: 'parking-list',
           name: 'ParkingBookList',

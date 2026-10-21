@@ -69,8 +69,6 @@ logging:
 app:
   data-root: ${DATA_ROOT:D:/data/aicode-v1}
 
-vote:
-  upload-path: "${app.data-root}/uploads/vote/"
 text-extract:
   upload-path: "${app.data-root}/uploads/text-extract/"
 chat:
