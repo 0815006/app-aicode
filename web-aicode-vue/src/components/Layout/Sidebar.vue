@@ -87,12 +87,6 @@
         <span slot="title">文本提取</span>
       </el-menu-item>
 
-      <!-- ✅ 媒体抓取功能保留，暂不开启 -->
-      <!-- <el-menu-item index="/media-crawl">
-        <i class="el-icon-download"></i>
-        <span slot="title">媒体抓取</span>
-      </el-menu-item> -->
-
       <el-menu-item index="/format-json">
         <i class="el-icon-s-data"></i>
         <span slot="title">格式化JSON</span>

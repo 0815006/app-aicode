@@ -11,7 +11,6 @@ import VoteManagement from '@/views/VoteManagement.vue'
 import XmindConverter from '@/views/XmindConverter.vue'
 import XmindEdit from '@/views/XmindEdit.vue'
 import TextComparison from '@/views/TextComparison.vue'
-import MediaCrawl from '@/views/MediaCrawl.vue'
 import FormatJson from '@/views/FormatJson.vue'
 import FormatXml from '@/views/FormatXml.vue'
 import FormatHtml from '@/views/FormatHtml.vue'
@@ -83,12 +82,6 @@ export default new Router({
           name: 'TextComparison',
           component: TextComparison,
           meta: { title: '文本比对' }
-        },
-        {
-          path: 'media-crawl',
-          name: 'MediaCrawl',
-          component: MediaCrawl,
-          meta: { title: '媒体抓取' }
         },
         {
           path: 'format-json',

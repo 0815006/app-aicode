@@ -68,9 +68,6 @@ logging:
 # =============================================
 app:
   data-root: ${DATA_ROOT:D:/data/aicode-v1}
-  crawl:
-    image-base-path: "${app.data-root}/crawl/images/"
-    video-base-path: "${app.data-root}/crawl/videos/"
 
 vote:
   upload-path: "${app.data-root}/uploads/vote/"
