@@ -98,11 +98,6 @@
         <span slot="title">媒体抓取</span>
       </el-menu-item> -->
 
-      <!-- <el-menu-item index="/performance">
-        <i class="el-icon-s-opportunity"></i>
-        <span slot="title">性能测试</span>
-      </el-menu-item> -->
-
       <!-- ✅ 新增：造数引擎 -->
       <!-- <el-menu-item index="/meta-gen">
         <i class="el-icon-s-marketing"></i>

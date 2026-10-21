@@ -11,7 +11,6 @@ import DataMigration from '@/views/DataMigration.vue'
 import VoteManagement from '@/views/VoteManagement.vue'
 import XmindConverter from '@/views/XmindConverter.vue'
 import XmindEdit from '@/views/XmindEdit.vue'
-import PerformanceTest from '@/views/PerformanceTest.vue'
 import TextComparison from '@/views/TextComparison.vue'
 import MediaCrawl from '@/views/MediaCrawl.vue'
 import MetaGen from '@/views/MetaGen.vue'
@@ -86,12 +85,6 @@ export default new Router({
           name: 'XmindEdit',
           component: XmindEdit,
           meta: { title: 'XMind 编辑器' }
-        },
-        {
-          path: 'performance',
-          name: 'PerformanceTest',
-          component: PerformanceTest,
-          meta: { title: '性能测试方案' }
         },
         {
           path: 'text-comparison',

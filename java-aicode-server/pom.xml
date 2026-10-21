@@ -196,7 +196,7 @@
             </exclusions>
         </dependency>
 
-        <!-- Apache POI 5.2.5 for poi-tl 1.12.2 compatibility -->
+        <!-- Apache POI 5.2.5（Excel 解析依赖） -->
         <dependency>
             <groupId>org.apache.poi</groupId>
             <artifactId>poi-ooxml</artifactId>
@@ -229,13 +229,6 @@
             <groupId>org.jxls</groupId>
             <artifactId>jxls-poi</artifactId>
             <version>${jxls.version}</version>
-        </dependency>
-
-        <!-- poi-tl Word模板引擎 -->
-        <dependency>
-            <groupId>com.deepoove</groupId>
-            <artifactId>poi-tl</artifactId>
-            <version>1.12.2</version>
         </dependency>
 
         <!--        SM2加密的依赖包-两个-->
