@@ -37,6 +37,19 @@ public interface DbConnectionConfigService extends IService<DbConnectionConfig> 
     boolean updateConfig(DbConnectionConfig config, String operator);
 
     /**
+     * 解析前端回传的数据库配置，统一定位密码来源并校验归属
+     * 规则：
+     * 1. dbPass 非空 → 视为前端 CryptoJS 加密传来的密文，原样使用
+     * 2. dbPass 为空且 id 非空 → 回查库内存储的密文回填（列表已脱敏场景）
+     * 3. 两者都空 → 抛 IllegalArgumentException
+     * id 非空时一律校验 createdBy 归属，防止借用他人配置凭据
+     * @param incoming 前端回传的配置对象
+     * @param empNo 当前登录工号
+     * @return 补全密码后的配置对象（原地返回）
+     */
+    DbConnectionConfig resolveDbConfig(DbConnectionConfig incoming, String empNo);
+
+    /**
      * 测试数据库连接是否可用
      * @param config 数据库配置（含 host、port、dbUser、dbPass、databaseName）
      * @return true 连接成功，false 连接失败

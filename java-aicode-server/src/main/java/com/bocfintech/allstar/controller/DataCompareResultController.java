@@ -6,6 +6,7 @@ import com.bocfintech.allstar.entity.CompareRequest;
 import com.bocfintech.allstar.entity.DbConnectionConfig;
 import com.bocfintech.allstar.entity.CompareResultItem;
 import com.bocfintech.allstar.service.DataCompareResultService;
+import com.bocfintech.allstar.service.DbConnectionConfigService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
@@ -24,6 +25,9 @@ public class DataCompareResultController {
 
     @Autowired
     private DataCompareResultService dataCompareResultService;
+
+    @Autowired
+    private DbConnectionConfigService dbConnectionConfigService;
 
     /**
      * 表结构比对
@@ -45,6 +49,7 @@ public class DataCompareResultController {
             }
 
             validateCompareRequest(request);
+            resolveCompareConfigs(request, empNo);
             List<CompareResultItem> result = dataCompareResultService.compareTableStructure(
                     request.getSourceConfig(),
                     request.getTargetConfig(),
@@ -78,6 +83,7 @@ public class DataCompareResultController {
             }
 
             validateCompareRequest(request);
+            resolveCompareConfigs(request, empNo);
             List<CompareResultItem> result = dataCompareResultService.compareRowCount(
                     request.getSourceConfig(),
                     request.getTargetConfig(),
@@ -111,6 +117,7 @@ public class DataCompareResultController {
             }
 
             validateCompareRequest(request);
+            resolveCompareConfigs(request, empNo);
             List<CompareResultItem> result = dataCompareResultService.compareFullData(
                     request.getSourceConfig(),
                     request.getTargetConfig(),
@@ -152,6 +159,16 @@ public class DataCompareResultController {
     }
 
     /**
+     * 解析比对请求中的源/目标库配置：
+     * 前端选中库存配置时 dbPass 已脱敏为空，按 id 回退库内密文并校验归属；
+     * 密码非空时视为前端加密传来的密文，直接使用
+     */
+    private void resolveCompareConfigs(CompareRequest request, String empNo) {
+        dbConnectionConfigService.resolveDbConfig(request.getSourceConfig(), empNo);
+        dbConnectionConfigService.resolveDbConfig(request.getTargetConfig(), empNo);
+    }
+
+    /**
      * 校验数据库配置
      */
     private void validateDbConfig(DbConnectionConfig config, String prefix) {
@@ -164,9 +181,7 @@ public class DataCompareResultController {
         if (!StringUtils.hasText(config.getDbUser())) {
             throw new IllegalArgumentException(prefix + "用户名不能为空");
         }
-        if (!StringUtils.hasText(config.getDbPass())) {
-            throw new IllegalArgumentException(prefix + "密码不能为空");
-        }
+        // 密码非空性不在此校验：统一由 resolveDbConfig 处理（空密码按 id 回退库内密文）
         if (!StringUtils.hasText(config.getDatabaseName())) {
             throw new IllegalArgumentException(prefix + "数据库名不能为空");
         }

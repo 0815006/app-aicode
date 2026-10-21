@@ -4,6 +4,7 @@ import com.bocfintech.allstar.dialect.DatabaseDialect;
 import com.bocfintech.allstar.dialect.DialectFactory;
 import com.bocfintech.allstar.entity.*;
 import com.bocfintech.allstar.service.DataCompareResultService;
+import com.bocfintech.allstar.util.AesUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -397,7 +398,8 @@ public class DataCompareResultServiceImpl implements DataCompareResultService {
     // ==================== 工具方法 ====================
 
     private String decryptPassword(String encryptedPassword) {
-        // TODO: 使用 AesUtil.decrypt(encryptedPassword, "your-key")
-        return encryptedPassword;
+        // 库存为前端 CryptoJS AES-CBC 加密的密文（同 key/IV），连接前解密为明文
+        // 严格模式：解密失败直接抛异常（存量明文数据已清理，不做降级）
+        return AesUtils.decrypt(encryptedPassword);
     }
 }

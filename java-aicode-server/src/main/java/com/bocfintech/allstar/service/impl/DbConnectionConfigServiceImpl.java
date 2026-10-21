@@ -8,8 +8,10 @@ import com.bocfintech.allstar.entity.DbConnectionConfig;
 import com.bocfintech.allstar.entity.TableInfo;
 import com.bocfintech.allstar.mapper.DbConnectionConfigMapper;
 import com.bocfintech.allstar.service.DbConnectionConfigService;
+import com.bocfintech.allstar.util.AesUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.sql.*;
 import java.time.LocalDateTime;
@@ -33,11 +35,14 @@ public class DbConnectionConfigServiceImpl
      */
     @Override
     public List<DbConnectionConfig> listByUser(String createdBy) {
-        return lambdaQuery()
+        List<DbConnectionConfig> list = lambdaQuery()
                 .eq(DbConnectionConfig::getCreatedBy, createdBy)
                 .eq(DbConnectionConfig::getStatus, "ACTIVE")
                 .orderByDesc(DbConnectionConfig::getCreatedTime)
                 .list();
+        // 脱敏：密码密文不回传前端（前端持有可解密的 key，回传密文等价于回传明文）
+        list.forEach(c -> c.setDbPass(null));
+        return list;
     }
 
     /**
@@ -72,6 +77,33 @@ public class DbConnectionConfigServiceImpl
 
         config.setUpdatedTime(LocalDateTime.now());
         return updateById(config);
+    }
+
+    /**
+     * 解析前端回传的数据库配置，统一定位密码来源并校验归属
+     */
+    @Override
+    public DbConnectionConfig resolveDbConfig(DbConnectionConfig incoming, String empNo) {
+        if (incoming == null) {
+            throw new IllegalArgumentException("数据库配置不能为空");
+        }
+        boolean hasPass = StringUtils.hasText(incoming.getDbPass());
+        if (incoming.getId() != null) {
+            DbConnectionConfig stored = getById(incoming.getId());
+            if (stored == null) {
+                throw new IllegalArgumentException("配置不存在：" + incoming.getId());
+            }
+            if (!empNo.equals(stored.getCreatedBy())) {
+                throw new SecurityException("无权使用他人配置");
+            }
+            if (!hasPass) {
+                // 列表已脱敏回传空密码：用库内存储的密文回退
+                incoming.setDbPass(stored.getDbPass());
+            }
+        } else if (!hasPass) {
+            throw new IllegalArgumentException("密码不能为空，请先保存配置或输入密码");
+        }
+        return incoming;
     }
 
     /**
@@ -439,8 +471,9 @@ public class DbConnectionConfigServiceImpl
     // ------------------- 工具方法 -------------------
 
     private String decryptPassword(String encryptedPassword) {
-        // TODO: 使用 AesUtil.decrypt(encryptedPassword, "your-key")
-        return encryptedPassword; // 临时返回原值
+        // 库存为前端 CryptoJS AES-CBC 加密的密文（同 key/IV），连接前解密为明文
+        // 严格模式：解密失败直接抛异常（存量明文数据已清理，不做降级）
+        return AesUtils.decrypt(encryptedPassword);
     }
 
     private String getCreateTableSql(DbConnectionConfig config, DatabaseDialect dialect, String tableName) {

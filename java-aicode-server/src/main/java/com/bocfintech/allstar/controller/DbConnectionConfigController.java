@@ -20,7 +20,7 @@ public class DbConnectionConfigController {
     private DbConnectionConfigService dbConnectionConfigService;
 
     /**
-     * 查询所有数据库配置
+     * 查询所有数据库配置（已脱敏：dbPass 固定为 null，密文不回传前端）
      */
     @GetMapping("/list")
     public ResultBean<List<DbConnectionConfig>> listAll(@RequestHeader(value = "token", required = false) String token) {
@@ -137,6 +137,9 @@ public class DbConnectionConfigController {
             if (!StringUtils.hasText(empNo)) {
                 return ResultBean.error(ErrorEnum.参数异常, "未登录或Token无效");
             }
+
+            // 密码非空→用前端加密传来的新密码（新建/改密未保存）；为空→按 id 回退库内密文
+            config = dbConnectionConfigService.resolveDbConfig(config, empNo);
 
             boolean success = dbConnectionConfigService.testConnection(config);
             return success ? ResultBean.success("连接成功") : ResultBean.error("连接失败，请检查配置");

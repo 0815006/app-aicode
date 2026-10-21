@@ -46,7 +46,7 @@
         <el-input v-model="form.dbUser" placeholder="请输入用户名" />
       </el-form-item>
       <el-form-item label="密码" prop="dbPass">
-        <el-input v-model="form.dbPass" type="password" placeholder="请输入密码" show-password />
+        <el-input v-model="form.dbPass" type="password" :placeholder="mode === 'edit' ? '留空则不修改原密码' : '请输入密码'" show-password />
       </el-form-item>
       <el-form-item label="数据库名" prop="databaseName">
         <el-input v-model="form.databaseName" placeholder="请输入数据库名" />
@@ -70,6 +70,7 @@
 
 <script>
 import { getDbConfigList, createDbConfig, updateDbConfig, testDbConnection } from '@/api/migration'
+import { encryptPassword } from '@/utils/crypto'
 
 export default {
   name: 'CreateDbConfigDialog',
@@ -123,7 +124,17 @@ export default {
           { required: true, message: '用户名不能为空', trigger: 'blur' }
         ],
         dbPass: [
-          { required: true, message: '密码不能为空', trigger: 'blur' }
+          // 新建必填；编辑可空（留空 = 不修改原密码，后端保留库内密文）
+          {
+            validator: (rule, value, callback) => {
+              if (this.mode === 'create' && !value) {
+                callback(new Error('密码不能为空'))
+              } else {
+                callback()
+              }
+            },
+            trigger: 'blur'
+          }
         ],
         databaseName: [
           { required: true, message: '数据库名不能为空', trigger: 'blur' }
@@ -209,7 +220,7 @@ export default {
           host: selected.host,
           port: selected.port,
           dbUser: selected.dbUser,
-          dbPass: selected.dbPass,
+          dbPass: selected.dbPass || '', // 列表已脱敏，不回显密码
           databaseName: selected.databaseName,
           charset: selected.charset
         }
@@ -226,7 +237,7 @@ export default {
             host: this.form.host,
             port: this.form.port,
             dbUser: this.form.dbUser,
-            dbPass: this.form.dbPass,
+            dbPass: encryptPassword(this.form.dbPass), // AES-CBC 加密后提交，后端密文直接入库
             databaseName: this.form.databaseName,
             charset: this.form.charset
           }
@@ -285,7 +296,9 @@ export default {
         if (valid) {
           this.testLoading = true
           this.testStatus = null
-          testDbConnection(this.form)
+          // 密码非空时加密后测试；留空（编辑态）传空，后端按 id 回退库内密文
+          const payload = { ...this.form, dbPass: encryptPassword(this.form.dbPass) }
+          testDbConnection(payload)
             .then(res => {
               this.testStatus = res.code === 200
               if (this.testStatus) {

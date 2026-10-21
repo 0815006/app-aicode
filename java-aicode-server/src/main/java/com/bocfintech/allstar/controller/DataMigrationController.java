@@ -74,6 +74,9 @@ public class DataMigrationController {
                 return ResultBean.error(ErrorEnum.参数异常, "未登录或Token无效");
             }
 
+            // 列表回传的配置已脱敏（dbPass=null），按 id 回退库内密文并校验归属
+            dbConnectionConfigService.resolveDbConfig(config, empNo);
+
             boolean connected = dbConnectionConfigService.testConnection(config);
             if (!connected) {
                 return ResultBean.error("无法连接数据库，无法查询表信息");
@@ -99,6 +102,8 @@ public class DataMigrationController {
                 return ResultBean.error(ErrorEnum.参数异常, "未登录或Token无效");
             }
 
+            dbConnectionConfigService.resolveDbConfig(request.getSourceConfig(), empNo);
+            dbConnectionConfigService.resolveDbConfig(request.getTargetConfig(), empNo);
             dbConnectionConfigService.migrateTableStructure(request.getSourceConfig(), request.getTargetConfig(), request.getTableName());
             return ResultBean.success("表结构迁移成功");
         } catch (Exception e) {
@@ -119,6 +124,8 @@ public class DataMigrationController {
                 return ResultBean.error(ErrorEnum.参数异常, "未登录或Token无效");
             }
 
+            dbConnectionConfigService.resolveDbConfig(request.getSourceConfig(), empNo);
+            dbConnectionConfigService.resolveDbConfig(request.getTargetConfig(), empNo);
             dbConnectionConfigService.migrateTableDataOnly(request.getSourceConfig(), request.getTargetConfig(), request.getTableName());
             return ResultBean.success("数据迁移成功");
         } catch (Exception e) {
@@ -139,6 +146,8 @@ public class DataMigrationController {
                 return ResultBean.error(ErrorEnum.参数异常, "未登录或Token无效");
             }
 
+            dbConnectionConfigService.resolveDbConfig(request.getSourceConfig(), empNo);
+            dbConnectionConfigService.resolveDbConfig(request.getTargetConfig(), empNo);
             dbConnectionConfigService.migrateTableData(request.getSourceConfig(), request.getTargetConfig(), request.getTableName());
             return ResultBean.success("表结构和数据迁移成功");
         } catch (Exception e) {
@@ -159,6 +168,7 @@ public class DataMigrationController {
                 return ResultBean.error(ErrorEnum.参数异常, "未登录或Token无效");
             }
 
+            dbConnectionConfigService.resolveDbConfig(request.getTargetConfig(), empNo);
             dbConnectionConfigService.truncateTable(request.getTargetConfig(), request.getTableName());
             return ResultBean.success("清空表成功");
         } catch (Exception e) {
@@ -179,6 +189,7 @@ public class DataMigrationController {
                 return ResultBean.error(ErrorEnum.参数异常, "未登录或Token无效");
             }
 
+            dbConnectionConfigService.resolveDbConfig(request.getTargetConfig(), empNo);
             dbConnectionConfigService.dropTable(request.getTargetConfig(), request.getTableName());
             return ResultBean.success("删除表成功");
         } catch (Exception e) {
