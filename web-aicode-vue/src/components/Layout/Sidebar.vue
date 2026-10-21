@@ -27,11 +27,6 @@
       router
       :collapse="collapsed"
     >
-      <!-- <el-menu-item index="/resource-check">
-        <i class="el-icon-document"></i>
-        <span slot="title">资源核查</span>
-      </el-menu-item> -->
-
       <el-menu-item index="/parking-list">
         <i class="el-icon-truck"></i>
         <span slot="title">车位预约</span>

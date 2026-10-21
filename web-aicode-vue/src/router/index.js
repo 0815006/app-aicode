@@ -2,7 +2,6 @@
 import Vue from 'vue'
 import Router from 'vue-router'
 import Home from '@/views/Home.vue'
-import ResourceCheck from '@/views/ResourceCheck.vue'
 import ParkingBookList from '@/views/ParkingBookList.vue' // 新增
 import ParkingScreen from '@/views/ParkingScreen.vue' // 停车大屏
 import ChatHall from '@/views/ChatHall.vue' // 新增
@@ -36,12 +35,6 @@ export default new Router({
           name: 'VoteManagement',
           component: VoteManagement,
           meta: { title: '投票功能' }
-        },
-        {
-          path: 'resource-check',
-          name: 'ResourceCheck',
-          component: ResourceCheck,
-          meta: { title: '资源核查' }
         },
         {
           path: 'parking-list',
