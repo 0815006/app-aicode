@@ -261,7 +261,13 @@ export default {
             this.outputText = decodeURIComponent(this.inputText)
             break
           case 'unicode':
-            this.outputText = this.unicodeDecode(this.inputText)
+            var unicodeResult = this.unicodeDecode(this.inputText)
+            this.outputText = unicodeResult
+            if (unicodeResult === this.inputText) {
+              this.$message.warning('未识别到 Unicode 转义序列（\\uXXXX），输出保持原样')
+              this.lastOperation = 'decode'
+              return
+            }
             break
           case 'hex':
             this.outputText = this.hexDecode(this.inputText)
@@ -305,7 +311,7 @@ export default {
       return result
     },
     unicodeDecode(str) {
-      return str.replace(/\\u([0-9a-fA-F]{4})/g, function (match, hex) {
+      return str.replace(/\\[uU]([0-9a-fA-F]{4})/g, function (match, hex) {
         return String.fromCharCode(parseInt(hex, 16))
       })
     },

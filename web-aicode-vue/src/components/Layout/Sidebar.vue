@@ -106,6 +106,12 @@
         <span slot="title">编码解码</span>
       </el-menu-item>
 
+      <!-- ✅ 新增：进制转换 -->
+      <el-menu-item index="/number-base">
+        <i class="el-icon-sort"></i>
+        <span slot="title">进制转换</span>
+      </el-menu-item>
+
       <el-menu-item index="/encrypt-tool">
         <i class="el-icon-key"></i>
         <span slot="title">加密解密</span>

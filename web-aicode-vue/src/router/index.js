@@ -15,6 +15,7 @@ import FormatXml from '@/views/FormatXml.vue'
 import FormatHtml from '@/views/FormatHtml.vue'
 import FormatSql from '@/views/FormatSql.vue'
 import EncodeTool from '@/views/EncodeTool.vue'
+import NumberBase from '@/views/NumberBase.vue' // 进制转换
 import EncryptTool from '@/views/EncryptTool.vue'
 import TextExtract from '@/views/TextExtract.vue'
 import FileShare from '@/views/FileShare.vue'
@@ -105,6 +106,12 @@ export default new Router({
           name: 'EncodeTool',
           component: EncodeTool,
           meta: { title: '编码解码' }
+        },
+        {
+          path: 'number-base',
+          name: 'NumberBase',
+          component: NumberBase,
+          meta: { title: '进制转换' }
         },
         {
           path: 'encrypt-tool',
