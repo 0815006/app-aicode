@@ -15,7 +15,7 @@
               @change="handleImageSelect"
             />
             <el-button
-              v-show="encodeType === 'base64'"
+              v-show="encodeType === 'base64' && !customBase64"
               size="small"
               icon="el-icon-upload2"
               @click="triggerFileInput"
@@ -80,6 +80,31 @@
       </div>
     </div>
 
+    <!-- Base64 自定义字符表选项 -->
+    <div v-if="encodeType === 'base64'" class="base64-options">
+      <el-radio-group v-model="customBase64" size="small" @change="handleBase64ModeChange">
+        <el-radio-button :label="false">标准 Base64</el-radio-button>
+        <el-radio-button :label="true">自定义字符表</el-radio-button>
+      </el-radio-group>
+      <template v-if="customBase64">
+        <el-select v-model="base64Preset" placeholder="预设字符表" size="small" clearable style="width: 180px" @change="applyPreset">
+          <el-option v-for="p in presetList" :key="p.name" :label="p.name" :value="p.name"></el-option>
+        </el-select>
+        <el-input
+          v-model="base64Rules"
+          size="small"
+          placeholder="输入 64 个互不重复的自定义字符（不含 =）"
+          class="rules-input"
+          :class="{ 'rules-invalid': !!base64Rules && !!rulesError }"
+          clearable
+          @input="handleRulesInput"
+        />
+        <span class="rules-status" :class="base64Rules && !rulesError ? 'status-ok' : 'status-err'">
+          {{ base64Rules ? (rulesError || '字符表校验通过') : '等待输入字符表' }}
+        </span>
+      </template>
+    </div>
+
     <!-- 底部操作栏 -->
     <div class="action-bar">
       <el-button
@@ -127,6 +152,15 @@ export default {
       inputText: '',
       outputText: '',
       encodeType: 'base64',
+      customBase64: false,
+      base64Rules: '',
+      base64Preset: '',
+      standardAlphabet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/',
+      presetList: [
+        { name: 'URL-safe (RFC 4648)', alphabet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_' },
+        { name: 'GCHQ 旋转表', alphabet: 'NOPQRSTUVWXYZABCDEFGHIJKLMnopqrstuvwxyzabcdefghijklm0123456789+/' },
+        { name: '随机乱序示例', alphabet: 'uLrdGq6B2TJPOSgKRbEti7U+VMZfeANaCnH4yWk9lcpFDQ/Iz3Xvhm0w1s5xoj8Y' }
+      ],
       imageFile: null,
       imageFileName: '',
       imagePreviewUrl: '',
@@ -136,7 +170,9 @@ export default {
   computed: {
     inputPlaceholder() {
       var map = {
-        base64: '输入待编码的文本，或点击上方"上传图片"选择图片文件...',
+        base64: this.customBase64
+          ? '输入待编码文本（自定义字符表模式不支持图片），或粘贴自定义 Base64 字符串进行解码...'
+          : '输入待编码的文本，或点击上方"上传图片"选择图片文件...',
         url: '输入待编码的文本，或粘贴 URL 编码字符串进行解码...',
         unicode: '输入待编码的文本，或粘贴 \\uXXXX 字符串进行解码...',
         hex: '输入待编码的文本，或粘贴十六进制字符串进行解码...'
@@ -144,13 +180,27 @@ export default {
       return map[this.encodeType] || '请输入文本...'
     },
     canEncode() {
-      if (this.encodeType === 'base64' && this.imageFile) {
+      if (this.encodeType === 'base64' && this.imageFile && !this.customBase64) {
         return true
       }
       return !!this.inputText.trim()
     },
     canDecode() {
       return !!this.inputText.trim()
+    },
+    rulesError() {
+      // 空串返回 ''（视为通过，按钮点击时再提示）；合法返回 ''；非法返回原因
+      var rules = this.base64Rules
+      if (!rules) return '请输入 64 个自定义字符'
+      if (rules.length !== 64) return '字符表长度为 ' + rules.length + '，必须恰好 64 个字符'
+      if (rules.indexOf('=') !== -1) return '字符表不能包含填充符 ='
+      var seen = {}
+      for (var i = 0; i < rules.length; i++) {
+        var c = rules.charAt(i)
+        if (seen[c]) return '字符表存在重复字符：' + c
+        seen[c] = true
+      }
+      return ''
     },
     isImageOutput() {
       return this.outputText
@@ -166,6 +216,20 @@ export default {
     handleTypeChange() {
       this.outputText = ''
       this.clearImage()
+    },
+    handleBase64ModeChange() {
+      this.outputText = ''
+      this.clearImage()
+    },
+    applyPreset(name) {
+      if (!name) return
+      var found = this.presetList.filter(function (p) { return p.name === name })[0]
+      if (found) {
+        this.base64Rules = found.alphabet
+      }
+    },
+    handleRulesInput() {
+      this.outputText = ''
     },
     triggerFileInput() {
       this.$refs.imageInput.click()
@@ -207,7 +271,16 @@ export default {
 
         switch (this.encodeType) {
           case 'base64':
-            this.outputText = this.base64Encode(this.inputText)
+            if (this.customBase64) {
+              if (this.rulesError) {
+                this.$message.error('自定义字符表不可用：' + this.rulesError)
+                return
+              }
+              // 先标准 Base64，再按字符表翻译一步
+              this.outputText = this.translateBase64(this.base64Encode(this.inputText), this.base64Rules, false)
+            } else {
+              this.outputText = this.base64Encode(this.inputText)
+            }
             break
           case 'url':
             this.outputText = encodeURIComponent(this.inputText)
@@ -243,6 +316,22 @@ export default {
       try {
         switch (this.encodeType) {
           case 'base64':
+            if (this.customBase64) {
+              if (this.rulesError) {
+                this.$message.error('自定义字符表不可用：' + this.rulesError)
+                return
+              }
+              // 自定义模式：先逆翻译回标准 Base64，再走标准解码
+              var customRaw = this.inputText.replace(/\s/g, '')
+              for (var ci = 0; ci < customRaw.length; ci++) {
+                if (customRaw.charAt(ci) !== '=' && this.base64Rules.indexOf(customRaw.charAt(ci)) === -1) {
+                  this.$message.error('输入包含字符表之外的字符：' + customRaw.charAt(ci))
+                  return
+                }
+              }
+              this.outputText = this.base64Decode(this.translateBase64(customRaw, this.base64Rules, true))
+              break
+            }
             // 如果输入是 data:image/... 的 data URI，去掉前缀后解码为文本
             var raw = this.inputText.trim()
             if (raw.indexOf('data:image/') === 0 && raw.indexOf(';base64,') !== -1) {
@@ -296,6 +385,30 @@ export default {
         bytes.push(binary.charCodeAt(i))
       }
       return this.utf8BytesToString(bytes)
+    },
+    // ========== 自定义 Base64 字符表翻译 ==========
+    // standardToCustom=false：标准表 -> 自定义表（编码最后一步）
+    // standardToCustom=true ：自定义表 -> 标准表（解码第一步），填充符 = 不参与换表
+    translateBase64(str, rules, toStandard) {
+      var std = this.standardAlphabet
+      var result = ''
+      for (var i = 0; i < str.length; i++) {
+        var c = str.charAt(i)
+        if (c === '=') {
+          result += '='
+          continue
+        }
+        if (toStandard) {
+          var idx = rules.indexOf(c)
+          if (idx === -1) throw new Error('输入包含字符表之外的字符：' + c)
+          result += std.charAt(idx)
+        } else {
+          var idx2 = std.indexOf(c)
+          if (idx2 === -1) throw new Error('非法的标准 Base64 字符：' + c)
+          result += rules.charAt(idx2)
+        }
+      }
+      return result
     },
     // ========== Unicode 编解码 ==========
     unicodeEncode(str) {
@@ -606,6 +719,45 @@ export default {
 .empty-tip i {
   font-size: 48px;
   margin-bottom: 16px;
+}
+
+/* Base64 自定义字符表选项栏 */
+.base64-options {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0 0;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.base64-options .rules-input {
+  flex: 1;
+  min-width: 280px;
+  max-width: 640px;
+}
+
+.base64-options .rules-input ::v-deep .el-input__inner {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12px;
+}
+
+.rules-status {
+  font-size: 12px;
+  color: #909399;
+  white-space: nowrap;
+}
+
+.rules-status.status-ok {
+  color: #67c23a;
+}
+
+.rules-status.status-err {
+  color: #e6a23c;
+}
+
+.base64-options .rules-input.rules-invalid ::v-deep .el-input__inner {
+  border-color: #f56c6c;
 }
 
 /* 底部操作栏 */

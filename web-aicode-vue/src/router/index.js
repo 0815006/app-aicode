@@ -11,6 +11,7 @@ import XmindConverter from '@/views/XmindConverter.vue'
 import XmindEdit from '@/views/XmindEdit.vue'
 import TextComparison from '@/views/TextComparison.vue'
 import FormatJson from '@/views/FormatJson.vue'
+import JsonToExcel from '@/views/JsonToExcel.vue' // JSON 转 Excel
 import FormatXml from '@/views/FormatXml.vue'
 import FormatHtml from '@/views/FormatHtml.vue'
 import FormatSql from '@/views/FormatSql.vue'
@@ -82,6 +83,12 @@ export default new Router({
           name: 'FormatJson',
           component: FormatJson,
           meta: { title: '格式化JSON' }
+        },
+        {
+          path: 'json-to-excel',
+          name: 'JsonToExcel',
+          component: JsonToExcel,
+          meta: { title: 'JSON 转 Excel' }
         },
         {
           path: 'format-xml',

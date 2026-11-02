@@ -81,11 +81,6 @@
         <span slot="title">文本提取</span>
       </el-menu-item>
 
-      <el-menu-item index="/format-json">
-        <i class="el-icon-s-data"></i>
-        <span slot="title">格式化JSON</span>
-      </el-menu-item>
-
       <el-menu-item index="/format-xml">
         <i class="el-icon-s-order"></i>
         <span slot="title">格式化XML</span>
@@ -99,6 +94,17 @@
       <el-menu-item index="/format-sql">
         <i class="el-icon-s-tools"></i>
         <span slot="title">格式化SQL</span>
+      </el-menu-item>
+
+      <el-menu-item index="/format-json">
+        <i class="el-icon-s-data"></i>
+        <span slot="title">格式化JSON</span>
+      </el-menu-item>
+
+      <!-- ✅ 新增：JSON 转 Excel -->
+      <el-menu-item index="/json-to-excel">
+        <i class="el-icon-download"></i>
+        <span slot="title">JSON 转 Excel</span>
       </el-menu-item>
 
       <el-menu-item index="/encode-decode">
